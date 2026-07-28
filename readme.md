@@ -2,10 +2,17 @@
 
 **AquaSense** é o sistema de **monitoramento contínuo do nível de água em piezômetros de barragens** desenvolvido como TCC do Técnico em Automação Industrial (SENAI Belo Horizonte HORTO), em resposta ao desafio SAGA da **Samarco Mineração**: sensores no ESP32, transmissão em tempo real para o Cloudflare Worker (com armazenamento em D1), dashboard interativo no GitHub Pages e **alertas preventivos por Telegram e SMS** disparados pelo motor de alertas do Worker (cron trigger).
 
+| Protótipo de bancada | Dashboard ao vivo durante a demonstração |
+|:---:|:---:|
+| ![Protoboard com ESP32, sensor ultrassônico e display OLED exibindo o nível medido e o status NORMAL](docs/img/prototipo_bancada.jpg) | ![Monitor exibindo o dashboard com nível d'água de 11,13 m subindo, pressão, temperatura e gráficos de histórico em tempo real](docs/img/demo_dashboard.jpg) |
+
+> 🎬 Demonstração completa em vídeo (bancada → firmware → dashboard atualizando ao vivo): publicada no [LinkedIn](https://www.linkedin.com/in/willianlopeshvac/).
+
 ## Estado do projeto (julho/2026)
 
 - ✅ **Plataforma em produção:** Worker + D1 + KV no ar, dashboard publicado, alertas Telegram/SMS ativos, deploy automático no merge da `main`.
 - ✅ **Protótipo físico de bancada validado ponta a ponta** (16/07): ESP32 + sensor ultrassônico + OLED lendo nível real e o dashboard atualizando ao vivo, com *store & forward* comprovado (leituras seguradas sem rede, zero perda).
+- ✅ **Demonstração em vídeo gravada** (28/07): cadeia completa em funcionamento — bancada, display local, firmware e dashboard registrando a subida do nível em tempo real (imagens acima).
 - ✅ **TCC oficial** entregue sobre o template INTEGRA SENAI-MG.
 - 🔜 **Protótipo v2 em preparação:** tubo de acrílico simulando o piezômetro + sensor de pressão piezorresistivo (MPS20N0040D + HX710B) + display maior (TFT) — o firmware já foi preparado para essas trocas (interface `Tela` e adapters de sensor enxutos).
 - 🔜 Ensaio de validação do sensor e cadastro de `DEVICE_KEYS` por dispositivo em produção.
@@ -27,6 +34,8 @@
 - [Níveis de Alerta](#níveis-de-alerta)
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Histórico de Arquitetura](#histórico-de-arquitetura)
+- [Segurança](#segurança)
+- [Autor](#autor)
 
 ---
 
@@ -234,7 +243,8 @@ piezometro-teste/
 │   └── diagram.json                  # Circuito do Wokwi (ESP32 + BMP180 + OLED + LEDs + buzzer)
 ├── docs/
 │   ├── GUIA_MESTRE.md                   # Guia geral do projeto
-│   └── PESQUISA_EXTERNA_PIEZOMETROS.md  # Pesquisa externa sobre piezômetros
+│   ├── PESQUISA_EXTERNA_PIEZOMETROS.md  # Pesquisa externa sobre piezômetros
+│   └── img/                             # Fotos do protótipo e da demonstração
 ├── cloudflare-worker/       # Backend (deploy: ver README da pasta)
 │   ├── src/
 │   │   ├── index.js         # Roteador (fetch + scheduled) — só orquestra
@@ -272,3 +282,20 @@ piezometro-teste/
 A primeira versão do sistema (v1) usava um proxy Node.js (`server.js`) hospedado no Render, que ingeria as leituras do ESP32, repassava as consultas do dashboard ao InfluxDB Cloud e rodava o motor de alertas via `setInterval`. Essa arquitetura foi substituída (v2) pelo Cloudflare Worker descrito neste documento, por três motivos principais: o plano gratuito do Render hibernava após 15 minutos de inatividade, o que pausava o motor de alertas justamente quando ninguém estava olhando o dashboard (o pior momento para isso acontecer); o InfluxDB Cloud exigia gerenciar tokens de leitura/escrita separados e, em contas novas, tinha retenção de dados limitada a 30 dias no plano gratuito; e manter três serviços externos (Render, InfluxDB, GitHub Pages) para um protótipo de TCC adicionava complexidade operacional sem benefício correspondente.
 
 A v2 consolida ingestão, armazenamento e motor de alertas em uma única plataforma (Cloudflare), sem credenciais externas de banco de dados: o D1 tem retenção ilimitada dentro do limite de armazenamento do free tier (~5 GB, suficiente para anos de leituras de piezômetro), não exige nenhum token de acesso ao banco (o binding é interno ao Worker) e o motor de alertas, agora um Cron Trigger, nunca hiberna. A v1 não foi apagada do projeto — ela está preservada no histórico do git, disponível para consulta caso seja necessário comparar as duas abordagens.
+
+---
+
+## Segurança
+
+- Nenhum segredo fica no repositório: `DEVICE_KEY`, tokens do Telegram e credenciais da Twilio são *secrets* do Cloudflare (`wrangler secret put`); no firmware, as credenciais reais vivem em `piezometro_config_local.h`, que está no `.gitignore`.
+- O ESP32 autentica cada envio com a `DEVICE_KEY` no header `x-device-key`; o dashboard é somente leitura e o CORS restringe a origem.
+- Índice único no D1 impede duplicatas em caso de reenvio do buffer (*store & forward*).
+
+## Autor
+
+**Willian Lopes da Rocha** — Técnico em Automação Industrial em formação (SENAI) e Mecânico de Refrigeração II, com atuação em manutenção hospitalar de sistemas HVAC de grande porte.
+
+- LinkedIn: [linkedin.com/in/willianlopeshvac](https://www.linkedin.com/in/willianlopeshvac)
+- Este projeto responde ao desafio SAGA (SENAI/Samarco). Feedback técnico é bem-vindo — abra uma *issue* ou comente nos posts da série no LinkedIn.
+
+> ⚠️ **Posicionamento honesto:** este é um protótipo de conceito construído por um estudante, não um produto certificado para uso em barragens reais. A instrumentação de estruturas com Dano Potencial Associado alto exige equipamento qualificado e responsabilidade técnica formal (Resolução ANM 95/2022). O objetivo do projeto é demonstrar a arquitetura e democratizar o conceito para estruturas hoje sem nenhum monitoramento.
