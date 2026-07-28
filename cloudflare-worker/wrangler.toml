@@ -41,7 +41,9 @@ database_id = "df474eab-c128-42c0-bbf3-9b5a9afa0e87"
 # Ambiente"). Os segredos (tokens/chaves) NÃO ficam aqui — vão via
 # `wrangler secret put`, listados no comentário abaixo.
 [vars]
-ALLOWED_ORIGIN     = "*"
+# Origem exata do dashboard publicado (GitHub Pages). Para testar o dashboard
+# localmente no navegador, trocar temporariamente por "*" com `wrangler dev`.
+ALLOWED_ORIGIN     = "https://willianlsz1.github.io"
 NIVEL_ATENCAO      = "12"
 NIVEL_CRITICO      = "15"
 ALERT_REPEAT_MIN   = "15"
