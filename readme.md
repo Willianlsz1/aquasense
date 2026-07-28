@@ -159,7 +159,7 @@ const API_URL = "https://piezometro-worker.SEU-SUBDOMINIO.workers.dev";
 
 3. O dashboard estará disponível em:
    ```
-   https://SEU-USUARIO.github.io/piezometro-teste
+   https://SEU-USUARIO.github.io/aquasense
    ```
 
 ---
@@ -229,7 +229,7 @@ O sistema classifica o **nível d'água** em três faixas — a mesma lógica no
 ## Estrutura do Projeto
 
 ```
-piezometro-teste/
+aquasense/
 ├── firmware/
 │   ├── piezometro_core.h             # Núcleo comum (WiFi, NTP, buffer, envio, alertas)
 │   ├── tela.h                        # Interface Tela — core e sketches só falam com ela
