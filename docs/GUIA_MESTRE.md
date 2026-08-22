@@ -265,8 +265,8 @@ casar com o formato `PZ-NN`.
 **O que é:** o "cérebro" do sistema: recebe as leituras, grava no banco, roda o motor de alertas e
 serve os dados para o dashboard. Publicado em `https://piezometro-worker.willianloopes123.workers.dev`.
 
-**Como funciona:** o Worker roda em 7 módulos (`index.js` roteador, `config`, `http`, `db`,
-`alertas`, `notificacoes`, `rotas`), gravando cada leitura no banco **D1** (SQLite gerenciado). Um
+**Como funciona:** o Worker roda em 8 módulos (`index.js` roteador, `config`, `http`, `db`,
+`alertas`, `eventos`, `retencao`, `rotas`), gravando cada leitura no banco **D1** (SQLite gerenciado). Um
 **Cron Trigger** roda a cada 1 minuto e executa o motor de alertas em **3 camadas independentes**:
 
 | Camada | O que verifica | Registra quando |
