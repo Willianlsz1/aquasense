@@ -6,6 +6,7 @@ import {
   registrarEventoNivel,
   registrarEventoTaxa,
 } from "../cloudflare-worker/src/eventos.js";
+import { checkAlerts } from "../cloudflare-worker/src/alertas.js";
 import { handleAlerts } from "../cloudflare-worker/src/rotas.js";
 
 const cfg = {
@@ -108,4 +109,67 @@ test("handleAlerts remove canais e publica log legado sanitizado", async () => {
     valor: 12.5,
   }]);
   assertSemCanais(body.notificacoes[0]);
+});
+
+test("cron registra transição ATENCAO sem chamar rede", async () => {
+  const agoraSeg = Math.floor(Date.now() / 1000);
+  const env = {
+    DB: {
+      prepare(sql) {
+        const results = sql.includes("COALESCE(recebido_em, ts)")
+          ? [{ piezometro: "PZ-01", nivel_agua: 12.5 }]
+          : sql.includes("WHERE piezometro = ?1")
+            ? []
+            : [{
+                piezometro: "PZ-01",
+                nivel_agua: 12.5,
+                pressao: null,
+                temperatura: null,
+                ts: agoraSeg,
+                recebido_em: agoraSeg,
+              }];
+        const statement = { all: async () => ({ results }) };
+        statement.bind = () => statement;
+        return statement;
+      },
+    },
+  };
+  const estado = {
+    lastNotifiedLevel: {},
+    lastCriticalNotify: {},
+    commStatus: {},
+    taxaStatus: {},
+    alertLog: [],
+  };
+  const cfgCron = {
+    ...cfg,
+    ALERT_REPEAT_MIN: 15,
+    TAXA_JANELA_MIN: 60,
+    TAXA_MAX_M_DIA: 0.5,
+    SILENCE_ALERT_SEC: 900,
+    HISTERESE_M: 0.2,
+  };
+  const fetchAnterior = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error("A transição do cron não pode fazer rede");
+  };
+
+  try {
+    assert.equal(await checkAlerts(cfgCron, env, estado), true);
+  } finally {
+    globalThis.fetch = fetchAnterior;
+  }
+
+  assert.equal(estado.lastNotifiedLevel["PZ-01"], "ATENCAO");
+  assert.equal(estado.alertLog.length, 1);
+  assert.deepEqual(
+    {
+      tipo: estado.alertLog[0].tipo,
+      piezometro: estado.alertLog[0].piezometro,
+      nivel: estado.alertLog[0].nivel,
+      valor: estado.alertLog[0].valor,
+    },
+    { tipo: "nivel", piezometro: "PZ-01", nivel: "ATENCAO", valor: 12.5 },
+  );
+  assertSemCanais(estado.alertLog[0]);
 });
