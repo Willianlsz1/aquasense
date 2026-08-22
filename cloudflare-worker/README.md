@@ -1,8 +1,8 @@
 # Piezômetro — Worker Cloudflare (port do server.js)
 
 Port do proxy Node.js (`../server.js`) para **Cloudflare Workers**: mesma
-ingestão do ESP32, mesmo motor de alertas Telegram/SMS (agora rodando como
-*cron trigger* em vez de `setInterval`, com o estado persistido no KV), e as
+ingestão do ESP32 e motor de alertas escritos (agora rodando como *cron
+trigger* em vez de `setInterval`, com o estado persistido no KV), e as
 leituras armazenadas no **Cloudflare D1** (SQLite gerenciado) em vez de um
 InfluxDB externo. O InfluxDB não é mais necessário para este projeto — se
 você criou uma conta só para isso, pode encerrá-la.
@@ -51,20 +51,15 @@ wrangler d1 execute piezometro-db --remote --file=schema.sql
 
 Estes valores **nunca** vão no `wrangler.toml` (fica em texto puro e pode ir
 pro Git) — use `wrangler secret put`, que pergunta o valor interativamente.
-São só 5 agora (sem os tokens do InfluxDB):
+É só um segredo de autenticação:
 
 ```bash
 wrangler secret put DEVICE_KEY
-wrangler secret put TELEGRAM_BOT_TOKEN
-wrangler secret put TELEGRAM_CHAT_ID
-wrangler secret put TWILIO_ACCOUNT_SID
-wrangler secret put TWILIO_AUTH_TOKEN
 ```
 
-`DEVICE_KEY` é o único obrigatório na prática (protege o `/ingest`). Telegram
-e Twilio são opcionais — se não for usar SMS, por exemplo, não defina
-`TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN` (o worker detecta e desativa o canal
-automaticamente, igual ao `server.js`).
+`DEVICE_KEY` protege o `/ingest`. As transições de faixa são registradas no KV
+e apresentadas como alertas escritos e visuais no dashboard; não há canal
+externo de notificação configurável.
 
 ### Chave por dispositivo (`DEVICE_KEYS`, opcional)
 
@@ -110,13 +105,10 @@ Edite o bloco `[vars]` em `wrangler.toml` conforme o seu ambiente:
 - `ALLOWED_ORIGIN` → coloque a URL exata do seu GitHub Pages (sem barra
   final), nunca deixe `"*"` em produção
 - `NIVEL_ATENCAO`, `NIVEL_CRITICO`, `ALERT_REPEAT_MIN`
-- `TWILIO_FROM`, `TWILIO_TO` (só usados se os segredos Twilio estiverem
-  definidos)
 - `SILENCE_ALERT_SEC` (default `"900"`, 15 min) → tempo de silêncio de um
   piezômetro (sem nenhuma leitura nova, independente do valor) a partir do
   qual o motor de alertas dispara o **alarme de comunicação** — camada
-  separada do alarme de nível, que avisa Telegram/SMS quando o instrumento
-  "fica mudo" e quando ele volta a reportar. Dado ausente nunca é tratado
+  separada do alarme de nível, que registra a mudança de estado. Dado ausente nunca é tratado
   como NORMAL: enquanto um piezômetro está em silêncio, ele fica de fora da
   avaliação de nível.
 - `TAXA_JANELA_MIN` (default `"60"`, 1 hora) → janela usada para calcular a
@@ -219,8 +211,8 @@ curl "http://localhost:8787/__scheduled?cron=*+*+*+*+*"
 ```
 
 Isso executa `scheduled()` uma vez — leia os logs do `wrangler dev` para
-confirmar que ele buscou os últimos níveis no D1, avaliou as faixas e (se
-aplicável) notificou Telegram/SMS.
+confirmar que ele buscou os últimos níveis no D1, avaliou as faixas e registrou
+os eventos no KV.
 
 ## Observação sobre o volume do cron
 

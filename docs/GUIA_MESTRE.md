@@ -14,8 +14,8 @@
 
 > "AquaSense mede automaticamente o nível de água dentro de piezômetros de barragens — hoje isso é
 > feito uma vez por semana, à mão, por um técnico caminhando até cada poço. Nosso sistema lê o
-> instrumento continuamente, manda o dado pra nuvem em tempo real e dispara um alerta por Telegram
-> e SMS assim que o nível fica perigoso. Custa uma fração do preço da telemetria industrial e ataca
+> instrumento continuamente, manda o dado pra nuvem em tempo real e registra um alerta escrito
+> com destaque visual assim que o nível fica perigoso. Custa uma fração do preço da telemetria industrial e ataca
 > exatamente a lacuna que ela não cobre: as milhares de barragens pequenas que hoje não têm nenhuma
 > automação."
 
@@ -25,7 +25,7 @@ O AquaSense nasceu como resposta ao desafio SAGA da Samarco Mineração (TCC do 
 leitura manual terceirizada de piezômetros — que custa cerca de R$ 600 mil/ano e deixa uma "janela
 cega" entre leituras — por um sistema de telemetria contínua. Um sensor ligado a um ESP32 lê o
 nível d'água, envia para um backend serverless (Cloudflare Worker + banco D1), que grava o
-histórico e roda um motor de alertas a cada minuto, disparando notificações por Telegram e SMS
+histórico e roda um motor de alertas a cada minuto, registrando eventos escritos e visuais
 quando o nível cruza os limiares de atenção (12 m) ou crítico (15 m). Um dashboard web mostra tudo
 em tempo real.
 
@@ -59,7 +59,7 @@ não pode pagar dezenas de milhares de reais por ponto.
 **A solução.** Um ESP32 lê o sensor de nível (mediana de 5 leituras, filtrando ruído), guarda em
 buffer se a rede cair (*store & forward*) e envia por HTTPS autenticado para um Cloudflare Worker.
 O Worker grava no banco D1, roda um motor de alertas em 3 camadas a cada minuto (nível, comunicação,
-taxa de variação) e notifica por Telegram/SMS. Um dashboard web mostra tudo em tempo real, com um
+taxa de variação) e registra eventos no KV para exibição escrita e visual. Um dashboard web mostra tudo em tempo real, com um
 relatório imprimível e exports em CSV/Excel para auditoria. Uma página separada (`alerta.html`)
 demonstra, de forma coletiva no auditório da banca, como seria o alerta de Defesa Civil na Zona de
 Autossalvamento.
@@ -269,19 +269,19 @@ serve os dados para o dashboard. Publicado em `https://piezometro-worker.willian
 `alertas`, `notificacoes`, `rotas`), gravando cada leitura no banco **D1** (SQLite gerenciado). Um
 **Cron Trigger** roda a cada 1 minuto e executa o motor de alertas em **3 camadas independentes**:
 
-| Camada | O que verifica | Notifica quando |
+| Camada | O que verifica | Registra quando |
 |---|---|---|
 | **Nível** | Faixa do último valor de cada piezômetro (com histerese na descida) | Muda de faixa (Normal→Atenção→Crítico), com repetição do Crítico a cada `ALERT_REPEAT_MIN` |
 | **Comunicação** | Se um piezômetro cadastrado parou de enviar dado | Silêncio > `SILENCE_ALERT_SEC` — "instrumento silencioso" **nunca** conta como normal |
 | **Taxa (m/dia)** | Velocidade de subida/descida do nível | Taxa acima de `TAXA_MAX_M_DIA`, mesmo dentro da faixa "normal" — referência: piezômetro subindo > 0,1 m/dia já é gatilho de investigação (ASDSO) |
 
-O estado de alertas (última faixa notificada, contadores) fica no **Workers KV**, gravado **só
+O estado de alertas (última faixa registrada, contadores) fica no **Workers KV**, gravado **só
 quando muda** — não a cada ciclo — para respeitar o limite gratuito de 1.000 escritas/dia. As
-notificações saem por **Telegram** (grátis) e/ou **SMS via Twilio** (opcional, pago).
+os eventos são exibidos por escrito e visualmente no dashboard. LEDs e buzzer mantêm a sinalização local no protótipo físico.
 
 **Como saber se está funcionando:** `GET /health` deve retornar `{"status":"ok", ...}`; `GET
 /ultimos` deve trazer a leitura mais recente de cada piezômetro com `ts` e `recebido_em` atuais;
-`GET /alerts` mostra o histórico de notificações e o estado de comunicação/taxa por instrumento.
+`GET /alerts` mostra o histórico de eventos e o estado de comunicação/taxa por instrumento.
 
 **Retenção de dados (histórico "infinito" sem estourar o banco):** uma vez por dia, o mesmo
 `scheduled()` que roda o motor de alertas também consolida leituras mais antigas que
@@ -371,9 +371,9 @@ quatro campos, independente do sensor por trás.
          │  POST /ingest (JSON, header x-device-key)
          │  store & forward se a rede cair
 ┌────────▼──────────────────┐      ┌──────────────┐
-│   Cloudflare Worker         │─────▶│ 🔔 Telegram   │
-│   ingest · /ultimos · /dados│      │ 📱 SMS Twilio │
-│   cron 1 min: motor de       │      └──────────────┘
+│   Cloudflare Worker         │
+│   ingest · /ultimos · /dados│
+│   cron 1 min: registro de    │
 │   alertas (nível/comunicação/│
 │   taxa) · estado no KV      │
 └─────┬──────────────┬────────┘
@@ -395,9 +395,9 @@ quatro campos, independente do sensor por trás.
 | **ESP32 + sensor** | Coleta a leitura, filtra ruído (mediana), sinaliza localmente (LED/buzzer/OLED), guarda em buffer se a rede cair |
 | **Cloudflare Worker** | Único ponto de escrita no banco — o ESP32 nunca fala direto com o D1; autentica, valida e grava |
 | **Cloudflare D1** | Histórico persistente (SQLite gerenciado), com índice único que impede duplicata |
-| **Cloudflare KV** | Memória do motor de alertas entre execuções do cron (última faixa notificada por instrumento) |
+| **Cloudflare KV** | Memória do motor de alertas entre execuções do cron (última faixa registrada por instrumento) |
 | **Cron Trigger (1 min)** | Roda o motor de alertas 24/7, sem depender de nenhum ping externo — o Worker não hiberna |
-| **Telegram / SMS (Twilio)** | Canal de notificação em dupla via — chega mesmo sem ninguém olhando o dashboard |
+| **Dashboard** | Exibe eventos escritos e indicadores visuais; ausência de leitura aparece como **SEM SINAL** |
 | **GitHub Pages** | Hospeda o dashboard, a página de Alerta à População e o relatório imprimível — só leem a API, nunca escrevem |
 
 **Por que o Worker no meio, e não o ESP32 falando direto com o banco?** Porque nenhum segredo de
@@ -568,7 +568,7 @@ para a banca seria alegar uma montagem que não aconteceu.
 | **Dashboard** | Card cinza-hachurado "SEM SINAL" com "última leitura há X min"? Banner amarelo de simulação ligado quando deveria estar mostrando dado real (ou vice-versa)? Gráfico com pico visível junto da média, nunca só a média? |
 | **Serial do ESP32** (115200 baud) | Leituras sendo impressas a cada ciclo? Buffer de store & forward crescendo quando a rede cai? Erros de conexão WiFi ou de resposta HTTP do `/ingest`? |
 | **`GET /health` do Worker** | Deve responder `{"status":"ok", ...}` com `db: "D1"` — se não responder, o Worker está fora do ar ou mal configurado |
-| **Telegram** | Mensagens chegando nas transições de faixa? Alerta de "instrumento silencioso" chegando quando um ponto para de reportar? |
+| **Dashboard** | Eventos escritos nas transições de faixa? Estado **SEM SINAL** quando um ponto para de reportar? |
 
 ### Sintoma → causa provável → onde verificar
 
@@ -576,7 +576,7 @@ para a banca seria alegar uma montagem que não aconteceu.
 |---|---|---|
 | Card sempre "SEM SINAL" | Dispositivo sem energia/rede, ou `DEVICE_KEY` incorreta bloqueando o `/ingest` | Serial do ESP32 (erro de conexão?); `POST /ingest` retorna `401`? |
 | Dashboard mostrando dado simulado sem avisar | `FonteApi` falhou silenciosamente e caiu para `FonteSimulada` sem o banner atualizar | Console do navegador; `assets/js/fontes.js` |
-| Alerta de Telegram não chega | Secrets `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` não configurados, ou cron não está rodando | `GET /alerts` (canal `telegram: true/false`); `wrangler dev --test-scheduled` |
+| Evento de alerta não aparece | Cron não está rodando ou não há leitura recente | `GET /alerts`; `wrangler dev --test-scheduled` |
 | Leituras duplicadas no histórico | Não deveria acontecer — índice único bloqueia; se acontecer, é bug no dedupe | `cloudflare-worker/src/db.js` (`inserirLeituras`) |
 | Nível "trava" numa faixa mesmo descendo | Comportamento esperado — histerese (P4/ISA-18.2): só desce de faixa com folga abaixo do limiar | `cloudflare-worker/src/alertas.js` (`classifyComHisterese`) |
 | `POST /ingest` retorna `503` | `DEVICE_KEY` (ou `DEVICE_KEYS`) não configurada no Worker — fail-closed por desenho, não é bug | `wrangler secret put DEVICE_KEY` |
@@ -627,7 +627,7 @@ para a banca seria alegar uma montagem que não aconteceu.
 
 ### O que está pronto e validado (18/07/2026)
 
-- ✅ Plataforma em produção: Worker + D1 + KV no ar, dashboard publicado, alertas Telegram/SMS
+- ✅ Plataforma em produção: Worker + D1 + KV no ar, dashboard publicado, alertas escritos e visuais
   ativos, deploy automático no merge da `main`.
 - ✅ Protótipo físico de bancada **validado ponta a ponta** (16/07/2026): ESP32 + sensor
   ultrassônico + OLED lendo nível real, dashboard atualizando ao vivo, *store & forward* comprovado
@@ -647,7 +647,7 @@ para a banca seria alegar uma montagem que não aconteceu.
 |---|---|
 | Ensaio de validação do sensor | Protocolo pronto em `docs/prototipo/VALIDACAO_SENSOR.md` (5 alturas × 10 leituras) — falta executar e declarar a incerteza real (±2σ) |
 | Cadastro de `DEVICE_KEYS` em produção | O **mecanismo** já existe no código; falta gerar e configurar as chaves reais por dispositivo via `wrangler secret put DEVICE_KEYS` |
-| Secrets do Telegram | Confirmar `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` configurados em produção |
+| Alertas no painel | Confirmar eventos em `GET /alerts`, destaque visual e estado **SEM SINAL** sem leitura recente |
 | Protótipo v2 | Tubo acrílico + sensor de pressão MPS20N0040D + display TFT + BME280 — o firmware já foi preparado para essas trocas (interface `Tela` e adapters enxutos) |
 | Homologação da UCT | Ensaios E1–E5 de `HOMOLOGACAO_UCT.md` (exatidão ±3 cm, resistência de 72h, energia) — pré-requisito para liberar a UCT para o piloto de campo |
 | Piloto de campo | 1 unidade UCT completa operando 6–12 meses num açude/barragem parceira (fase 2 do roadmap de `PROJETO_INDUSTRIAL.md` §9) |

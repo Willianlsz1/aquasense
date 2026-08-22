@@ -1,6 +1,6 @@
 # 🟢 AquaSense — Monitoramento Online de Piezômetros
 
-**AquaSense** é o sistema de **monitoramento contínuo do nível de água em piezômetros de barragens** desenvolvido como TCC do Técnico em Automação Industrial (SENAI Belo Horizonte HORTO), em resposta ao desafio SAGA da **Samarco Mineração**: sensores no ESP32, transmissão em tempo real para o Cloudflare Worker (com armazenamento em D1), dashboard interativo no GitHub Pages e **alertas preventivos por Telegram e SMS** disparados pelo motor de alertas do Worker (cron trigger).
+**AquaSense** é o sistema de **monitoramento contínuo do nível de água em piezômetros de barragens** desenvolvido como TCC do Técnico em Automação Industrial (SENAI Belo Horizonte HORTO), em resposta ao desafio SAGA da **Samarco Mineração**: sensores no ESP32, transmissão em tempo real para o Cloudflare Worker (com armazenamento em D1), dashboard interativo no GitHub Pages e alertas escritos e visuais.
 
 | Protótipo de bancada | Dashboard ao vivo durante a demonstração |
 |:---:|:---:|
@@ -10,7 +10,7 @@
 
 ## Estado do projeto (julho/2026)
 
-- ✅ **Plataforma em produção:** Worker + D1 + KV no ar, dashboard publicado, alertas Telegram/SMS ativos, deploy automático no merge da `main`.
+- ✅ **Plataforma em produção:** Worker + D1 + KV no ar, dashboard publicado, alertas registrados no painel e deploy automático no merge da `main`.
 - ✅ **Protótipo físico de bancada validado ponta a ponta** (16/07): ESP32 + sensor ultrassônico + OLED lendo nível real e o dashboard atualizando ao vivo, com *store & forward* comprovado (leituras seguradas sem rede, zero perda).
 - ✅ **Demonstração em vídeo gravada** (28/07): cadeia completa em funcionamento — bancada, display local, firmware e dashboard registrando a subida do nível em tempo real (imagens acima).
 - ✅ **TCC oficial** entregue sobre o template INTEGRA SENAI-MG.
@@ -30,7 +30,7 @@
   - [2. Firmware ESP32 (Wokwi)](#2-firmware-esp32-wokwi)
   - [3. Dashboard (GitHub Pages)](#3-dashboard-github-pages)
 - [Variáveis de Ambiente](#variáveis-de-ambiente)
-- [Alertas por Telegram e SMS](#alertas-por-telegram-e-sms)
+- [Alertas escritos e visuais](#alertas-escritos-e-visuais)
 - [Níveis de Alerta](#níveis-de-alerta)
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Histórico de Arquitetura](#histórico-de-arquitetura)
@@ -43,7 +43,7 @@
 
 O sistema monitora continuamente o piezômetro via ESP32 — **na bancada física** (sensor ultrassônico medindo nível real, OLED local) **ou na simulação Wokwi** (BMP180 como stand-in) — enviando **nível d'água (m)**, pressão e temperatura para o Cloudflare Worker a cada 10 segundos, com *store & forward*: leituras feitas sem rede ficam retidas em buffer local (com timestamp NTP) e são reenviadas quando a conexão volta, sem perda de dados.
 
-Um dashboard web exibe os dados em tempo real com histórico de 24 horas, indicadores visuais de alerta e registro de eventos. Em paralelo, o **motor de alertas** do Worker (executado por *cron trigger*, a cada 1 minuto) vigia o D1 e dispara notificações por **Telegram** (gratuito) e/ou **SMS via Twilio** quando o nível muda de faixa — o alerta chega mesmo sem ninguém olhando o dashboard, cumprindo o requisito de "alertas preventivos" da demanda. Diferente de um servidor tradicional, o Worker não hiberna: o motor de alertas roda 24/7 sem depender de nenhum ping externo para "acordar".
+Um dashboard web exibe os dados em tempo real com histórico de 24 horas, indicadores visuais de alerta e registro de eventos. O **motor de alertas** do Worker (executado por *cron trigger*, a cada 1 minuto) vigia o D1 e registra no KV as transições de faixa para que o dashboard apresente alertas escritos e visuais. No hardware, LEDs e buzzer sinalizam localmente a faixa de nível; sem conexão, o painel indica **SEM SINAL** em vez de inventar uma condição normal.
 
 Quando o backend não está acessível, o dashboard ativa automaticamente um **modo de simulação** para demonstração — sinalizado por um banner amarelo e pela marcação "(simulação)" nos eventos, para que dados fictícios nunca sejam confundidos com leituras reais.
 
@@ -64,11 +64,11 @@ Quando o backend não está acessível, o dashboard ativa automaticamente um **m
          │
   POST /ingest (JSON, x-device-key)
          │
-┌────────▼───────────────┐      ┌──────────────┐
-│   Cloudflare Worker     │─────▶│ 🔔 Telegram  │
-│   (ingestão + /ultimos  │      │ 📱 SMS Twilio│
-│    + /dados + cron de   │      └──────────────┘
-│    alertas a cada 1 min)│
+┌────────▼───────────────┐
+│   Cloudflare Worker     │
+│   (ingestão + /ultimos  │
+│    + /dados + cron de   │
+│    registro de alertas) │
 └─────┬──────────────┬────┘
       │              │
   INSERT (D1)   GET /ultimos, /dados
@@ -94,7 +94,7 @@ O ESP32 nunca fala direto com o banco: ele posta as leituras em `/ingest`, auten
 | Backend | [Cloudflare Workers](https://workers.cloudflare.com) (ingestão + leitura + motor de alertas via Cron Trigger) |
 | Banco de dados | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite gerenciado) |
 | Estado do motor de alertas | [Cloudflare Workers KV](https://developers.cloudflare.com/kv/) |
-| Notificações | Telegram Bot API (gratuito) e Twilio SMS (opcional) |
+| Alertas | Eventos escritos e indicadores visuais no dashboard; LEDs e buzzer no protótipo físico |
 | Dashboard / Frontend | HTML + CSS + Canvas API + Leaflet (mapa), export CSV/Excel com metadados de auditoria |
 | Hospedagem frontend | [GitHub Pages](https://pages.github.com) |
 
@@ -118,7 +118,7 @@ O backend inteiro (ingestão, leitura para o dashboard e motor de alertas) roda 
 1. `wrangler login`
 2. Criar o namespace KV do motor de alertas (`wrangler kv namespace create ALERT_STATE`) e colar o `id` em `wrangler.toml`
 3. Criar o banco D1 (`wrangler d1 create piezometro-db`), colar o `database_id` em `wrangler.toml` e aplicar `schema.sql`
-4. Definir os segredos com `wrangler secret put` (`DEVICE_KEY`, e opcionalmente `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`)
+4. Definir o segredo `DEVICE_KEY` com `wrangler secret put`
 5. Ajustar as variáveis não sensíveis em `[vars]` (ver [tabela abaixo](#variáveis-de-ambiente))
 6. `wrangler deploy` — a URL pública fica algo como `https://piezometro-worker.SEU-SUBDOMINIO.workers.dev`
 
@@ -138,7 +138,7 @@ O firmware é organizado em **núcleo comum + adapters**: `piezometro_core.h` co
 
 1. Acesse [wokwi.com](https://wokwi.com), crie um projeto ESP32 e cole `firmware/sketch.ino` (e o `firmware/diagram.json` na aba **diagram.json** para montar o circuito: BMP180 na I2C 21/22, LEDs 32/33/25, buzzer 26)
 2. As credenciais do Wokwi já vêm inline no sketch (`Wokwi-GUEST` é rede pública do simulador) — ajuste só `SERVER_URL` e `DEVICE_KEY`
-3. **Start Simulation** — para testar alertas, mova o slider de pressão do BMP180: **1013 hPa → 10,0 m** 🟢 · **1035 hPa → 12,2 m** 🟡 · **1065 hPa → 15,2 m** 🔴 (Telegram/SMS no próximo ciclo do cron, até 1 min depois)
+3. **Start Simulation** — para testar alertas, mova o slider de pressão do BMP180: **1013 hPa → 10,0 m** 🟢 · **1035 hPa → 12,2 m** 🟡 · **1065 hPa → 15,2 m** 🔴. Observe os LEDs e o buzzer locais e o alerta escrito/visual no dashboard.
 
 > A placa posta as leituras (JSON) no `/ingest`, autenticando com `DEVICE_KEY` no header `x-device-key`. Os limiares (atenção 12 m / crítico 15 m) são espelhados no Worker (`[vars]` do `wrangler.toml`) e no dashboard — que os busca do Worker via `GET /config` no boot.
 
@@ -173,54 +173,33 @@ Definidas em `cloudflare-worker/wrangler.toml`, no bloco `[vars]` (não sensíve
 | `ALLOWED_ORIGIN` | Origem permitida pelo CORS (sem barra final) | `https://willianlsz1.github.io` |
 | `NIVEL_ATENCAO` | Limiar de atenção do nível d'água (m) | `12` (padrão) |
 | `NIVEL_CRITICO` | Limiar crítico do nível d'água (m) | `15` (padrão) |
-| `ALERT_REPEAT_MIN` | Reenvio do alerta crítico enquanto persistir (min) | `15` (padrão) |
-| `TWILIO_FROM` | Número Twilio remetente (formato E.164) | `+15551234567` |
-| `TWILIO_TO` | Número que recebe os SMS | `+5531999999999` |
+| `ALERT_REPEAT_MIN` | Reavaliação periódica do alerta crítico enquanto persistir (min) | `15` (padrão) |
 
 Segredos (definidos via `wrangler secret put`, **nunca** no `wrangler.toml`):
 
 | Segredo | Descrição |
 |---------|-----------|
 | `DEVICE_KEY` | Chave que a placa envia no header `x-device-key` ao chamar `/ingest` (único obrigatório na prática) |
-| `TELEGRAM_BOT_TOKEN` | Token do bot do Telegram (opcional) |
-| `TELEGRAM_CHAT_ID` | Chat/grupo que recebe os alertas (opcional) |
-| `TWILIO_ACCOUNT_SID` | SID da conta Twilio para SMS (opcional) |
-| `TWILIO_AUTH_TOKEN` | Token de autenticação Twilio (opcional) |
 
 ---
 
-## Alertas por Telegram e SMS
+## Alertas escritos e visuais
 
-O motor de alertas do Worker roda como **Cron Trigger** (`* * * * *`, a cada 1 minuto), busca o último `nivel_agua` de cada piezômetro no D1 e notifica **nas transições de faixa** (anti-spam: não repete a mesma faixa; o nível CRÍTICO é reenviado a cada `ALERT_REPEAT_MIN` minutos enquanto persistir). O estado (última faixa notificada, histórico de reenvios) fica persistido no **Workers KV**, já que um Worker não mantém estado entre invocações. O histórico de notificações fica exposto em `GET /alerts`.
+O motor de alertas do Worker roda como **Cron Trigger** (`* * * * *`, a cada 1 minuto), busca o último `nivel_agua` de cada piezômetro no D1 e registra as transições de faixa. O estado (última faixa e histórico de eventos) fica persistido no **Workers KV**, já que um Worker não mantém estado entre invocações. O histórico escrito fica exposto em `GET /alerts` e é apresentado visualmente pelo dashboard.
 
-O sistema monitora **múltiplos piezômetros**: cada leitura carrega o identificador do instrumento (campo `piezometro`, ex. `PZ-01`), gravado junto com a medição no D1. O motor de alertas acompanha cada piezômetro separadamente — a mesma lógica de transição de faixa e repetição do CRÍTICO é aplicada por instrumento — e as notificações (e o histórico em `GET /alerts`) indicam qual piezômetro disparou o alerta. O id é configurado no firmware através da constante `PIEZOMETRO_ID`.
-
-### Telegram (gratuito — recomendado para o TCC)
-
-1. No Telegram, fale com o **@BotFather** → `/newbot` → copie o **token**
-2. Adicione o bot a um grupo (ou fale com ele no privado) e envie uma mensagem qualquer
-3. Acesse `https://api.telegram.org/bot<TOKEN>/getUpdates` e copie o `chat.id`
-4. Defina `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` com `wrangler secret put`
-
-### SMS via Twilio (opcional, pago)
-
-1. Crie uma conta em [twilio.com](https://www.twilio.com) (o modo *trial* envia SMS para números verificados)
-2. Compre/ative um número remetente e copie **Account SID** e **Auth Token** do console
-3. Defina `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` com `wrangler secret put`, e `TWILIO_FROM`/`TWILIO_TO` em `[vars]`
-
-> 💡 **No hardware real (Fase 2)**, um módulo celular **SIM7600** no próprio ESP32 permitiria enviar SMS direto do campo, sem depender do backend — importante como redundância se a nuvem estiver fora.
+O sistema monitora **múltiplos piezômetros**: cada leitura carrega o identificador do instrumento (campo `piezometro`, ex. `PZ-01`), gravado junto com a medição no D1. O motor acompanha cada piezômetro separadamente; o histórico em `GET /alerts` indica qual instrumento mudou de faixa. O id é configurado no firmware através da constante `PIEZOMETRO_ID`.
 
 ---
 
 ## Níveis de Alerta
 
-O sistema classifica o **nível d'água** em três faixas — a mesma lógica no firmware (LEDs/buzzer), no dashboard (badges/gráfico) e no motor de alertas do Worker (Telegram/SMS):
+O sistema classifica o **nível d'água** em três faixas — a mesma lógica no firmware (LEDs/buzzer), no dashboard (badges/gráfico) e no motor de alertas do Worker:
 
-| Nível | Condição | LED | Buzzer | Notificação |
+| Nível | Condição | LED | Buzzer | Registro no painel |
 |-------|----------|-----|--------|-------------|
-| 🟢 **Normal** | Nível < 12 m | Verde contínuo | Silencioso | Só ao retornar de um alerta |
-| 🟡 **Atenção** | 12 ≤ Nível < 15 m | Amarelo contínuo | 1 bip a cada 2s | Telegram/SMS na transição |
-| 🔴 **Crítico** | Nível ≥ 15 m | Vermelho piscando | Bips contínuos | Telegram/SMS na transição + repetição a cada 15 min |
+| 🟢 **Normal** | Nível < 12 m | Verde contínuo | Silencioso | Evento escrito de retorno e estado visual normal |
+| 🟡 **Atenção** | 12 ≤ Nível < 15 m | Amarelo contínuo | 1 bip a cada 2s | Evento escrito e destaque visual no painel |
+| 🔴 **Crítico** | Nível ≥ 15 m | Vermelho piscando | Bips contínuos | Evento escrito e destaque visual persistente no painel |
 
 > ✅ Lógica correta de piezômetro: nível d'água **alto** = perigo (saturação do maciço da barragem).
 
@@ -252,7 +231,7 @@ aquasense/
 │   │   ├── http.js          # CORS, respostas JSON, limites de payload
 │   │   ├── db.js            # Todas as queries do D1
 │   │   ├── alertas.js       # Motor de alertas (nível + comunicação + taxa) e estado no KV
-│   │   ├── notificacoes.js  # Telegram e SMS (Twilio)
+│   │   ├── notificacoes.js  # Compatibilidade histórica; sem canal externo ativo
 │   │   ├── retencao.js      # Retenção: consolidação diária + limpeza (cron)
 │   │   └── rotas.js         # Handlers dos endpoints
 │   ├── migrations/          # Migrações do D1 (0001 recebido_em · 0002 dedupe · 0003 retenção)
@@ -287,7 +266,7 @@ A v2 consolida ingestão, armazenamento e motor de alertas em uma única platafo
 
 ## Segurança
 
-- Nenhum segredo fica no repositório: `DEVICE_KEY`, tokens do Telegram e credenciais da Twilio são *secrets* do Cloudflare (`wrangler secret put`); no firmware, as credenciais reais vivem em `piezometro_config_local.h`, que está no `.gitignore`.
+- Nenhum segredo fica no repositório: `DEVICE_KEY` é definido com `wrangler secret put`; no firmware, as credenciais reais vivem em `piezometro_config_local.h`, que está no `.gitignore`.
 - O ESP32 autentica cada envio com a `DEVICE_KEY` no header `x-device-key`; o dashboard é somente leitura e o CORS restringe a origem.
 - Índice único no D1 impede duplicatas em caso de reenvio do buffer (*store & forward*).
 

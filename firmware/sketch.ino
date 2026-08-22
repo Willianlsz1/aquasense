@@ -164,7 +164,8 @@ PIEZOMETRO_MAIN()
  * 3. CRÍTICO (vermelho): 1065 hPa → nível 15,2 m  (LED pisca + beep rápido)
  *
  * O dashboard usa os MESMOS limiares (12 m / 15 m) e o motor de alertas do
- * Cloudflare Worker dispara Telegram/SMS nas transições de nível — veja o
+ * O dashboard registra por escrito e destaca visualmente as transições de nível;
+ * LEDs e buzzer sinalizam a faixa localmente — veja o
  * README.
  *
  * TESTE DO STORE & FORWARD: pause a simulação por ~1 min (ou desligue o

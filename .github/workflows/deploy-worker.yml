@@ -35,6 +35,10 @@ jobs:
         with:
           node-version: 20
 
+      - name: Testes
+        working-directory: .
+        run: npm test
+
       # As migrações rodam ANTES do deploy (o Worker novo referencia coluna/
       # índice novos). O "|| echo" torna cada passo idempotente: 0001 falha com
       # "duplicate column name" se a coluna já existe; 0002 usa DELETE de

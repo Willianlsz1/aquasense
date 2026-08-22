@@ -243,7 +243,8 @@ PIEZOMETRO_MAIN()
  *    - até ~20 cm de água no tubo → nível 10,0 m (NORMAL, verde)
  *    - a partir de 24 cm de água  → nível 12,0 m (ATENÇÃO, amarelo, beep 2s)
  *    - a partir de 30 cm de água  → nível 15,0 m (CRÍTICO, vermelho pisca,
- *      beep rápido, e o motor de alertas do Worker dispara Telegram/SMS)
+ *      beep rápido; o Worker registra o evento para exibição escrita/visual
+ *      no dashboard)
  * 4. O dashboard usa os MESMOS limiares (12 m / 15 m) do firmware de
  *    simulação — não é preciso mudar nada no Worker nem no index.html.
  *
