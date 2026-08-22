@@ -219,6 +219,6 @@ export function handleHealth(cfg) {
     status: "ok",
     ts: new Date().toISOString(),
     db: "D1",
-    alertas: { telegram: cfg.telegramOn, sms: cfg.smsOn, cron: "1min" },
+    alertas: { modo: "registro_escrito", cron: "1min" },
   });
 }

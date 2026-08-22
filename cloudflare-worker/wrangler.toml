@@ -47,8 +47,6 @@ ALLOWED_ORIGIN     = "https://willianlsz1.github.io"
 NIVEL_ATENCAO      = "12"
 NIVEL_CRITICO      = "15"
 ALERT_REPEAT_MIN   = "15"
-TWILIO_FROM        = ""
-TWILIO_TO          = ""
 
 # Silêncio de instrumento além deste tempo (segundos) = alarme de COMUNICAÇÃO,
 # camada separada do alarme de nível (ver docs/projeto/DASHBOARD_PROFISSIONAL.md §2/§6,
@@ -98,7 +96,3 @@ PIEZOMETROS = '[{"id":"PZ-01","nome":"Dique Norte","lat":-20.1975,"lng":-43.4653
 #                        {"PZ-01":"chave-do-pz01","PZ-02":"..."} — revogação
 #                        individual sem afetar a frota; se definida, tem
 #                        prioridade sobre DEVICE_KEY (ver README, seção Segredos)
-# TELEGRAM_BOT_TOKEN   → token do bot do Telegram (@BotFather)
-# TELEGRAM_CHAT_ID     → chat/grupo que recebe os alertas
-# TWILIO_ACCOUNT_SID   → SID da conta Twilio (SMS, opcional)
-# TWILIO_AUTH_TOKEN    → token de autenticação Twilio (SMS, opcional)

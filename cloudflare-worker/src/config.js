@@ -1,6 +1,6 @@
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 // Constantes de validação/limites e leitura das env vars do Worker (limiares
-// de alerta, credenciais Telegram/Twilio, janelas de agregação de /dados).
+// de alerta e janelas de agregação de /dados).
 
 export const PIEZOMETRO_ID_RE = /^[A-Za-z0-9_-]{1,32}$/;
 export const INGEST_MAX_BYTES = 64 * 1024; // /ingest recebe lotes do store & forward
@@ -58,22 +58,9 @@ export function getConfig(env) {
   // Só é aplicada na DESCIDA de faixa — ver classifyComHisterese().
   const HISTERESE_M = parseFloat(env.HISTERESE_M || "0.2");
 
-  const TELEGRAM_BOT_TOKEN = env.TELEGRAM_BOT_TOKEN || "";
-  const TELEGRAM_CHAT_ID = env.TELEGRAM_CHAT_ID || "";
-  const TWILIO_ACCOUNT_SID = env.TWILIO_ACCOUNT_SID || "";
-  const TWILIO_AUTH_TOKEN = env.TWILIO_AUTH_TOKEN || "";
-  const TWILIO_FROM = env.TWILIO_FROM || "";
-  const TWILIO_TO = env.TWILIO_TO || "";
-
-  const telegramOn = !!(TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID);
-  const smsOn = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_FROM && TWILIO_TO);
-
   return {
     ALLOWED_ORIGIN, DEVICE_KEY, DEVICE_KEYS, RETENCAO_DIAS,
     NIVEL_ATENCAO, NIVEL_CRITICO, ALERT_REPEAT_MIN,
     SILENCE_ALERT_SEC, TAXA_JANELA_MIN, TAXA_MAX_M_DIA, STALE_SEG, HISTERESE_M,
-    TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID,
-    TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM, TWILIO_TO,
-    telegramOn, smsOn,
   };
 }

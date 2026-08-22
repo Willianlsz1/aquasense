@@ -1,11 +1,11 @@
 // ── Piezômetro — Cloudflare Worker ───────────────────────────────────────────
 // Port do server.js (Node.js puro / Render) para Cloudflare Workers.
 // Mesma responsabilidade: ingestão das leituras do ESP32 (/ingest), leitura
-// dessas leituras para o dashboard (/ultimos, /dados) e motor de alertas
-// Telegram/SMS — só que aqui o motor de alertas roda como CRON TRIGGER
-// (scheduled()) em vez de setInterval(), o estado de notificação é
-// persistido no KV (Workers não mantêm estado entre invocações), e as
-// leituras ficam no Cloudflare D1 (SQLite) em vez de um InfluxDB externo.
+// dessas leituras para o dashboard (/ultimos, /dados) e motor de eventos de
+// alerta escritos. Aqui o motor roda como CRON TRIGGER (scheduled()), o
+// estado e o registro de eventos ficam persistidos no KV (Workers não mantêm
+// estado entre invocações), e as leituras ficam no Cloudflare D1 (SQLite) em
+// vez de um InfluxDB externo.
 //
 // Nota sobre rate limiting: o server.js original limitava requisições por IP
 // em memória (rateBuckets). Isso não é possível de forma confiável em Workers

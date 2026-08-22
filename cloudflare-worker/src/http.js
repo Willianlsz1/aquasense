@@ -1,12 +1,6 @@
 // ── HELPERS HTTP ──────────────────────────────────────────────────────────────
 // Cabeçalhos CORS, resposta JSON padronizada, leitura de corpo com limite de
-// bytes e o timeout usado nas chamadas HTTP externas (Telegram/Twilio).
-
-// Timeout de 15s para chamadas HTTP externas (Telegram/Twilio), igual ao
-// httpsRequest() do server.js (req.setTimeout(15000, ...)).
-export function timeoutSignal() {
-  return AbortSignal.timeout(15000);
-}
+// bytes.
 
 // ── HELPERS DE RESPOSTA ───────────────────────────────────────────────────────
 export function corsHeaders(cfg, extra) {
