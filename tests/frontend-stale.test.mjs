@@ -47,7 +47,7 @@ function carregarRelatorio() {
 
 function carregarApp() {
   const elementos = new Map();
-  const contagens = { renderTaxa: [], semSinal: [], pushSpark: 0, pushChart: 0, pushStats: 0, pushReading: 0, setAlert: 0 };
+  const contagens = { renderTaxa: [], semSinal: [], addTaxaRow: 0, pushSpark: 0, pushChart: 0, pushStats: 0, pushReading: 0, setAlert: 0 };
   const document = { getElementById: id => {
     if (!elementos.has(id)) elementos.set(id, elemento());
     return elementos.get(id);
@@ -60,7 +60,7 @@ function carregarApp() {
     setAlertSemSinal: ts => contagens.semSinal.push(ts),
     pushSpark: () => { contagens.pushSpark++; }, pushChart: () => { contagens.pushChart++; },
     pushStats: () => { contagens.pushStats++; }, pushReading: () => { contagens.pushReading++; },
-    setAlert: () => { contagens.setAlert++; }, addTaxaRow: () => {}, redrawCharts: () => {},
+    setAlert: () => { contagens.setAlert++; }, addTaxaRow: () => { contagens.addTaxaRow++; }, redrawCharts: () => {},
     updateStats: () => {}, aplicarMaxNivelPico: () => {},
   });
   const antesDoBoot = appSource.split("(async function init()")[0];
@@ -141,6 +141,17 @@ test("applyData fresco remove estado stale e permite derivados", () => {
   assert.ok(contagens.pushStats > 0);
   assert.equal(contagens.pushReading, 1);
   assert.equal(contagens.setAlert, 1);
+});
+
+test("perda de sinal não rearma a borda de taxa alta já registrada", () => {
+  const { app, contagens } = carregarApp();
+  const agora = Math.floor(Date.now() / 1000);
+
+  app.applyData({ nivel: 2.4, taxa_m_dia: 0.8, ts: agora, recebidoEm: agora });
+  app.applyData({ nivel: 2.4, taxa_m_dia: 0.8, ts: agora - 600, recebidoEm: agora - 600 });
+  app.applyData({ nivel: 2.4, taxa_m_dia: 0.8, ts: agora, recebidoEm: agora });
+
+  assert.equal(contagens.addTaxaRow, 1);
 });
 
 test("resumo stale usa última leitura conhecida e mantém estatísticas históricas", () => {

@@ -179,7 +179,6 @@ function applyData({ nivel, pressao, temperatura, taxa_m_dia, ts, recebidoEm }) 
   // anexar a mesma amostra stale às séries locais nem reavaliar seus alarmes.
   if (leituraStale) {
     renderTaxa(null);
-    lastTaxaRapidaState = false;
     const badgeNivel = document.getElementById("badge-n");
     if (badgeNivel) { badgeNivel.className = "mbadge"; badgeNivel.textContent = "Sem sinal"; }
     setAlertSemSinal(Number.isFinite(recebidoEm) ? recebidoEm : ts);
