@@ -177,12 +177,14 @@ export async function handleDados(url, env, cfg) {
 export async function handleAlerts(env, cfg) {
   const estado = await lerEstado(env);
   return json(cfg, 200, {
-    canais: { telegram: cfg.telegramOn, sms: cfg.smsOn },
     limiares: { atencao: cfg.NIVEL_ATENCAO, critico: cfg.NIVEL_CRITICO },
     piezometros: { ...estado.lastNotifiedLevel },
     comunicacao: { ...estado.commStatus }, // P2
     taxas: { ...estado.taxaStatus }, // P3
-    notificacoes: estado.alertLog.slice(0, 50),
+    notificacoes: estado.alertLog
+      .filter((registro) => registro && typeof registro === "object")
+      .slice(0, 50)
+      .map(({ telegram, sms, ...registro }) => registro),
   });
 }
 

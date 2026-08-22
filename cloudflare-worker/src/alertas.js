@@ -4,7 +4,7 @@
 // (nível, comunicação, taxa) a cada ciclo do cron.
 
 import { lerUltimosNiveis, lerUltimasLeiturasTodas, lerLeituraBaseline } from "./db.js";
-import { notificar, notificarComunicacao, notificarTaxa } from "./notificacoes.js";
+import { registrarEventoComunicacao, registrarEventoNivel, registrarEventoTaxa } from "./eventos.js";
 
 // Classificação "pura" (sem histerese): usada tanto na SUBIDA de faixa quanto
 // no primeiro ciclo de um piezômetro (quando ainda não há faixa anterior).
@@ -119,7 +119,7 @@ export async function checkAlerts(cfg, env, estado) {
 
       if (mudouDeFaixa || repetirCritico) {
         if (anterior !== null || nivel !== "NORMAL") {
-          await notificar(cfg, estado.alertLog, pz, nivel, valor);
+          registrarEventoNivel(cfg, estado.alertLog, pz, nivel, valor);
           if (nivel === "CRITICO") estado.lastCriticalNotify[pz] = agora;
         }
         estado.lastNotifiedLevel[pz] = nivel;
@@ -137,7 +137,7 @@ export async function checkAlerts(cfg, env, estado) {
         const statusTaxa = Math.abs(taxa) > cfg.TAXA_MAX_M_DIA ? "TAXA_ALTA" : "OK";
         const statusTaxaAnterior = estado.taxaStatus[pz] || "OK";
         if (statusTaxa !== statusTaxaAnterior) {
-          await notificarTaxa(cfg, estado.alertLog, pz, statusTaxa, taxa, cfg.TAXA_MAX_M_DIA);
+          registrarEventoTaxa(cfg, estado.alertLog, pz, statusTaxa, taxa, cfg.TAXA_MAX_M_DIA);
           estado.taxaStatus[pz] = statusTaxa;
           mutou = true;
         }
@@ -159,7 +159,7 @@ export async function checkAlerts(cfg, env, estado) {
 
       if (statusComm !== statusCommAnterior) {
         const silencioMin = Math.round(silencioSeg / 60);
-        await notificarComunicacao(cfg, estado.alertLog, pz, statusComm, leitura.ts, silencioMin);
+        registrarEventoComunicacao(cfg, estado.alertLog, pz, statusComm, leitura.ts, silencioMin);
         estado.commStatus[pz] = statusComm;
         mutou = true;
       }
