@@ -138,7 +138,7 @@ function montarTabela(pontos) {
 // quando disponível), máximo das médias, pico máximo do período (P5 — o pico
 // nunca fica escondido atrás da média), leituras recebidas e alarmes no
 // período (intervalos cujo PICO caiu em atenção/crítico).
-function montarResumo(pontos, ultimo) {
+function montarResumo(pontos, ultimo, telemetria) {
   const medias = pontos.map(p => p.nivel_agua).filter(Number.isFinite);
   const maxs = pontos.map(p => Number.isFinite(p.nivel_max) ? p.nivel_max : p.nivel_agua).filter(Number.isFinite);
   const mins = pontos.map(p => Number.isFinite(p.nivel_min) ? p.nivel_min : p.nivel_agua).filter(Number.isFinite);
@@ -149,8 +149,12 @@ function montarResumo(pontos, ultimo) {
   const somaPonderada = pontos.reduce((acc, p) => acc + p.nivel_agua * (Number.isFinite(p.n_leituras) ? p.n_leituras : 1), 0);
   const media = temAlgumN ? (somaPonderada / pesoTotal) : (medias.length ? medias.reduce((a, b) => a + b, 0) / medias.length : NaN);
 
-  const nivelAtual = Number.isFinite(ultimo && ultimo.nivel) ? ultimo.nivel : (medias.length ? medias[medias.length - 1] : NaN);
-  const subAtual = (ultimo && Number.isFinite(ultimo.ts)) ? formatUltimaLeitura(ultimo.ts) : "último intervalo agregado";
+  const nivelAtual = Number.isFinite(telemetria?.nivelConhecido) ? telemetria.nivelConhecido : (medias.length ? medias[medias.length - 1] : NaN);
+  const ultimoStale = Boolean(ultimo && telemetria?.status === "stale");
+  const idadeBase = Number.isFinite(ultimo?.recebidoEm) ? ultimo.recebidoEm : ultimo?.ts;
+  const subAtual = ultimoStale
+    ? `SEM SINAL · ${formatUltimaLeitura(idadeBase)}`
+    : (ultimo && Number.isFinite(ultimo.ts)) ? formatUltimaLeitura(ultimo.ts) : "último intervalo agregado";
 
   const alarmes = pontos.filter(p => {
     const pico = Number.isFinite(p.nivel_max) ? p.nivel_max : p.nivel_agua;
@@ -158,7 +162,7 @@ function montarResumo(pontos, ultimo) {
   }).length;
 
   const cards = [
-    { lbl: "Nível atual", val: fmtNum(nivelAtual), un: "m", sub: subAtual },
+    { lbl: ultimoStale ? "Última leitura conhecida" : "Nível atual", val: fmtNum(nivelAtual), un: "m", sub: subAtual },
     { lbl: "Mínimo do período", val: mins.length ? fmtNum(Math.min(...mins)) : "n/d", un: "m" },
     { lbl: "Média do período", val: fmtNum(media), un: "m", sub: temAlgumN ? "ponderada por leituras" : "média simples" },
     { lbl: "Máximo (médias)", val: medias.length ? fmtNum(Math.max(...medias)) : "n/d", un: "m" },
@@ -175,11 +179,15 @@ function montarResumo(pontos, ultimo) {
 }
 
 // ── AUDITORIA ─────────────────────────────────────────────────────────────────
-function montarAuditoria({ bucketSeg, endpoint, ultimoOk }) {
+function montarAuditoria({ bucketSeg, endpoint, ultimoOk, telemetria }) {
   const intervaloLabel = Number.isFinite(bucketSeg) ? `${Math.round(bucketSeg / 60)} min` : "n/d";
+  const ultimoStale = Boolean(ultimoOk && telemetria?.status === "stale");
+  const idadeBase = Number.isFinite(telemetria?.recebidoEm) ? telemetria.recebidoEm : telemetria?.ts;
   const itens = [
     ["Fonte dos dados", "Sistema real (Cloudflare Worker + D1)"],
-    ["Nível atual", ultimoOk ? "GET /ultimos (leitura mais recente recebida)" : "GET /ultimos indisponível · usado o último intervalo agregado"],
+    [ultimoStale ? "Última leitura conhecida" : "Nível atual", ultimoStale
+      ? `GET /ultimos · SEM SINAL (${formatUltimaLeitura(idadeBase)})`
+      : ultimoOk ? "GET /ultimos (leitura mais recente recebida)" : "GET /ultimos indisponível · usado o último intervalo agregado"],
     ["Limiares vigentes", `atenção ${fmtNum(CFG.thrAtencao)} m · crítico ${fmtNum(CFG.thrCritico)} m`],
     ["Intervalo de agregação", intervaloLabel],
     ["Endpoint", endpoint],
@@ -255,13 +263,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     const json = await apiGet("/ultimos");
     const row = json && json[pzSelecionado];
-    if (row) { ultimo = { nivel: row.nivel_agua, ts: row.ts }; ultimoOk = true; }
+    if (row) { ultimo = { nivel: row.nivel_agua, ts: row.ts, recebidoEm: row.recebido_em }; ultimoOk = true; }
   } catch (e) { console.warn("Relatório: /ultimos indisponível —", e.message); }
 
-  montarResumo(pontos, ultimo);
+  const telemetria = avaliarTelemetriaAtual(ultimo);
+
+  montarResumo(pontos, ultimo, telemetria);
   desenharGrafico(pontos);
   montarTabela(pontos);
-  montarAuditoria({ bucketSeg, endpoint, ultimoOk });
+  montarAuditoria({ bucketSeg, endpoint, ultimoOk, telemetria });
 
   window.addEventListener("resize", () => desenharGrafico(pontos));
 });

@@ -57,3 +57,12 @@ test("recebidoEm tem precedência e ts é fallback", () => {
   assert.equal(avaliarTelemetriaAtual({ nivel: 2.4, taxa_m_dia: 0.08, recebidoEm: 879, ts: 999 }, 1_000).status, "stale");
   assert.equal(avaliarTelemetriaAtual({ nivel: 2.4, taxa_m_dia: 0.08, ts: 999 }, 1_000).status, "ok");
 });
+
+test("recepção fresca mantém a leitura atual elegível mesmo se o relógio do instrumento estiver antigo", () => {
+  const { avaliarTelemetriaAtual } = carregarUtil();
+
+  assertContratoAtual(
+    avaliarTelemetriaAtual({ nivel: 2.4, taxa_m_dia: -0.08, ts: 100, recebidoEm: 980 }, 1_000),
+    { status: "ok", nivelConhecido: 2.4, taxaAtual: -0.08, podeAtualizarIndicadores: true },
+  );
+});

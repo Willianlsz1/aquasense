@@ -241,6 +241,13 @@ header {
 
 .pz-detail-label { font-size: 12px; color: var(--text-2); }
 .pz-detail-label b { color: var(--text-1); }
+/* Último valor conhecido: a API respondeu, mas a telemetria do instrumento venceu. */
+.pz-detail-label.telemetria-stale { color: var(--gray); }
+.metrics-row.telemetria-stale .mcard {
+  opacity: .62;
+  border-color: var(--gray-bd);
+}
+.metrics-row.telemetria-stale .mcard-value { color: var(--gray); }
 
 .map-area { position: relative; height: 200px; border-radius: 8px; overflow: hidden; }
 #pz-map { width: 100%; height: 100%; background: var(--bg-card2); }

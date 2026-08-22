@@ -133,8 +133,16 @@ function applyData({ nivel, pressao, temperatura, taxa_m_dia, ts, recebidoEm }) 
   // Nível não-finito descarta a aplicação inteira; pressão/temperatura são
   // opcionais e, ausentes, mostram "n/d" (não disponível) com badge "Sem sensor".
   if (!Number.isFinite(nivel)) return;
+  const telemetria = avaliarTelemetriaAtual({ nivel, taxa_m_dia, ts, recebidoEm });
+  const leituraStale = telemetria.status === "stale";
   const temPressao = Number.isFinite(pressao);
   const temTemp    = Number.isFinite(temperatura);
+
+  // A API pode estar online enquanto o instrumento está sem sinal. Mantemos o
+  // último valor conhecido visível, mas o painel deixa claro que ele não é uma
+  // leitura operacional atual.
+  document.getElementById("pz-detail-label")?.classList.toggle("telemetria-stale", leituraStale);
+  document.getElementById("metrics-row")?.classList.toggle("telemetria-stale", leituraStale);
 
   // Card/gráfico de temperatura nascem OCULTOS (a bancada não instrumenta a
   // grandeza — decisão do usuário: ocultar em vez de exibir "Sem sensor").
@@ -152,18 +160,31 @@ function applyData({ nivel, pressao, temperatura, taxa_m_dia, ts, recebidoEm }) 
     el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
   };
 
-  document.getElementById("val-n").textContent = nivel.toFixed(2);       flash("val-n");
+  document.getElementById("val-n").textContent = nivel.toFixed(2);
+  if (!leituraStale) flash("val-n");
   // Poropressão: com sensor de pressão real (ex.: BMP no Wokwi) exibe a leitura
   // bruta em hPa; sem ele (bancada ultrassônica), exibe a poropressão EQUIVALENTE
   // calculada do nível MEDIDO (u = γw·h, 9,807 kPa por metro de coluna d'água,
   // a grandeza que o piezômetro real mede). Rotulada "Calculada": derivação de
   // medição real com rótulo explícito, nunca número inventado.
   const pressaoExib = temPressao ? pressao : nivel * 9.807;
-  document.getElementById("val-p").textContent = pressaoExib.toFixed(1); flash("val-p");
+  document.getElementById("val-p").textContent = pressaoExib.toFixed(1);
+  if (!leituraStale) flash("val-p");
   const up = document.getElementById("unit-p");
   if (up) up.textContent = temPressao ? "hPa" : "kPa";
   document.getElementById("val-t").textContent = temTemp ? temperatura.toFixed(1) : "n/d";
-  if (temTemp) flash("val-t");
+  if (temTemp && !leituraStale) flash("val-t");
+
+  // Taxa e todos os derivados operacionais exigem uma recepção recente. Não
+  // anexar a mesma amostra stale às séries locais nem reavaliar seus alarmes.
+  if (leituraStale) {
+    renderTaxa(null);
+    lastTaxaRapidaState = false;
+    const badgeNivel = document.getElementById("badge-n");
+    if (badgeNivel) { badgeNivel.className = "mbadge"; badgeNivel.textContent = "Sem sinal"; }
+    setAlertSemSinal(Number.isFinite(recebidoEm) ? recebidoEm : ts);
+    return;
+  }
 
   // Sparklines (só com dado real — sparkline de valor fabricado é linha reta mentirosa)
   pushSpark("n", nivel);
@@ -195,26 +216,17 @@ function applyData({ nivel, pressao, temperatura, taxa_m_dia, ts, recebidoEm }) 
   const bp = document.getElementById("badge-p");
   if (bp) { bp.textContent = temPressao ? "Bruta" : "Calculada"; bp.className = temPressao ? "mbadge mb-blue" : "mbadge"; }
 
-  // P3 — taxa de variação (display), independente do estado de comunicação
-  renderTaxa(taxa_m_dia);
+  // P3 — taxa de variação (display), somente da leitura atual elegível.
+  renderTaxa(telemetria.taxaAtual);
 
   // P3+P4 — alarme de variação rápida, edge-triggered (só na transição parado→rápido),
   // só com comunicação ok (dado stale não confirma tendência real)
   const taxaRapidaAgora = Number.isFinite(taxa_m_dia) && Math.abs(taxa_m_dia) > CFG.taxaMaxMDia;
-  if (estadoComunicacao({ ts, recebidoEm }) === "ok") {
-    if (taxaRapidaAgora && !lastTaxaRapidaState) addTaxaRow(taxa_m_dia);
-    lastTaxaRapidaState = taxaRapidaAgora;
-  }
+  if (taxaRapidaAgora && !lastTaxaRapidaState) addTaxaRow(taxa_m_dia);
+  lastTaxaRapidaState = taxaRapidaAgora;
 
-  // P1 — dado stale nunca é avaliado como normal: alarme de nível fica suspenso,
-  // o painel mostra o estado neutro "SEM SINAL" e a leitura VELHA não é
-  // re-registrada na tabela como se fosse nova (seria enganoso).
-  if (estadoComunicacao({ ts, recebidoEm }) === "stale") {
-    setAlertSemSinal(ts);
-  } else {
-    pushReading(nivel); // tabela de últimas leituras — só com dado fresco
-    setAlert(nivel);
-  }
+  pushReading(nivel);
+  setAlert(nivel);
 }
 
 // ── RELÓGIO ───────────────────────────────────────────────────────────────────
@@ -261,13 +273,13 @@ async function poll() {
         pzLatest = await FonteApi.ultimos();
         trocarFonte(FonteApi);
         failCount = 0;
-        setStatus("live", `Monitoramento ativo · atualizado às ${new Date().toLocaleTimeString("pt-BR")}`);
+        setStatus("live", `Sistema online · consulta às ${new Date().toLocaleTimeString("pt-BR")}`);
       } catch (_) {
         setStatus("sim", "Modo simulação ativo · sem conexão com o sistema");
       }
     } else {
       failCount = 0;
-      setStatus("live", `Monitoramento ativo · atualizado às ${new Date().toLocaleTimeString("pt-BR")}`);
+      setStatus("live", `Sistema online · consulta às ${new Date().toLocaleTimeString("pt-BR")}`);
     }
 
     checarTransicoesComunicacao(pzLatest); // P1 — eventos de ok↔stale de todos os pz
