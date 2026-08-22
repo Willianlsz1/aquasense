@@ -10,7 +10,7 @@
 
 ## Estado do projeto (julho/2026)
 
-- ✅ **Plataforma em produção:** Worker + D1 + KV no ar, dashboard publicado, alertas registrados no painel e deploy automático no merge da `main`.
+- ✅ **Plataforma em produção:** Worker + D1 + KV no ar, dashboard publicado, eventos persistentes disponíveis para consulta/auditoria e deploy automático no merge da `main`.
 - ✅ **Protótipo físico de bancada validado ponta a ponta** (16/07): ESP32 + sensor ultrassônico + OLED lendo nível real e o dashboard atualizando ao vivo, com *store & forward* comprovado (leituras seguradas sem rede, zero perda).
 - ✅ **Demonstração em vídeo gravada** (28/07): cadeia completa em funcionamento — bancada, display local, firmware e dashboard registrando a subida do nível em tempo real (imagens acima).
 - ✅ **TCC oficial** entregue sobre o template INTEGRA SENAI-MG.
@@ -43,7 +43,7 @@
 
 O sistema monitora continuamente o piezômetro via ESP32 — **na bancada física** (sensor ultrassônico medindo nível real, OLED local) **ou na simulação Wokwi** (BMP180 como stand-in) — enviando **nível d'água (m)**, pressão e temperatura para o Cloudflare Worker a cada 10 segundos, com *store & forward*: leituras feitas sem rede ficam retidas em buffer local (com timestamp NTP) e são reenviadas quando a conexão volta, sem perda de dados.
 
-Um dashboard web exibe os dados em tempo real com histórico de 24 horas, indicadores visuais de alerta e registro de eventos. O **motor de alertas** do Worker (executado por *cron trigger*, a cada 1 minuto) vigia o D1 e registra no KV as transições de faixa para que o dashboard apresente alertas escritos e visuais. No hardware, LEDs e buzzer sinalizam localmente a faixa de nível; sem conexão, o painel indica **SEM SINAL** em vez de inventar uma condição normal.
+Um dashboard web exibe os dados em tempo real com histórico de 24 horas, indicadores visuais de alerta e eventos da sessão atual. O **motor de alertas** do Worker (executado por *cron trigger*, a cada 1 minuto) vigia o D1 e grava no KV as transições de faixa, expostas por `GET /alerts` para consulta e auditoria. O dashboard atual não carrega esse histórico após recarregar a página. No hardware, LEDs e buzzer sinalizam localmente a faixa de nível; sem conexão, o painel indica **SEM SINAL** em vez de inventar uma condição normal.
 
 Quando o backend não está acessível, o dashboard ativa automaticamente um **modo de simulação** para demonstração — sinalizado por um banner amarelo e pela marcação "(simulação)" nos eventos, para que dados fictícios nunca sejam confundidos com leituras reais.
 
@@ -94,7 +94,7 @@ O ESP32 nunca fala direto com o banco: ele posta as leituras em `/ingest`, auten
 | Backend | [Cloudflare Workers](https://workers.cloudflare.com) (ingestão + leitura + motor de alertas via Cron Trigger) |
 | Banco de dados | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite gerenciado) |
 | Estado do motor de alertas | [Cloudflare Workers KV](https://developers.cloudflare.com/kv/) |
-| Alertas | Eventos escritos e indicadores visuais no dashboard; LEDs e buzzer no protótipo físico |
+| Alertas | Eventos persistentes no KV, consultáveis em `GET /alerts`; indicadores visuais e eventos locais da sessão no dashboard; LEDs e buzzer no protótipo físico |
 | Dashboard / Frontend | HTML + CSS + Canvas API + Leaflet (mapa), export CSV/Excel com metadados de auditoria |
 | Hospedagem frontend | [GitHub Pages](https://pages.github.com) |
 
@@ -138,7 +138,7 @@ O firmware é organizado em **núcleo comum + adapters**: `piezometro_core.h` co
 
 1. Acesse [wokwi.com](https://wokwi.com), crie um projeto ESP32 e cole `firmware/sketch.ino` (e o `firmware/diagram.json` na aba **diagram.json** para montar o circuito: BMP180 na I2C 21/22, LEDs 32/33/25, buzzer 26)
 2. As credenciais do Wokwi já vêm inline no sketch (`Wokwi-GUEST` é rede pública do simulador) — ajuste só `SERVER_URL` e `DEVICE_KEY`
-3. **Start Simulation** — para testar alertas, mova o slider de pressão do BMP180: **1013 hPa → 10,0 m** 🟢 · **1035 hPa → 12,2 m** 🟡 · **1065 hPa → 15,2 m** 🔴. Observe os LEDs e o buzzer locais e o alerta escrito/visual no dashboard.
+3. **Start Simulation** — para testar alertas, mova o slider de pressão do BMP180: **1013 hPa → 10,0 m** 🟢 · **1035 hPa → 12,2 m** 🟡 · **1065 hPa → 15,2 m** 🔴. Observe os LEDs e o buzzer locais, os indicadores do dashboard e o registro persistente em `GET /alerts`.
 
 > A placa posta as leituras (JSON) no `/ingest`, autenticando com `DEVICE_KEY` no header `x-device-key`. Os limiares (atenção 12 m / crítico 15 m) são espelhados no Worker (`[vars]` do `wrangler.toml`) e no dashboard — que os busca do Worker via `GET /config` no boot.
 
@@ -185,7 +185,7 @@ Segredos (definidos via `wrangler secret put`, **nunca** no `wrangler.toml`):
 
 ## Alertas escritos e visuais
 
-O motor de alertas do Worker roda como **Cron Trigger** (`* * * * *`, a cada 1 minuto), busca o último `nivel_agua` de cada piezômetro no D1 e registra as transições de faixa. O estado (última faixa e histórico de eventos) fica persistido no **Workers KV**, já que um Worker não mantém estado entre invocações. O histórico escrito fica exposto em `GET /alerts` e é apresentado visualmente pelo dashboard.
+O motor de alertas do Worker roda como **Cron Trigger** (`* * * * *`, a cada 1 minuto), busca o último `nivel_agua` de cada piezômetro no D1 e registra as transições de faixa. O estado (última faixa e histórico de eventos) fica persistido no **Workers KV**, já que um Worker não mantém estado entre invocações. O histórico escrito é exposto em `GET /alerts` para consulta e auditoria; o dashboard atual não o hidrata após reload e mostra apenas estados ao vivo e eventos locais da sessão.
 
 O sistema monitora **múltiplos piezômetros**: cada leitura carrega o identificador do instrumento (campo `piezometro`, ex. `PZ-01`), gravado junto com a medição no D1. O motor acompanha cada piezômetro separadamente; o histórico em `GET /alerts` indica qual instrumento mudou de faixa. O id é configurado no firmware através da constante `PIEZOMETRO_ID`.
 
@@ -197,9 +197,9 @@ O sistema classifica o **nível d'água** em três faixas — a mesma lógica no
 
 | Nível | Condição | LED | Buzzer | Registro no painel |
 |-------|----------|-----|--------|-------------|
-| 🟢 **Normal** | Nível < 12 m | Verde contínuo | Silencioso | Evento escrito de retorno e estado visual normal |
-| 🟡 **Atenção** | 12 ≤ Nível < 15 m | Amarelo contínuo | 1 bip a cada 2s | Evento escrito e destaque visual no painel |
-| 🔴 **Crítico** | Nível ≥ 15 m | Vermelho piscando | Bips contínuos | Evento escrito e destaque visual persistente no painel |
+| 🟢 **Normal** | Nível < 12 m | Verde contínuo | Silencioso | Evento persistente para auditoria e estado visual normal ao vivo |
+| 🟡 **Atenção** | 12 ≤ Nível < 15 m | Amarelo contínuo | 1 bip a cada 2s | Evento persistente para auditoria e destaque visual ao vivo |
+| 🔴 **Crítico** | Nível ≥ 15 m | Vermelho piscando | Bips contínuos | Evento persistente para auditoria e destaque visual ao vivo |
 
 > ✅ Lógica correta de piezômetro: nível d'água **alto** = perigo (saturação do maciço da barragem).
 
@@ -231,7 +231,7 @@ aquasense/
 │   │   ├── http.js          # CORS, respostas JSON, limites de payload
 │   │   ├── db.js            # Todas as queries do D1
 │   │   ├── alertas.js       # Motor de alertas (nível + comunicação + taxa) e estado no KV
-│   │   ├── notificacoes.js  # Compatibilidade histórica; sem canal externo ativo
+│   │   ├── eventos.js        # Registro de eventos persistentes no KV
 │   │   ├── retencao.js      # Retenção: consolidação diária + limpeza (cron)
 │   │   └── rotas.js         # Handlers dos endpoints
 │   ├── migrations/          # Migrações do D1 (0001 recebido_em · 0002 dedupe · 0003 retenção)

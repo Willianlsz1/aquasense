@@ -58,8 +58,9 @@ wrangler secret put DEVICE_KEY
 ```
 
 `DEVICE_KEY` protege o `/ingest`. As transições de faixa são registradas no KV
-e apresentadas como alertas escritos e visuais no dashboard; não há canal
-externo de notificação configurável.
+e expostas por `GET /alerts` para consulta e auditoria. O dashboard atual
+mostra estados ao vivo e eventos locais da sessão, sem carregar esse histórico
+após reload; não há canal externo de notificação configurável.
 
 ### Chave por dispositivo (`DEVICE_KEYS`, opcional)
 

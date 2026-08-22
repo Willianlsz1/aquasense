@@ -25,7 +25,7 @@ O AquaSense nasceu como resposta ao desafio SAGA da Samarco Mineração (TCC do 
 leitura manual terceirizada de piezômetros — que custa cerca de R$ 600 mil/ano e deixa uma "janela
 cega" entre leituras — por um sistema de telemetria contínua. Um sensor ligado a um ESP32 lê o
 nível d'água, envia para um backend serverless (Cloudflare Worker + banco D1), que grava o
-histórico e roda um motor de alertas a cada minuto, registrando eventos escritos e visuais
+histórico e roda um motor de alertas a cada minuto, registrando eventos persistentes para consulta/auditoria
 quando o nível cruza os limiares de atenção (12 m) ou crítico (15 m). Um dashboard web mostra tudo
 em tempo real.
 
@@ -59,7 +59,7 @@ não pode pagar dezenas de milhares de reais por ponto.
 **A solução.** Um ESP32 lê o sensor de nível (mediana de 5 leituras, filtrando ruído), guarda em
 buffer se a rede cair (*store & forward*) e envia por HTTPS autenticado para um Cloudflare Worker.
 O Worker grava no banco D1, roda um motor de alertas em 3 camadas a cada minuto (nível, comunicação,
-taxa de variação) e registra eventos no KV para exibição escrita e visual. Um dashboard web mostra tudo em tempo real, com um
+taxa de variação) e registra eventos no KV, expostos por `GET /alerts` para consulta e auditoria. Um dashboard web mostra estados em tempo real e eventos locais da sessão, com um
 relatório imprimível e exports em CSV/Excel para auditoria. Uma página separada (`alerta.html`)
 demonstra, de forma coletiva no auditório da banca, como seria o alerta de Defesa Civil na Zona de
 Autossalvamento.
@@ -277,7 +277,7 @@ serve os dados para o dashboard. Publicado em `https://piezometro-worker.willian
 
 O estado de alertas (última faixa registrada, contadores) fica no **Workers KV**, gravado **só
 quando muda** — não a cada ciclo — para respeitar o limite gratuito de 1.000 escritas/dia. As
-os eventos são exibidos por escrito e visualmente no dashboard. LEDs e buzzer mantêm a sinalização local no protótipo físico.
+os eventos persistentes ficam disponíveis em `GET /alerts` para consulta e auditoria. O dashboard atual não carrega esse histórico após reload; ele mostra estados ao vivo e eventos locais da sessão. LEDs e buzzer mantêm a sinalização local no protótipo físico.
 
 **Como saber se está funcionando:** `GET /health` deve retornar `{"status":"ok", ...}`; `GET
 /ultimos` deve trazer a leitura mais recente de cada piezômetro com `ts` e `recebido_em` atuais;
@@ -397,7 +397,7 @@ quatro campos, independente do sensor por trás.
 | **Cloudflare D1** | Histórico persistente (SQLite gerenciado), com índice único que impede duplicata |
 | **Cloudflare KV** | Memória do motor de alertas entre execuções do cron (última faixa registrada por instrumento) |
 | **Cron Trigger (1 min)** | Roda o motor de alertas 24/7, sem depender de nenhum ping externo — o Worker não hiberna |
-| **Dashboard** | Exibe eventos escritos e indicadores visuais; ausência de leitura aparece como **SEM SINAL** |
+| **Dashboard** | Exibe estados ao vivo e eventos locais da sessão; ausência de leitura aparece como **SEM SINAL**. Não hidrata `GET /alerts` após reload |
 | **GitHub Pages** | Hospeda o dashboard, a página de Alerta à População e o relatório imprimível — só leem a API, nunca escrevem |
 
 **Por que o Worker no meio, e não o ESP32 falando direto com o banco?** Porque nenhum segredo de
@@ -568,7 +568,7 @@ para a banca seria alegar uma montagem que não aconteceu.
 | **Dashboard** | Card cinza-hachurado "SEM SINAL" com "última leitura há X min"? Banner amarelo de simulação ligado quando deveria estar mostrando dado real (ou vice-versa)? Gráfico com pico visível junto da média, nunca só a média? |
 | **Serial do ESP32** (115200 baud) | Leituras sendo impressas a cada ciclo? Buffer de store & forward crescendo quando a rede cai? Erros de conexão WiFi ou de resposta HTTP do `/ingest`? |
 | **`GET /health` do Worker** | Deve responder `{"status":"ok", ...}` com `db: "D1"` — se não responder, o Worker está fora do ar ou mal configurado |
-| **Dashboard** | Eventos escritos nas transições de faixa? Estado **SEM SINAL** quando um ponto para de reportar? |
+| **Dashboard** | Estados ao vivo e eventos locais da sessão? Estado **SEM SINAL** quando um ponto para de reportar? |
 
 ### Sintoma → causa provável → onde verificar
 
@@ -627,7 +627,7 @@ para a banca seria alegar uma montagem que não aconteceu.
 
 ### O que está pronto e validado (18/07/2026)
 
-- ✅ Plataforma em produção: Worker + D1 + KV no ar, dashboard publicado, alertas escritos e visuais
+- ✅ Plataforma em produção: Worker + D1 + KV no ar, dashboard publicado, eventos persistentes disponíveis para consulta/auditoria
   ativos, deploy automático no merge da `main`.
 - ✅ Protótipo físico de bancada **validado ponta a ponta** (16/07/2026): ESP32 + sensor
   ultrassônico + OLED lendo nível real, dashboard atualizando ao vivo, *store & forward* comprovado
@@ -647,7 +647,7 @@ para a banca seria alegar uma montagem que não aconteceu.
 |---|---|
 | Ensaio de validação do sensor | Protocolo pronto em `docs/prototipo/VALIDACAO_SENSOR.md` (5 alturas × 10 leituras) — falta executar e declarar a incerteza real (±2σ) |
 | Cadastro de `DEVICE_KEYS` em produção | O **mecanismo** já existe no código; falta gerar e configurar as chaves reais por dispositivo via `wrangler secret put DEVICE_KEYS` |
-| Alertas no painel | Confirmar eventos em `GET /alerts`, destaque visual e estado **SEM SINAL** sem leitura recente |
+| Eventos persistentes e painel | Confirmar eventos em `GET /alerts` para auditoria, estados ao vivo e **SEM SINAL** sem leitura recente |
 | Protótipo v2 | Tubo acrílico + sensor de pressão MPS20N0040D + display TFT + BME280 — o firmware já foi preparado para essas trocas (interface `Tela` e adapters enxutos) |
 | Homologação da UCT | Ensaios E1–E5 de `HOMOLOGACAO_UCT.md` (exatidão ±3 cm, resistência de 72h, energia) — pré-requisito para liberar a UCT para o piloto de campo |
 | Piloto de campo | 1 unidade UCT completa operando 6–12 meses num açude/barragem parceira (fase 2 do roadmap de `PROJETO_INDUSTRIAL.md` §9) |
