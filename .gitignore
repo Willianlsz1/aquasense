@@ -1,4 +1,5 @@
 node_modules/
+.worktrees/
 .env
 firmware/piezometro_config_local.h
 
