@@ -179,10 +179,10 @@ function montarResumo(pontos, ultimo, telemetria) {
 }
 
 // ── AUDITORIA ─────────────────────────────────────────────────────────────────
-function montarAuditoria({ bucketSeg, endpoint, ultimoOk, telemetria }) {
+function montarAuditoria({ bucketSeg, endpoint, ultimoOk, telemetria, ultimo }) {
   const intervaloLabel = Number.isFinite(bucketSeg) ? `${Math.round(bucketSeg / 60)} min` : "n/d";
   const ultimoStale = Boolean(ultimoOk && telemetria?.status === "stale");
-  const idadeBase = Number.isFinite(telemetria?.recebidoEm) ? telemetria.recebidoEm : telemetria?.ts;
+  const idadeBase = Number.isFinite(ultimo?.recebidoEm) ? ultimo.recebidoEm : ultimo?.ts;
   const itens = [
     ["Fonte dos dados", "Sistema real (Cloudflare Worker + D1)"],
     [ultimoStale ? "Última leitura conhecida" : "Nível atual", ultimoStale
@@ -271,7 +271,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   montarResumo(pontos, ultimo, telemetria);
   desenharGrafico(pontos);
   montarTabela(pontos);
-  montarAuditoria({ bucketSeg, endpoint, ultimoOk, telemetria });
+  montarAuditoria({ bucketSeg, endpoint, ultimoOk, telemetria, ultimo });
 
   window.addEventListener("resize", () => desenharGrafico(pontos));
 });
