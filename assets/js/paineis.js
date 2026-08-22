@@ -120,15 +120,22 @@ function addTaxaRow(taxa) {
   pushHistorico({ lv: "taxa", lbl: "TAXA", msg, nivel: "···", time: t, color: corPorStatus("atencao") });
 }
 
+// Idade de comunicação é a hora em que o servidor recebeu a amostra. `ts` é
+// somente fallback para dados legados e pode refletir um relógio de instrumento errado.
+function timestampUltimaRecepcao(leitura) {
+  if (Number.isFinite(leitura?.recebidoEm)) return leitura.recebidoEm;
+  return leitura?.ts;
+}
+
 // P1 — evento de transição de comunicação (ok↔stale) de QUALQUER piezômetro monitorado
 // (não só o selecionado); dedupe: só dispara na transição, guardando o estado anterior
 // por pz em `pzComm`. "stale" é ALARME (exige verificar instrumento); "ok" é EVENTO
 // (comunicação restabelecida — confirmação pontual, cor verde reservada a isso).
-function addComunicacaoRow(pzId, estado, ts) {
+function addComunicacaoRow(pzId, estado, recebidoEm) {
   const t = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   if (estado === "stale") {
-    const hhmm = Number.isFinite(ts)
-      ? new Date(ts * 1000).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+    const hhmm = Number.isFinite(recebidoEm)
+      ? new Date(recebidoEm * 1000).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
       : "···";
     pushHistorico({
       lv: "semsinal", lbl: "SEM SINAL",
@@ -152,7 +159,7 @@ function checarTransicoesComunicacao(mapa) {
     const estadoAtual = estadoComunicacao(leitura);
     const estadoAnterior = pzComm[pz.id];
     if (estadoAnterior !== undefined && estadoAnterior !== estadoAtual) {
-      addComunicacaoRow(pz.id, estadoAtual, leitura && leitura.ts);
+      addComunicacaoRow(pz.id, estadoAtual, timestampUltimaRecepcao(leitura));
     }
     pzComm[pz.id] = estadoAtual;
   });
@@ -232,9 +239,9 @@ function atualizarVisaoGeral(mapa) {
     // P1 — leitura ausente/stale nunca aparece como normal: badge cinza "SEM SINAL" + cor+texto,
     // valor esmaecido e "última leitura há X min" (nunca vermelho nem verde — ver docs §2).
     if (semSinal) {
-      const temTs = d && Number.isFinite(d.ts);
-      const lastSeen = temTs
-        ? `última leitura ${formatUltimaLeitura(d.ts)}`
+      const ultimaRecepcao = timestampUltimaRecepcao(d);
+      const lastSeen = Number.isFinite(ultimaRecepcao)
+        ? `última leitura ${formatUltimaLeitura(ultimaRecepcao)}`
         : "nenhuma leitura recebida";
       return `
         <div class="pz-card pz-sem-sinal${sel}" data-pz="${pz.id}">

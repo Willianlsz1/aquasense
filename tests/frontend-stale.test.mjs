@@ -6,6 +6,7 @@ import vm from "node:vm";
 const relatorioSource = await readFile(new URL("../assets/js/relatorio.js", import.meta.url), "utf8");
 const utilSource = await readFile(new URL("../assets/js/util.js", import.meta.url), "utf8");
 const appSource = await readFile(new URL("../assets/js/app.js", import.meta.url), "utf8");
+const paineisSource = await readFile(new URL("../assets/js/paineis.js", import.meta.url), "utf8");
 
 function elemento() {
   const classes = new Set();
@@ -66,6 +67,28 @@ function carregarApp() {
   const antesDoBoot = appSource.split("(async function init()")[0];
   new vm.Script(`${utilSource}\n${antesDoBoot}\nglobalThis.app = { applyData };`).runInContext(contexto);
   return { app: contexto.app, elementos, contagens };
+}
+
+function carregarPaineis() {
+  const elementos = new Map();
+  const historico = [];
+  const document = {
+    getElementById(id) {
+      if (!elementos.has(id)) {
+        const el = elemento();
+        el.querySelectorAll = () => [];
+        elementos.set(id, el);
+      }
+      return elementos.get(id);
+    },
+  };
+  const contexto = vm.createContext({
+    CFG: { staleSeg: 120, taxaMaxMDia: 0.1, thrAtencao: 10, thrCritico: 12 }, Date, Math, document,
+    PIEZOMETROS: [{ id: "PZ-01", nome: "Dique Norte" }], pzSelecionado: "PZ-01", pzComm: { "PZ-01": "ok" },
+    pushHistorico: linha => historico.push(linha), selectPiezometro() {},
+  });
+  new vm.Script(`${utilSource}\n${paineisSource}\nglobalThis.paineis = { atualizarVisaoGeral, checarTransicoesComunicacao };`).runInContext(contexto);
+  return { paineis: contexto.paineis, elementos, historico };
 }
 
 function carregarRelatorioCompleto({ pontos, ultimo }) {
@@ -152,6 +175,20 @@ test("perda de sinal não rearma a borda de taxa alta já registrada", () => {
   app.applyData({ nivel: 2.4, taxa_m_dia: 0.8, ts: agora, recebidoEm: agora });
 
   assert.equal(contagens.addTaxaRow, 1);
+});
+
+test("sem sinal usa a última recepção, não o relógio adiantado do instrumento", () => {
+  const { paineis, elementos, historico } = carregarPaineis();
+  const agora = Math.floor(Date.now() / 1000);
+  const recebidoEm = agora - 360;
+  const tsAdiantado = agora + 3_600;
+  const leitura = { nivel: 2.4, ts: tsAdiantado, recebidoEm };
+
+  paineis.checarTransicoesComunicacao({ "PZ-01": leitura });
+  paineis.atualizarVisaoGeral({ "PZ-01": leitura });
+
+  assert.match(elementos.get("pz-grid").innerHTML, /última leitura há 6 min/);
+  assert.match(historico[0].msg, new RegExp(new Date(recebidoEm * 1000).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })));
 });
 
 test("resumo stale usa última leitura conhecida e mantém estatísticas históricas", () => {
