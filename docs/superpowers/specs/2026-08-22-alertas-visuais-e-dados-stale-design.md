@@ -30,7 +30,10 @@ Telegram e SMS foram ideias de demonstracao e nao fazem parte do destino atual d
 ### Leitura antiga
 
 - A ultima leitura conhecida pode permanecer visivel e esmaecida, acompanhada de `SEM SINAL` e sua idade.
-- Leitura stale nao deve ser adicionada aos graficos, tabela de leituras, estatisticas da janela nem calculo exibido de taxa.
+- Para dashboard e relatorio, frescor usa `recebido_em` quando finito e usa `ts` apenas como fallback. Timestamp ausente ou invalido resulta em `stale`. A leitura e `stale` quando `agora - timestampBase` excede `CFG.staleSeg`, carregado de `GET /config` (120 segundos na configuracao atual).
+- O limiar operacional do cron para alarme de comunicacao continua separado (`SILENCE_ALERT_SEC`, atualmente 900 segundos). Ele representa a tolerancia para disparar um evento remoto no Worker, enquanto `CFG.staleSeg` controla a apresentacao imediata da interface.
+- Somente a ultima telemetria usada como estado atual, quando stale, deve ser impedida de entrar nos graficos ao vivo, tabela de ultimas leituras, estatisticas da janela e calculo exibido de taxa.
+- Pontos retornados por `GET /dados` continuam validos quando pertencem a janela historica selecionada. A idade natural desses pontos nao os torna stale nem os remove de graficos, tabela historica ou estatisticas do periodo.
 - Se o historico da janela estiver vazio, minimo, maximo, variacao e taxa devem mostrar indisponibilidade.
 - O status da interface deve distinguir "sistema/API online" de "instrumento comunicando".
 - O relatorio deve transportar `recebido_em`. Se a ultima leitura estiver stale, deve rotula-la como ultima leitura conhecida sem sinal, nunca como nivel atual.
@@ -39,7 +42,7 @@ Telegram e SMS foram ideias de demonstracao e nao fazem parte do destino atual d
 
 As funcoes que hoje enviam notificacoes serao substituidas por funcoes puras de montagem e registro de eventos. `alertas.js` continua responsavel pela maquina de estados; o novo modulo de eventos apenas grava o texto e os metadados no log.
 
-O criterio de frescor sera centralizado em uma funcao pura reutilizavel. A interface chamara essa funcao antes de atualizar qualquer indicador derivado. O valor bruto antigo podera ser renderizado, mas o caminho de atualizacao de series e estatisticas sera interrompido.
+O criterio de frescor da interface sera centralizado em uma funcao pura reutilizavel pelo dashboard e pelo relatorio. A interface chamara essa funcao antes de atualizar qualquer indicador derivado da ultima telemetria. O valor bruto antigo podera ser renderizado, mas o caminho de atualizacao ao vivo de series e estatisticas sera interrompido. A agregacao historica de `GET /dados` permanece independente desse bloqueio.
 
 ## Testes
 
