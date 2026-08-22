@@ -46,12 +46,30 @@ function classifyComHisterese(nivel, faixaAnterior) {
 // device (leitura.ts) — imune à deriva do relógio simulado do Wokwi. `ts` segue sendo
 // usado só para exibição ("há X min") e gráficos; aqui é só fallback quando recebidoEm
 // não vier (dado antigo/fonte simulada sem o campo).
-function estadoComunicacao(leitura) {
+function estadoComunicacao(leitura, agoraSeg = Date.now() / 1000) {
   if (!leitura) return "stale";
   const base = Number.isFinite(leitura.recebidoEm) ? leitura.recebidoEm : leitura.ts;
   if (!Number.isFinite(base)) return "stale";
-  const idadeSeg = Date.now() / 1000 - base;
+  const idadeSeg = agoraSeg - base;
   return idadeSeg > CFG.staleSeg ? "stale" : "ok";
+}
+
+// Centraliza o contrato de consumo da leitura atual: uma amostra sem comunicação
+// recente ainda pode exibir o último nível conhecido, mas não atualiza tendências
+// nem indicadores operacionais.
+function avaliarTelemetriaAtual(leitura, agoraSeg = Date.now() / 1000) {
+  const status = estadoComunicacao(leitura, agoraSeg);
+  const nivelConhecido = Number.isFinite(leitura?.nivel) ? leitura.nivel : null;
+  const taxaAtual = status === "ok" && Number.isFinite(leitura?.taxa_m_dia)
+    ? leitura.taxa_m_dia
+    : null;
+
+  return {
+    status,
+    nivelConhecido,
+    taxaAtual,
+    podeAtualizarIndicadores: status === "ok",
+  };
 }
 
 // Formata "há X min/h/d" a partir de um timestamp em segundos (epoch)
