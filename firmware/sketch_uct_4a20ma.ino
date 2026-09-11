@@ -6,7 +6,7 @@
  * ============================================================================
  *
  * ⚠️ ESTE ARQUIVO É O ADAPTER DA UCT (Unidade de Controle e Telemetria)
- * INDUSTRIAL, homologada conforme docs/projeto/HOMOLOGACAO_UCT.md. Difere dos
+ * INDUSTRIAL, a validar conforme docs/projeto/HOMOLOGACAO_UCT.md. Difere dos
  * dois sketches anteriores (sketch.ino = BMP180 de simulação Wokwi;
  * sketch_fisico_jsn_sr04t.ino = ultrassônico stand-in da maquete didática):
  * aqui o nível vem de um TRANSDUTOR PIEZOMÉTRICO SUBMERSÍVEL de loop de

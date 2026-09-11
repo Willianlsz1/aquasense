@@ -80,18 +80,11 @@ Leitura lerSensor() {
   float distancia = medirDistanciaMedianaCm();
 
   if (distancia < 0) {
-    // Sem eco válido (nada na frente do sensor até 4 m): na demo isso é o
-    // estado de descanso — trata como nível 0, leitura válida, para o
-    // dashboard não acusar instrumento mudo enquanto ninguém demonstra.
+    // Sem eco não distingue alvo ausente de sensor desconectado.
+    // Preserva o último valor apenas como referência e suspende novas leituras.
     distanciaCm = -1;
-    Leitura l;
-    l.nivel = 0;
-    l.pressao = 0;
-    l.temperatura = 0;
-    l.temPressao = false;
-    l.temTemperatura = false;
-    l.valida = true;
-    return l;
+    leituraAtual.valida = false;
+    return leituraAtual;
   }
 
   distanciaCm = distancia;

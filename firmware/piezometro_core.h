@@ -41,6 +41,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <time.h>
+#include <math.h>
 
 #include "tela.h"
 #include "tela_ssd1306.h"
@@ -99,8 +100,9 @@ Tela* tela = &telaSsd1306;
 // ===== ESTADO DA ÚLTIMA LEITURA (preenchido pelo adapter via lerSensor) =====
 Leitura leituraAtual = {0, 0, 0, false, false, false};
 
-String nivelAlerta = "NORMAL";
-int corAtual = 0; // 0=Verde, 1=Amarelo, 2=Vermelho
+String nivelAlerta = "FALHA SENSOR";
+int corAtual = 3; // 0=Verde, 1=Amarelo, 2=Vermelho, 3=Falha
+bool temLeituraValida = false;
 
 unsigned long ultimoBuzzer  = 0;
 unsigned long ultimaLeitura = 0;
@@ -237,6 +239,13 @@ void despacharBuffer() {
 // ===== FUNÇÃO: DETERMINAR NÍVEL DE ALERTA =====
 // Lógica correta de piezômetro: nível d'água ALTO = perigo (saturação).
 void determinarAlerta() {
+  if (!leituraAtual.valida || !isfinite(leituraAtual.nivel)) {
+    leituraAtual.valida = false;
+    nivelAlerta = "FALHA SENSOR";
+    corAtual = 3;
+    return;
+  }
+  temLeituraValida = true;
   if (leituraAtual.nivel < NIVEL_ATENCAO) {
     nivelAlerta = "NORMAL";
     corAtual = 0; // Verde
@@ -257,7 +266,12 @@ void atualizarLEDs() {
   digitalWrite(LED_AMARELO, LOW);
   digitalWrite(LED_VERMELHO, LOW);
 
-  if (corAtual == 0) {
+  if (corAtual == 3) {
+    static bool estadoFalha = false;
+    estadoFalha = !estadoFalha;
+    digitalWrite(LED_AMARELO, estadoFalha); // falha: amarelo piscando
+  }
+  else if (corAtual == 0) {
     digitalWrite(LED_VERDE, HIGH);          // NORMAL — verde fixo
   }
   else if (corAtual == 1) {
@@ -281,8 +295,8 @@ void atualizarBuzzer() {
     digitalWrite(BUZZER, LOW);
     estadoBuzzer = false;
   }
-  else if (corAtual == 1) {
-    // ATENÇÃO — beep curto (100 ms) a cada 2 segundos, sem delay()
+  else if (corAtual == 1 || corAtual == 3) {
+    // ATENÇÃO/FALHA — beep curto (100 ms) a cada 2 segundos, sem delay()
     if (!estadoBuzzer && agora - ultimoBuzzer >= 2000) {
       digitalWrite(BUZZER, HIGH);
       estadoBuzzer = true;
@@ -306,7 +320,10 @@ void atualizarBuzzer() {
 // ===== FUNÇÃO: MOSTRAR NO SERIAL =====
 void mostrarSerial() {
   Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  Serial.print("💧 Nível d'água: ");
+  if (!leituraAtual.valida) {
+    Serial.println("FALHA SENSOR — sem medição atual; verificar sensor/eco.");
+  }
+  Serial.print(leituraAtual.valida ? "💧 Nível d'água: " : "Último nível conhecido: ");
   Serial.print(leituraAtual.nivel, 2);
   Serial.println(" m");
 
@@ -318,7 +335,11 @@ void mostrarSerial() {
 
   Serial.println();
 
-  if (nivelAlerta == "NORMAL") {
+  if (!leituraAtual.valida) {
+    Serial.println("STATUS: FALHA SENSOR — leitura não será enviada como nova");
+    if (!temLeituraValida) Serial.println("Nenhuma leitura válida desde o início");
+  }
+  else if (nivelAlerta == "NORMAL") {
     Serial.println("🟢 STATUS: NORMAL");
     Serial.println("   → Nível dentro da faixa segura");
   }
@@ -350,7 +371,8 @@ void mostrarDisplay() {
   tela->escreverLinha(SLOT_TITULO, "SAMARCO PIEZOMETRO");
 
   char bufNivel[32];
-  snprintf(bufNivel, sizeof(bufNivel), "Nivel: %.2f m", leituraAtual.nivel);
+  if (!temLeituraValida) snprintf(bufNivel, sizeof(bufNivel), "Nivel: ---");
+  else snprintf(bufNivel, sizeof(bufNivel), leituraAtual.valida ? "Nivel: %.2f m" : "Ultimo: %.2f m", leituraAtual.nivel);
   tela->escreverLinha(SLOT_NIVEL, bufNivel);
 
   linhasExtrasDisplay(*tela); // até 2 linhas específicas do sensor (SLOT_EXTRA_1/2)
@@ -363,7 +385,8 @@ void mostrarDisplay() {
   // precisa ser legível a qualquer momento; a urgência visual/sonora já é
   // dos LEDs (piscam) e do buzzer.
   const char* rotulo = "NORMAL";
-  if (nivelAlerta == "ATENCAO") rotulo = "ATENCAO";
+  if (!leituraAtual.valida) rotulo = "FALHA SENSOR";
+  else if (nivelAlerta == "ATENCAO") rotulo = "ATENCAO";
   else if (nivelAlerta == "CRITICO") rotulo = "CRITICO!";
   tela->destacarStatus(rotulo, (uint8_t)corAtual);
 
@@ -468,10 +491,12 @@ void coreSetup() {
   Serial.println("===========================================");
   Serial.println();
 
-  digitalWrite(LED_VERDE, HIGH);
+  determinarAlerta();
+  atualizarLEDs();
+  mostrarDisplay();
 }
 
-// ===== LOOP COMUM (não bloqueante) =====
+// ===== LOOP COMUM (envio HTTP pode bloquear até o timeout) =====
 // Chamado pelo .ino: void loop(){ coreLoop(); } (ou via PIEZOMETRO_MAIN()).
 void coreLoop() {
   unsigned long agora = millis();

@@ -41,11 +41,17 @@
 
 ## Visão Geral
 
-O sistema monitora continuamente o piezômetro via ESP32 — **na bancada física** (sensor ultrassônico medindo nível real, OLED local) **ou na simulação Wokwi** (BMP180 como stand-in) — enviando **nível d'água (m)**, pressão e temperatura para o Cloudflare Worker a cada 10 segundos, com *store & forward*: leituras feitas sem rede ficam retidas em buffer local (com timestamp NTP) e são reenviadas quando a conexão volta, sem perda de dados.
+O sistema monitora continuamente o piezômetro via ESP32 — **na bancada física** (sensor ultrassônico medindo nível real, OLED local) **ou na simulação Wokwi** (BMP180 como stand-in) — enviando **nível d'água (m)**, pressão e temperatura para o Cloudflare Worker a cada 10 segundos, com *store & forward*. No modo sempre ligado, o buffer em RAM guarda até 120 leituras (aproximadamente 20 minutos): ao encher, descarta a mais antiga; ao reiniciar ou perder alimentação, perde as pendências. A recuperação sem perda depende desses limites e de timestamps válidos. Sem NTP, o servidor estima os horários do lote.
+
+No HC-SR04 de demonstração, ausência de eco válido indica **FALHA SENSOR** no OLED, com LED amarelo piscando e aviso sonoro. O último nível fica apenas como referência, sem envio como medição nova. Para demonstrar nível zero, mantenha um alvo a 40 cm (ou mais, dentro da faixa útil). A escala é didática: 1 cm equivale a 0,5 m no painel.
 
 Um dashboard web exibe os dados em tempo real com histórico de 24 horas, indicadores visuais de alerta e eventos da sessão atual. O **motor de alertas** do Worker (executado por *cron trigger*, a cada 1 minuto) vigia o D1 e grava no KV as transições de faixa, expostas por `GET /alerts` para consulta e auditoria. O dashboard atual não carrega esse histórico após recarregar a página. No hardware, LEDs e buzzer sinalizam localmente a faixa de nível; sem conexão, o painel indica **SEM SINAL** em vez de inventar uma condição normal.
 
 Quando o backend não está acessível, o dashboard ativa automaticamente um **modo de simulação** para demonstração — sinalizado por um banner amarelo e pela marcação "(simulação)" nos eventos, para que dados fictícios nunca sejam confundidos com leituras reais.
+
+Se apenas a consulta histórica falhar, o gráfico informa **Histórico indisponível**, sem preencher a lacuna com simulação. A retenção consolida dias UTC completos e soma leituras atrasadas aos resumos; consolidação e limpeza executam no mesmo batch transacional. Isso não recupera dados que uma versão anterior já tenha descartado.
+
+Validação local: use **Node.js 24** e `npm test`. Os testes de retenção executam a SQL real em SQLite em memória, sem acessar o banco publicado.
 
 > ⚠️ **Posicionamento do protótipo (Fase 1):**
 > - O protótipo de bancada usa **sensores stand-in** (ultrassônico HC-SR04/JSN-SR04T na bancada; BMP180 no Wokwi, com escala didática de **10 hPa = 1 m**). Na **UCT industrial (Fase 2)**, o sinal vem de um **transdutor piezorresistivo submersível 4–20 mA** lido por um ADS1115, com comunicação celular 4G (SIM7600) e alimentação solar — o protótipo representa o conceito; o produto é a especificação completa.

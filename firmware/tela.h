@@ -37,6 +37,7 @@
 #define FAIXA_NORMAL   0  // nível < NIVEL_ATENCAO
 #define FAIXA_ATENCAO  1  // NIVEL_ATENCAO <= nível < NIVEL_CRITICO
 #define FAIXA_CRITICO  2  // nível >= NIVEL_CRITICO
+#define FAIXA_FALHA    3  // sensor sem leitura válida
 
 // ===== INTERFACE =====
 class Tela {
