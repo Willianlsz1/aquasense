@@ -58,68 +58,117 @@ function atualizarLinkRelatorio() {
 // Carrega histórico do piezômetro/período selecionados (nível + temperatura),
 // semeia stats, tabela de leituras e redesenha os gráficos.
 // Consome só `fonte.historico()` — não sabe (nem precisa saber) se é real ou simulada.
+function limparHistoricoCarregado() {
+  // Nunca manter no gráfico/statísticas a série da seleção ou fonte anterior: ela
+  // poderia ser confundida com o período que acabou de falhar.
+  charts.n = { labels: [], data: [], times: [], maxData: [] };
+  charts.t = { labels: [], data: [], times: [] };
+  statsWin.n = []; statsWin.p = []; statsWin.t = []; statsWin.nMax = [];
+  histPontos.n = [];
+  histPontos.bucketSeg = undefined;
+  readingsHistory = [];
+  histSimulado = false;
+  ["n", "p", "t"].forEach(k => {
+    const mn = document.getElementById(k + "-min");
+    const mx = document.getElementById(k + "-max");
+    const dl = document.getElementById(k + "-delta");
+    if (mn) mn.textContent = "—";
+    if (mx) mx.textContent = "—";
+    if (dl) { dl.textContent = "—"; dl.className = "mstat-val"; }
+  });
+  renderReadingsTable();
+  redrawCharts();
+}
+
+function setHistoricoIndisponivel(mensagem) {
+  limparHistoricoCarregado();
+
+  // O canvas vazio não explica por que não há uma linha. A mensagem é estática,
+  // criada com textContent, e fica junto do gráfico que foi afetado.
+  const canvas = document.getElementById("chart-n");
+  const area = canvas && canvas.closest ? canvas.closest(".chart-area") : null;
+  if (!area || !document.createElement) return;
+  let aviso = document.getElementById("historico-indisponivel");
+  if (!aviso) {
+    aviso = document.createElement("div");
+    aviso.id = "historico-indisponivel";
+    aviso.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;color:var(--text-1);font-size:12px;background:var(--bg-panel)";
+    area.appendChild(aviso);
+  }
+  aviso.textContent = mensagem;
+}
+
+function limparAvisoHistoricoIndisponivel() {
+  const aviso = document.getElementById("historico-indisponivel");
+  if (aviso) aviso.remove();
+}
+
 async function loadHistoryAndStats() {
   // P — token desta chamada: se pzSelecionado/periodoSelecionado mudar de novo antes de
   // terminarmos, histReqId avança e nós descartamos nosso resultado silenciosamente (ver
   // checagens após cada await abaixo) em vez de sobrescrever a seleção atual com dados velhos.
   const meuId = ++histReqId;
-  let pontos, bucketSeg, viaFallbackLocal = false;
+  let pontos, bucketSeg;
   try {
     ({ pontos, bucket_seg: bucketSeg } = await fonte.historico(pzSelecionado, periodoSelecionado));
   } catch (e) {
     if (meuId !== histReqId) return; // seleção mudou enquanto a 1ª chamada estava em voo
-    // Fallback só para ESTE carregamento (não mexe na fonte global nem no banner —
-    // isso é responsabilidade exclusiva de trocarFonte(), acionada pelo poll).
-    ({ pontos, bucket_seg: bucketSeg } = await FonteSimulada.historico(pzSelecionado, periodoSelecionado));
-    viaFallbackLocal = true;
+    const mensagem = `Histórico indisponível: não foi possível carregar ${pzSelecionado} (${PERIODOS[periodoSelecionado].label}).`;
+    setHistoricoIndisponivel(mensagem);
+    addInfoRow(mensagem);
+    return;
   }
   if (meuId !== histReqId) return; // seleção mudou enquanto o histórico estava em voo
 
-  histSimulado = viaFallbackLocal; // exportar.js rotula a fonte do CSV/XLS por este flag
+  limparHistoricoCarregado();
+  histSimulado = false; // fonte.simulada já identifica a simulação global no export.
+  limparAvisoHistoricoIndisponivel();
 
   const hn = pontosParaCampo(pontos, "nivel_agua");
   const ht = pontosParaCampo(pontos, "temperatura");
 
-  if (hn.length) {
-    charts.n.labels  = hn.map(h => h.label);
-    charts.n.data    = hn.map(h => h.value);
-    charts.n.times   = hn.map(h => h.time);
-    // P5 — série do pico do intervalo (cai para o próprio valor quando o Worker não manda nivel_max)
-    charts.n.maxData = hn.map(h => Number.isFinite(h.max) ? h.max : h.value);
-    statsWin.n       = hn.map(h => h.value);
-    statsWin.nMax    = charts.n.maxData.slice();
-    // Série completa do período, com timestamps — não é truncada pelas 60 posições dos
-    // gráficos, ao contrário de charts.n (ver comentário de histPontos em estado.js).
-    // minValue/nLeituras (P5/auditoria) ficam `undefined` quando o Worker não trouxe
-    // nivel_min/n_leituras (dados antigos) — exportar.js trata isso sem quebrar.
-    histPontos.n     = hn.map(h => ({
-      label: h.label, value: h.value,
-      maxValue: Number.isFinite(h.max) ? h.max : h.value,
-      minValue: h.min, nLeituras: h.n,
-      time: h.time,
-    }));
-    // bucket_seg do período carregado (segundos) — guardado para os metadados do CSV
-    // exportado (exportar.js); ausente ("ao vivo") quando a fonte não o informou.
-    histPontos.bucketSeg = bucketSeg;
-    updateStats("n", statsWin.n);
-    aplicarMaxNivelPico(); // P5 — MÁX 24H usa o pico do intervalo, não a média
-    readingsHistory = hn.slice(-12).reverse().map(h => {
-      const cls = classifyNivel(h.value);
-      return { time: h.label, nivel: h.value, lv: cls.lv, lbl: cls.lbl };
-    });
-    renderReadingsTable();
-    if (!viaFallbackLocal) addInfoRow(`Histórico de nível d'água carregado (${hn.length} pontos) — ${pzSelecionado}`);
+  if (!hn.length) {
+    const mensagem = `Nenhuma leitura histórica disponível para ${pzSelecionado} (${PERIODOS[periodoSelecionado].label}).`;
+    setHistoricoIndisponivel(mensagem);
+    addInfoRow(mensagem);
+    return;
   }
+
+  charts.n.labels  = hn.map(h => h.label);
+  charts.n.data    = hn.map(h => h.value);
+  charts.n.times   = hn.map(h => h.time);
+  // P5 — série do pico do intervalo (cai para o próprio valor quando o Worker não manda nivel_max)
+  charts.n.maxData = hn.map(h => Number.isFinite(h.max) ? h.max : h.value);
+  statsWin.n       = hn.map(h => h.value);
+  statsWin.nMax    = charts.n.maxData.slice();
+  // Série completa do período, com timestamps — não é truncada pelas 60 posições dos
+  // gráficos, ao contrário de charts.n (ver comentário de histPontos em estado.js).
+  // minValue/nLeituras (P5/auditoria) ficam `undefined` quando o Worker não trouxe
+  // nivel_min/n_leituras (dados antigos) — exportar.js trata isso sem quebrar.
+  histPontos.n     = hn.map(h => ({
+    label: h.label, value: h.value,
+    maxValue: Number.isFinite(h.max) ? h.max : h.value,
+    minValue: h.min, nLeituras: h.n,
+    time: h.time,
+  }));
+  // bucket_seg do período carregado (segundos) — guardado para os metadados do CSV
+  // exportado ("ao vivo") quando a fonte não o informou.
+  histPontos.bucketSeg = bucketSeg;
+  updateStats("n", statsWin.n);
+  aplicarMaxNivelPico(); // P5 — MÁX 24H usa o pico do intervalo, não a média
+  readingsHistory = hn.slice(-12).reverse().map(h => {
+    const cls = classifyNivel(h.value);
+    return { time: h.label, nivel: h.value, lv: cls.lv, lbl: cls.lbl };
+  });
+  renderReadingsTable();
+  addInfoRow(`Histórico de nível d'água carregado (${hn.length} pontos) — ${pzSelecionado}`);
   if (ht.length) {
     charts.t.labels = ht.map(h => h.label);
     charts.t.data   = ht.map(h => h.value);
     charts.t.times  = ht.map(h => h.time);
     statsWin.t      = ht.map(h => h.value);
     updateStats("t", statsWin.t);
-    if (!viaFallbackLocal) addInfoRow(`Histórico de temperatura carregado (${ht.length} pontos) — ${pzSelecionado}`);
-  }
-  if (viaFallbackLocal) {
-    addInfoRow(`Histórico da API indisponível — exibindo histórico simulado (${pzSelecionado})`);
+    addInfoRow(`Histórico de temperatura carregado (${ht.length} pontos) — ${pzSelecionado}`);
   }
 
   redrawCharts();
