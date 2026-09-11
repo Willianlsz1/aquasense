@@ -5,6 +5,7 @@
 
 import { lerUltimosNiveis, lerUltimasLeiturasTodas, lerLeituraBaseline } from "./db.js";
 import { registrarEventoComunicacao, registrarEventoNivel, registrarEventoTaxa } from "./eventos.js";
+import { PIEZOMETRO_ID_RE } from "./config.js";
 
 // Classificação "pura" (sem histerese): usada tanto na SUBIDA de faixa quanto
 // no primeiro ciclo de um piezômetro (quando ainda não há faixa anterior).
@@ -93,6 +94,21 @@ export async function salvarEstado(env, estado) {
   await env.ALERT_STATE.put("state", JSON.stringify(estado));
 }
 
+// O catálogo é uma configuração de interface, mas também define os instrumentos
+// esperados pelo cron. Um item malformado não pode criar um alerta impossível de
+// relacionar com um instrumento real.
+function idsPiezometrosConfigurados(env) {
+  try {
+    const catalogo = JSON.parse(env.PIEZOMETROS || "[]");
+    if (!Array.isArray(catalogo)) return [];
+    return [...new Set(catalogo
+      .map((item) => item && item.id)
+      .filter((id) => typeof id === "string" && PIEZOMETRO_ID_RE.test(id)))];
+  } catch {
+    return [];
+  }
+}
+
 // Port de checkAlerts() do server.js, operando sobre o estado carregado do KV.
 // Retorna true se o estado foi modificado (e portanto precisa ser regravado).
 export async function checkAlerts(cfg, env, estado) {
@@ -126,40 +142,49 @@ export async function checkAlerts(cfg, env, estado) {
         mutou = true;
       }
 
-      // P3 — taxa de variação, só avaliada para quem tem leitura recente
-      // (mesmo conjunto acima). Compara com a leitura mais próxima de
-      // "agora - TAXA_JANELA_MIN".
-      const tsAlvo = agoraSeg - cfg.TAXA_JANELA_MIN * 60;
-      const baseline = await lerLeituraBaseline(env, pz, tsAlvo);
-      const taxa = calcularTaxaMDia(cfg, { nivel_agua: valor, ts: agoraSeg }, baseline);
-
-      if (taxa !== null) {
-        const statusTaxa = Math.abs(taxa) > cfg.TAXA_MAX_M_DIA ? "TAXA_ALTA" : "OK";
-        const statusTaxaAnterior = estado.taxaStatus[pz] || "OK";
-        if (statusTaxa !== statusTaxaAnterior) {
-          registrarEventoTaxa(cfg, estado.alertLog, pz, statusTaxa, taxa, cfg.TAXA_MAX_M_DIA);
-          estado.taxaStatus[pz] = statusTaxa;
-          mutou = true;
-        }
-      }
     }
 
     // Camada de COMUNICAÇÃO (P2) — consulta TODOS os piezômetros já
     // cadastrados, sem janela de tempo, para detectar silêncio prolongado.
     // É deliberadamente separada da camada de nível acima.
     const ultimas = await lerUltimasLeiturasTodas(env);
+
+    // P3 — usa a mesma leitura atual e a mesma referência temporal de
+    // GET /ultimos. A recepção recente define se a leitura ainda é elegível;
+    // a taxa em si usa ts do instrumento para não misturar dois relógios.
     for (const [pz, leitura] of Object.entries(ultimas)) {
+      if (leitura.recebido_em < agoraSeg - 300) continue;
+      const tsAlvo = leitura.ts - cfg.TAXA_JANELA_MIN * 60;
+      const baseline = await lerLeituraBaseline(env, pz, tsAlvo);
+      const taxa = calcularTaxaMDia(cfg, leitura, baseline);
+
+      if (taxa === null) continue;
+      const statusTaxa = Math.abs(taxa) > cfg.TAXA_MAX_M_DIA ? "TAXA_ALTA" : "OK";
+      const statusTaxaAnterior = estado.taxaStatus[pz] || "OK";
+      if (statusTaxa !== statusTaxaAnterior) {
+        registrarEventoTaxa(cfg, estado.alertLog, pz, statusTaxa, taxa, cfg.TAXA_MAX_M_DIA);
+        estado.taxaStatus[pz] = statusTaxa;
+        mutou = true;
+      }
+    }
+
+    // Inclui instrumentos válidos do catálogo mesmo antes da primeira leitura.
+    // Assim o cron registra a ausência inicial e, quando a primeira leitura
+    // chegar, registra a recuperação pela mesma transição de estado.
+    const piezometros = new Set([...Object.keys(ultimas), ...idsPiezometrosConfigurados(env)]);
+    for (const pz of piezometros) {
+      const leitura = ultimas[pz];
       // O silêncio é medido pela última RECEPÇÃO (recebido_em), não pelo
       // relógio do device (ts) — a deriva do relógio simulado no Wokwi
       // causava falso SEM_SINAL quando medida por ts. lerUltimasLeiturasTodas
       // já garante o fallback para ts em linhas antigas sem recebido_em.
-      const silencioSeg = agoraSeg - leitura.recebido_em;
-      const statusComm = silencioSeg > cfg.SILENCE_ALERT_SEC ? "SEM_SINAL" : "OK";
+      const silencioSeg = leitura ? agoraSeg - leitura.recebido_em : null;
+      const statusComm = !leitura || silencioSeg > cfg.SILENCE_ALERT_SEC ? "SEM_SINAL" : "OK";
       const statusCommAnterior = estado.commStatus[pz] || "OK";
 
       if (statusComm !== statusCommAnterior) {
-        const silencioMin = Math.round(silencioSeg / 60);
-        registrarEventoComunicacao(cfg, estado.alertLog, pz, statusComm, leitura.ts, silencioMin);
+        const silencioMin = leitura ? Math.round(silencioSeg / 60) : null;
+        registrarEventoComunicacao(cfg, estado.alertLog, pz, statusComm, leitura && leitura.ts, silencioMin);
         estado.commStatus[pz] = statusComm;
         mutou = true;
       }

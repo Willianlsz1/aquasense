@@ -27,22 +27,28 @@ export function registrarEventoNivel(cfg, alertLog, pz, nivel, valor) {
 }
 
 export function registrarEventoComunicacao(cfg, alertLog, pz, status, ultimaLeituraTs, silencioMin) {
-  const dataUltima = new Date(ultimaLeituraTs * 1000).toLocaleString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-  });
   const semSinal = status === "SEM_SINAL";
+  const temUltimaLeitura = Number.isFinite(ultimaLeituraTs) && Number.isFinite(silencioMin);
+  const dataUltima = temUltimaLeitura
+    ? new Date(ultimaLeituraTs * 1000).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+    : null;
 
-  adicionarEvento(alertLog, {
+  const evento = {
     tipo: "comunicacao",
     piezometro: pz,
     status,
-    ultimaLeituraTs,
-    silencioMin,
     mensagem: semSinal
-      ? `⚠️ SAMARCO PIEZÔMETRO ${pz} — SEM SINAL\nSem leituras há ${silencioMin} min (última: ${dataUltima}).`
+      ? temUltimaLeitura
+        ? `⚠️ SAMARCO PIEZÔMETRO ${pz} — SEM SINAL\nSem leituras há ${silencioMin} min (última: ${dataUltima}).`
+        : `⚠️ SAMARCO PIEZÔMETRO ${pz} — SEM SINAL\nNenhuma leitura recebida.`
       : `🟢 SAMARCO PIEZÔMETRO ${pz} — COMUNICAÇÃO RESTABELECIDA\nInstrumento voltou a reportar.`,
     acao: semSinal ? "Verificar instrumento/comunicação." : "Comunicação normalizada.",
-  });
+  };
+  if (temUltimaLeitura) {
+    evento.ultimaLeituraTs = ultimaLeituraTs;
+    evento.silencioMin = silencioMin;
+  }
+  adicionarEvento(alertLog, evento);
   console.log(`🔔 Evento de comunicação ${pz} ${status}`);
 }
 

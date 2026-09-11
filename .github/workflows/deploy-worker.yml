@@ -33,35 +33,38 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24 # node:sqlite nos testes de retenção
 
       - name: Testes
         working-directory: .
         run: npm test
 
-      # As migrações rodam ANTES do deploy (o Worker novo referencia coluna/
-      # índice novos). O "|| echo" torna cada passo idempotente: 0001 falha com
-      # "duplicate column name" se a coluna já existe; 0002 usa DELETE de
-      # duplicatas (inócuo quando não há) + CREATE INDEX IF NOT EXISTS.
+      # Inspeciona o schema antes do ALTER; erro de consulta interrompe o job.
+      # Não tratar falhas de autenticação/rede/SQL como migração já aplicada.
       - name: Migração D1 0001 (recebido_em, idempotente)
-        run: >
-          npx wrangler@4 d1 execute piezometro-db --remote
-          --command "ALTER TABLE leituras ADD COLUMN recebido_em INTEGER;"
-          || echo "Coluna recebido_em já existe — ok"
+        shell: bash
+        run: |
+          set -euo pipefail
+          schema=$(mktemp)
+          trap 'rm -f "$schema"' EXIT
+          npx wrangler@4 d1 execute piezometro-db --remote --json \
+            --command "PRAGMA table_info(leituras);" > "$schema"
+          jq -e 'type == "array" and length > 0 and all(.[]; .success == true and (.results | type == "array"))' "$schema" > /dev/null
+          if ! jq -e 'any(.[].results[]; .name == "recebido_em")' "$schema" > /dev/null; then
+            npx wrangler@4 d1 execute piezometro-db --remote \
+              --command "ALTER TABLE leituras ADD COLUMN recebido_em INTEGER;"
+          fi
 
       - name: Migração D1 0002 (dedupe + índice único, idempotente)
         run: >
           npx wrangler@4 d1 execute piezometro-db --remote
           --file=migrations/0002_dedupe_ts_unico.sql
-          || echo "Migração 0002 já aplicada — ok"
 
-      # CREATE TABLE ... IF NOT EXISTS com PRIMARY KEY é idempotente por si só,
-      # mas o "|| echo" fica por segurança/consistência com os passos acima.
+      # CREATE TABLE IF NOT EXISTS já permite reexecução sem mascarar erros.
       - name: Migração D1 0003 (tabela leituras_diario, idempotente)
         run: >
           npx wrangler@4 d1 execute piezometro-db --remote
           --file=migrations/0003_retencao_diaria.sql
-          || echo "Migração 0003 já aplicada — ok"
 
       - name: Publicar Worker
         run: npx wrangler@4 deploy
