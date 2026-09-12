@@ -27,7 +27,13 @@ Validação em 12/09/2026: a cópia preenchida compilou para `esp32:esp32:esp32`
 (core 3.3.10), usando 1.063.540 bytes de programa (81%) e 52.056 bytes de RAM
 estática (15%). A suíte local passou 33/33 testes, incluindo a atualização do
 arquivo gerado e a proteção do destino de credenciais. Revisão independente sem
-bloqueios. Esta versão de uma aba ainda não foi gravada nem testada fisicamente.
+bloqueios. A versão de uma aba foi posteriormente gravada na COM3, com BOOT
+pressionado na conexão inicial: upload concluído e hash verificado. Após o
+reinício, o serial mostrou NORMAL, distâncias predominantes de 37,0–37,4 cm,
+níveis equivalentes de 1,28–1,52 m, envio HTTP 204 e buffer vazio. Também houve
+ecos de 46,8 cm, convertidos em zero pela escala da demonstração. Essa observação
+confirma leitura e envio após a gravação; não valida precisão. A confirmação
+visual do OLED e a repetição das demais faixas nesta versão ainda estão pendentes.
 
 ## Manutenção do código
 
