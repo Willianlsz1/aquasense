@@ -43,7 +43,13 @@ class TelaSSD1306 : public Tela {
   // compartilhado com outros sensores (BMP180, ADS1115), então quem o abre
   // é responsabilidade de quem monta o setup, não desta tela.
   bool iniciar() override {
-    bool ok = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+    // begin() da Adafruit verifica a alocação, mas não confirma o ACK da tela.
+    Wire.beginTransmission(SCREEN_ADDRESS);
+    uint8_t erro = Wire.endTransmission();
+    Serial.printf("OLED I2C 0x%02X: codigo %u (0 = respondeu)\n", SCREEN_ADDRESS, erro);
+    if (erro != 0) return false;
+    // O chamador já abriu o barramento nos pinos corretos: não reinicializar.
+    bool ok = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS, true, false);
     if (ok) display.setTextColor(SSD1306_WHITE);
     return ok;
   }

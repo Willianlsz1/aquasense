@@ -81,7 +81,11 @@ class TelaSSD1306 : public Tela {
   TelaSSD1306() : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET) {}
 
   bool iniciar() override {
-    bool ok = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+    Wire.beginTransmission(SCREEN_ADDRESS);
+    uint8_t erro = Wire.endTransmission();
+    Serial.printf("OLED I2C 0x%02X: codigo %u (0 = respondeu)\n", SCREEN_ADDRESS, erro);
+    if (erro != 0) return false;
+    bool ok = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS, true, false);
     if (ok) display.setTextColor(SSD1306_WHITE);
     return ok;
   }

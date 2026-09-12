@@ -35,6 +35,15 @@ ecos de 46,8 cm, convertidos em zero pela escala da demonstração. Essa observa
 confirma leitura e envio após a gravação; não valida precisão. A confirmação
 visual do OLED e a repetição das demais faixas nesta versão ainda estão pendentes.
 
+Na conferência visual posterior, o responsável informou que o OLED permaneceu
+apagado, inclusive após reiniciar o ESP32. Os pinos SDA 21 / SCL 22 e endereço
+0x3C foram comparados com a versão anterior e não mudaram. O serial mostrou
+"OLED OK", mas a biblioteca não confirma a resposta I2C ao retornar sucesso.
+Foi acrescentada uma verificação explícita de resposta (ACK) e desativada a
+reinicialização implícita do barramento pela biblioteca, pois o núcleo já faz
+`Wire.begin(21, 22)`. Essa alteração é diagnóstica; ainda não comprova a causa
+nem a recuperação da imagem no OLED.
+
 ## Manutenção do código
 
 O arquivo único é gerado dos fontes comuns, evitando duas implementações que
