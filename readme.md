@@ -140,6 +140,12 @@ O backend inteiro (ingestão, leitura para o dashboard e motor de alertas) roda 
 
 ### 2. Firmware ESP32
 
+**Protótipo atual HC-SR04 — uma aba:** abra
+[`firmware/aquasense_hc_sr04/aquasense_hc_sr04.ino`](firmware/aquasense_hc_sr04/aquasense_hc_sr04.ino).
+Sensor, tela, conexão e alertas estão reunidos nesse arquivo, com configurações
+no início. Veja [uso e manutenção da versão de uma aba](firmware/UMA_ABA.md).
+A cópia preenchida deve ficar fora do Git, pois inclui senha e chave no próprio `.ino`.
+
 O firmware é organizado em **núcleo comum + adapters**: `piezometro_core.h` concentra WiFi/NTP/buffer/envio/alertas; cada sketch `.ino` implementa só a leitura do seu sensor; a tela fica atrás da interface `Tela` (`tela.h`), com o OLED SSD1306 como adapter concreto (`tela_ssd1306.h`) — trocar de display (ex.: TFT) não toca no core nem nos sketches.
 
 **Bancada física** (`sketch_fisico_jsn_sr04t.ino`, `sketch_demo_hc_sr04.ino` ou `sketch_uct_4a20ma.ino`):
