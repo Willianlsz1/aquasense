@@ -43,6 +43,12 @@ Foi acrescentada uma verificação explícita de resposta (ACK) e desativada a
 reinicialização implícita do barramento pela biblioteca, pois o núcleo já faz
 `Wire.begin(21, 22)`. Essa alteração é diagnóstica; ainda não comprova a causa
 nem a recuperação da imagem no OLED.
+Após gravar essa versão (upload concluído e hash verificado), o reinício mostrou
+`OLED I2C 0x3C: codigo 5 (0 = respondeu)`, seguido de erro de inicialização.
+O sensor continuou em NORMAL e houve envios HTTP 204. A comunicação com a tela
+falhou nessa tentativa; a causa ainda não foi isolada. O próximo ensaio é desligar
+e religar a alimentação USB, pois reiniciar somente o ESP32 não necessariamente
+reinicializa a alimentação do OLED.
 
 ## Manutenção do código
 
