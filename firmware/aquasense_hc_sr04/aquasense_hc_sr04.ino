@@ -11,7 +11,7 @@
 #define WIFI_PASS   "SUA_SENHA_WIFI"
 #define SERVER_URL  "https://piezometro-worker.SEU-SUBDOMINIO.workers.dev/ingest"  // endpoint /ingest do Cloudflare Worker
 #define DEVICE_KEY  "troque-esta-chave"                    // mesma DEVICE_KEY definida como secret no Worker
-#define MEASUREMENT "telemetria_samarco"                   // (info) rótulo interno das leituras
+#define MEASUREMENT "telemetria_aquasense"                 // (info) rótulo interno das leituras
 #define PIEZOMETRO_ID "PZ-01"   // identificador deste instrumento (PZ-01, PZ-02, ...)
 
 // ===== LIMIARES DE NÍVEL (m) =====
@@ -34,7 +34,7 @@
 #include <Arduino.h>
 
 // ===== SLOTS DE LINHA (mesma ordem/semântica das linhas do OLED atual) =====
-#define SLOT_TITULO       0  // título fixo da tela de operação ("SAMARCO PIEZOMETRO")
+#define SLOT_TITULO       0  // título fixo da tela de operação ("AQUASENSE PIEZOMETRO")
 #define SLOT_NIVEL        1  // "Nivel: X.XX m"
 #define SLOT_EXTRA_1      2  // 1ª linha específica do sensor (hook linhasExtrasDisplay)
 #define SLOT_EXTRA_2      3  // 2ª linha específica do sensor (hook linhasExtrasDisplay)
@@ -140,7 +140,7 @@ class TelaSSD1306 : public Tela {
     display.clearDisplay();
     display.setTextSize(2);
     display.setCursor(10, 5);
-    display.println("SAMARCO");
+    display.println("AquaSense");
 
     display.setTextSize(1);
     display.setCursor(8, 30);
@@ -454,7 +454,7 @@ void mostrarDisplay() {
 
   tela->limpar();
 
-  tela->escreverLinha(SLOT_TITULO, "SAMARCO PIEZOMETRO");
+  tela->escreverLinha(SLOT_TITULO, "AQUASENSE PIEZOMETRO");
 
   char bufNivel[32];
   if (!temLeituraValida) snprintf(bufNivel, sizeof(bufNivel), "Nivel: ---");
@@ -522,7 +522,7 @@ void coreSetup() {
   delay(1000);
 
   Serial.println("===========================================");
-  Serial.println("  SAMARCO - NIVEL DE AGUA EM PIEZOMETROS");
+  Serial.println("  AQUASENSE - NIVEL DE AGUA EM PIEZOMETROS");
   Serial.println("  Telemetria + Alertas + Store & Forward");
   Serial.println("  Instrumento: " PIEZOMETRO_ID);
   Serial.println("===========================================");

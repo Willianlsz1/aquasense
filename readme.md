@@ -1,6 +1,6 @@
 # 🟢 AquaSense — Monitoramento Online de Piezômetros
 
-**AquaSense** é o sistema de **monitoramento contínuo do nível de água em piezômetros de barragens** desenvolvido como TCC do Técnico em Automação Industrial (SENAI Belo Horizonte HORTO), em resposta ao desafio SAGA da **Samarco Mineração**: sensores no ESP32, transmissão em tempo real para o Cloudflare Worker (com armazenamento em D1), dashboard interativo no GitHub Pages e alertas escritos e visuais.
+**AquaSense** é um sistema de **monitoramento contínuo do nível de água em piezômetros de barragens**, desenvolvido como TCC do Técnico em Automação Industrial (SENAI Belo Horizonte HORTO): sensores no ESP32, transmissão em tempo real para o Cloudflare Worker (com armazenamento em D1), dashboard interativo no GitHub Pages e alertas escritos e visuais.
 
 | Protótipo de bancada | Dashboard ao vivo durante a demonstração |
 |:---:|:---:|
@@ -295,6 +295,6 @@ A v2 consolida ingestão, armazenamento e motor de alertas em uma única platafo
 **Willian Lopes da Rocha** — Técnico em Automação Industrial em formação (SENAI) e Mecânico de Refrigeração II, com atuação em manutenção hospitalar de sistemas HVAC de grande porte.
 
 - LinkedIn: [linkedin.com/in/willianlopeshvac](https://www.linkedin.com/in/willianlopeshvac)
-- Este projeto responde ao desafio SAGA (SENAI/Samarco). Feedback técnico é bem-vindo — abra uma *issue* ou comente nos posts da série no LinkedIn.
+- Feedback técnico sobre o AquaSense é bem-vindo — abra uma *issue* ou comente nos posts da série no LinkedIn.
 
 > ⚠️ **Posicionamento honesto:** este é um protótipo de conceito construído por um estudante, não um produto certificado para uso em barragens reais. A instrumentação de estruturas com Dano Potencial Associado alto exige equipamento qualificado e responsabilidade técnica formal (Resolução ANM 95/2022). O objetivo do projeto é demonstrar a arquitetura e democratizar o conceito para estruturas hoje sem nenhum monitoramento.

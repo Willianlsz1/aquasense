@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * SAMARCO — MONITORAMENTO ONLINE DO NÍVEL DE ÁGUA EM PIEZÔMETROS
+ * AQUASENSE — MONITORAMENTO ONLINE DO NÍVEL DE ÁGUA EM PIEZÔMETROS
  * ESP32 + BMP180 (stand-in) + OLED + LEDS + BUZZER + SERVIDOR (JSON) + STORE&FORWARD
  * ============================================================================
  *
@@ -52,7 +52,7 @@
 #define WIFI_PASS   ""
 #define SERVER_URL  "https://piezometro-worker.SEU-SUBDOMINIO.workers.dev/ingest"  // endpoint /ingest do Cloudflare Worker
 #define DEVICE_KEY  "troque-esta-chave"                    // mesma DEVICE_KEY definida como secret no Worker
-#define MEASUREMENT "telemetria_samarco"                   // (info) rótulo interno das leituras
+#define MEASUREMENT "telemetria_aquasense"                 // (info) rótulo interno das leituras
 #define PIEZOMETRO_ID "PZ-01"   // identificador deste instrumento (PZ-01, PZ-02, ...)
 
 // Limiares de nível (m) — espelhados no Worker ([vars] do wrangler.toml) e

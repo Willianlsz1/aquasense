@@ -110,7 +110,7 @@ class TelaSSD1306 : public Tela {
     display.clearDisplay();
     display.setTextSize(2);
     display.setCursor(10, 5);
-    display.println("SAMARCO");
+    display.println("AquaSense");
 
     display.setTextSize(1);
     display.setCursor(8, 30);

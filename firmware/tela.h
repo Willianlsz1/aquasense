@@ -23,7 +23,7 @@
 #include <Arduino.h>
 
 // ===== SLOTS DE LINHA (mesma ordem/semântica das linhas do OLED atual) =====
-#define SLOT_TITULO       0  // título fixo da tela de operação ("SAMARCO PIEZOMETRO")
+#define SLOT_TITULO       0  // título fixo da tela de operação ("AQUASENSE PIEZOMETRO")
 #define SLOT_NIVEL        1  // "Nivel: X.XX m"
 #define SLOT_EXTRA_1      2  // 1ª linha específica do sensor (hook linhasExtrasDisplay)
 #define SLOT_EXTRA_2      3  // 2ª linha específica do sensor (hook linhasExtrasDisplay)

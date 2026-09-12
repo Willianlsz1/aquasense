@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * PIEZOMETRO_CORE.H — núcleo comum dos firmwares SAMARCO (simulação + físico)
+ * PIEZOMETRO_CORE.H — núcleo comum dos firmwares AQUASENSE (simulação + físico)
  * ============================================================================
  *
  * Este arquivo concentra tudo que é IGUAL entre os firmwares (sketch.ino
@@ -368,7 +368,7 @@ void mostrarDisplay() {
 
   tela->limpar();
 
-  tela->escreverLinha(SLOT_TITULO, "SAMARCO PIEZOMETRO");
+  tela->escreverLinha(SLOT_TITULO, "AQUASENSE PIEZOMETRO");
 
   char bufNivel[32];
   if (!temLeituraValida) snprintf(bufNivel, sizeof(bufNivel), "Nivel: ---");
@@ -448,7 +448,7 @@ void coreSetup() {
   delay(1000);
 
   Serial.println("===========================================");
-  Serial.println("  SAMARCO - NIVEL DE AGUA EM PIEZOMETROS");
+  Serial.println("  AQUASENSE - NIVEL DE AGUA EM PIEZOMETROS");
   Serial.println("  Telemetria + Alertas + Store & Forward");
   Serial.println("  Instrumento: " PIEZOMETRO_ID);
   Serial.println("===========================================");

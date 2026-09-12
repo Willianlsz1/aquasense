@@ -31,7 +31,7 @@ test("registra nível ATENCAO com mensagem, ação e metadados do domínio", () 
     { tipo: alertLog[0].tipo, piezometro: alertLog[0].piezometro, nivel: alertLog[0].nivel, valor: alertLog[0].valor },
     { tipo: "nivel", piezometro: "PZ-01", nivel: "ATENCAO", valor: 12.34 },
   );
-  assert.match(alertLog[0].mensagem, /SAMARCO PIEZÔMETRO PZ-01 — ATENCAO/);
+  assert.match(alertLog[0].mensagem, /AQUASENSE PIEZÔMETRO PZ-01 — ATENCAO/);
   assert.match(alertLog[0].acao, /Nível acima de 12 m — intensificar monitoramento\./);
   assertSemCanais(alertLog[0]);
 });

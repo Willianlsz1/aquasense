@@ -30,7 +30,7 @@
 #define WIFI_PASS   "SUA_SENHA_WIFI"
 #define SERVER_URL  "https://piezometro-worker.SEU-SUBDOMINIO.workers.dev/ingest"  // endpoint /ingest do Cloudflare Worker
 #define DEVICE_KEY  "troque-esta-chave"                    // mesma DEVICE_KEY definida como secret no Worker
-#define MEASUREMENT "telemetria_samarco"                   // (info) rótulo interno das leituras
+#define MEASUREMENT "telemetria_aquasense"                 // (info) rótulo interno das leituras
 #define PIEZOMETRO_ID "PZ-01"   // identificador deste instrumento (PZ-01, PZ-02, ...)
 
 // ===== LIMIARES DE NÍVEL (m) =====

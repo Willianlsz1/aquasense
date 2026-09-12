@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * SAMARCO — MONITORAMENTO ONLINE DO NÍVEL DE ÁGUA EM PIEZÔMETROS
+ * AQUASENSE — MONITORAMENTO ONLINE DO NÍVEL DE ÁGUA EM PIEZÔMETROS
  * ESP32 + JSN-SR04T (ultrassônico) + OLED + LEDS + BUZZER + SERVIDOR (JSON)
  * + STORE&FORWARD  —  FIRMWARE PARA HARDWARE REAL (protótipo físico)
  * ============================================================================

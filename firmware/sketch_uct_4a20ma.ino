@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * SAMARCO — MONITORAMENTO ONLINE DO NÍVEL DE ÁGUA EM PIEZÔMETROS
+ * AQUASENSE — MONITORAMENTO ONLINE DO NÍVEL DE ÁGUA EM PIEZÔMETROS
  * ESP32 + UCT (transdutor piezométrico 4-20 mA + ADS1115) + OLED + LEDS +
  * BUZZER + SERVIDOR (JSON) + STORE&FORWARD — FIRMWARE DA UCT INDUSTRIAL
  * ============================================================================

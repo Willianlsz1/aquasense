@@ -218,7 +218,7 @@ void deepSleepCiclo() {
   // maquete (essa fica no modo sempre-ligado, coreSetup()).
   Serial.begin(115200);
   delay(200);
-  Serial.println("=== SAMARCO PIEZOMETRO — modo DEEP SLEEP === " PIEZOMETRO_ID);
+  Serial.println("=== AQUASENSE PIEZOMETRO — modo DEEP SLEEP === " PIEZOMETRO_ID);
 
   // ACHADO DE REVIEW (B9): antes, displayOk nunca ficava true neste modo
   // porque display.begin() só era chamado dentro de coreSetup() — nunca
