@@ -4,7 +4,7 @@
 // dos controles de UI (howto, pills de período) e a IIFE de boot do dashboard.
 
 // ── SELEÇÃO DE PIEZÔMETRO / PERÍODO ───────────────────────────────────────────
-function resetPzState() {
+function resetPzState({ preservarAlertas = false } = {}) {
   sparks.n = []; sparks.p = []; sparks.t = [];
   charts.n = { labels: [], data: [], times: [], maxData: [] };
   charts.t = { labels: [], data: [], times: [] };
@@ -12,8 +12,10 @@ function resetPzState() {
   histPontos.n = [];
   histPontos.bucketSeg = undefined;
   readingsHistory = [];
-  lastLevel = null;
-  lastTaxaRapidaState = false;
+  if (!preservarAlertas) {
+    lastLevel = null;
+    lastTaxaRapidaState = false;
+  }
   ["n", "p", "t"].forEach(k => {
     const mn = document.getElementById(k + "-min"), mx = document.getElementById(k + "-max");
     const dl = document.getElementById(k + "-delta");
@@ -43,7 +45,8 @@ function selectPeriodo(p) {
   periodoSelecionado = p;
   document.querySelectorAll(".period-pill").forEach(btn => btn.classList.toggle("active", btn.dataset.range === p));
   updatePeriodLabels();
-  resetPzState();
+  // O período muda o histórico, não o estado operacional do instrumento.
+  resetPzState({ preservarAlertas: true });
   loadHistoryAndStats();
   atualizarLinkRelatorio();
 }

@@ -49,13 +49,17 @@ function carregarRelatorio() {
 function carregarApp() {
   const elementos = new Map();
   const contagens = { renderTaxa: [], semSinal: [], addTaxaRow: 0, pushSpark: 0, pushChart: 0, pushStats: 0, pushReading: 0, setAlert: 0 };
-  const document = { getElementById: id => {
+  const document = { querySelectorAll: () => [], getElementById: id => {
     if (!elementos.has(id)) elementos.set(id, elemento());
     return elementos.get(id);
   } };
   const contexto = vm.createContext({
     CFG: { staleSeg: 120, taxaMaxMDia: 0.1 }, Date, Math, document,
     lastTaxaRapidaState: false,
+    lastLevel: null, sparks: {}, charts: {}, histPontos: { n: [] }, readingsHistory: [],
+    PERIODOS: { "24h": {}, "7d": {}, "30d": {} }, periodoSelecionado: "24h", pzSelecionado: "PZ-01",
+    PIEZOMETROS: [{ id: "PZ-01" }, { id: "PZ-02" }], pzLatest: {},
+    updatePeriodLabels() {}, updatePzLabels() {}, atualizarVisaoGeral() {}, atualizarMapa() {}, renderReadingsTable() {},
     statsWin: { n: [], p: [], t: [], nMax: [] },
     renderTaxa: taxa => contagens.renderTaxa.push(taxa),
     setAlertSemSinal: ts => contagens.semSinal.push(ts),
@@ -65,8 +69,8 @@ function carregarApp() {
     updateStats: () => {}, aplicarMaxNivelPico: () => {},
   });
   const antesDoBoot = appSource.split("(async function init()")[0];
-  new vm.Script(`${utilSource}\n${antesDoBoot}\nglobalThis.app = { applyData };`).runInContext(contexto);
-  return { app: contexto.app, elementos, contagens };
+  new vm.Script(`${utilSource}\n${antesDoBoot}\nloadHistoryAndStats = async () => {};\nglobalThis.app = { applyData, selectPeriodo, selectPiezometro };`).runInContext(contexto);
+  return { app: contexto.app, elementos, contagens, contexto };
 }
 
 function carregarPaineis() {
@@ -175,6 +179,32 @@ test("perda de sinal não rearma a borda de taxa alta já registrada", () => {
   app.applyData({ nivel: 2.4, taxa_m_dia: 0.8, ts: agora, recebidoEm: agora });
 
   assert.equal(contagens.addTaxaRow, 1);
+});
+
+test("trocar período preserva a faixa e não repete alarme de taxa persistente", () => {
+  const { app, contagens, contexto } = carregarApp();
+  const agora = Math.floor(Date.now() / 1000);
+  const leitura = { nivel: 2.4, taxa_m_dia: 0.8, ts: agora, recebidoEm: agora };
+  app.applyData(leitura);
+  contexto.lastLevel = "yellow";
+  for (const periodo of ["7d", "30d", "24h"]) {
+    app.selectPeriodo(periodo);
+    assert.equal(contexto.lastLevel, "yellow");
+    app.applyData(leitura);
+  }
+  assert.equal(contagens.addTaxaRow, 1);
+  app.applyData({ ...leitura, taxa_m_dia: 0 });
+  app.applyData(leitura);
+  assert.equal(contagens.addTaxaRow, 2, "uma nova transição real ainda deve registrar alarme");
+});
+
+test("trocar instrumento continua iniciando um estado de alerta próprio", () => {
+  const { app, contexto } = carregarApp();
+  contexto.lastLevel = "red";
+  contexto.lastTaxaRapidaState = true;
+  app.selectPiezometro("PZ-02");
+  assert.equal(contexto.lastLevel, null);
+  assert.equal(contexto.lastTaxaRapidaState, false);
 });
 
 test("sem sinal usa a última recepção, não o relógio adiantado do instrumento", () => {
