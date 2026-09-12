@@ -8,7 +8,15 @@
 
 > 🎬 Demonstração completa em vídeo (bancada → firmware → dashboard atualizando ao vivo): publicada no [LinkedIn](https://www.linkedin.com/in/willianlopeshvac/).
 
-## Estado do projeto (julho/2026)
+## Verificação de bancada em setembro/2026
+
+Em 12/09, o firmware corrigido foi gravado no ESP32 com HC-SR04. Foram observados
+NORMAL, ATENÇÃO, CRÍTICO, falha de eco, recuperação e envios aceitos pelo servidor.
+O painel local corrigido também foi conferido com dados reais. O teste de queda de
+Wi-Fi/reenvio ficou pendente; as correções web ainda não foram publicadas.
+Veja o [registro de evidências e limitações](docs/VALIDACAO_BANCADA_2026-09-12.md).
+
+## Histórico registrado do projeto (julho/2026)
 
 - ✅ **Plataforma em produção:** Worker + D1 + KV no ar, dashboard publicado, eventos persistentes disponíveis para consulta/auditoria e deploy automático no merge da `main`.
 - ✅ **Protótipo físico de bancada validado ponta a ponta** (16/07): ESP32 + sensor ultrassônico + OLED lendo nível real e o dashboard atualizando ao vivo, com *store & forward* comprovado (leituras seguradas sem rede, zero perda).
