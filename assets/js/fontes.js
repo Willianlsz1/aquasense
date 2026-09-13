@@ -61,7 +61,9 @@ const FonteApi = {
   async ultimos() {
     const json = await apiGet("/ultimos");
     const ids = Object.keys(json || {});
-    if (!ids.length) throw new Error("Sem dados recentes");
+    // API saudável sem leituras ainda é diferente de indisponibilidade. Devolve
+    // um mapa vazio para o painel marcar cada instrumento como "Sem sinal".
+    if (!ids.length) return {};
     const result = {};
     ids.forEach(id => {
       const row = json[id] || {};
@@ -87,8 +89,9 @@ const FonteApi = {
 };
 
 // ── SIMULAÇÃO ─────────────────────────────────────────────────────────────────
-// Adapter simulado: mesma interface de FonteApi ({simulada, ultimos(), historico()}),
-// usado quando a API real está indisponível. Cada piezômetro oscila de forma
+// Adapter simulado: mesma interface de FonteApi ({simulada, ultimos(), historico()}).
+// É um modo de demonstração escolhido pelo operador; falhas da API real jamais o ativam.
+// Cada piezômetro oscila de forma
 // independente, para a visão geral e o mapa ficarem vivos na demonstração:
 // PZ-01 ~10 m (faixa normal) · PZ-02 ~11,5 m (oscila até a faixa de atenção) · PZ-03 ~9 m (estável)
 const FonteSimulada = {
@@ -181,16 +184,20 @@ const FonteSimulada = {
 // Todo o resto do dashboard só enxerga a interface comum; ver seam acima (FonteApi/FonteSimulada).
 let fonte = FonteApi;
 
-// Único ponto que troca a fonte ativa e sincroniza a UI que depende disso
-// (banner amarelo, espelho `simActive`). Absorve o antigo setSimMode().
+// Único ponto que troca a fonte ativa. `app.js` invalida as requisições em voo e
+// limpa o estado operacional antes de solicitar a nova fonte, impedindo misturas.
 function trocarFonte(novaFonte) {
   if (fonte === novaFonte) return;
   fonte = novaFonte;
   simActive = fonte.simulada;
-  document.getElementById("sim-banner").classList.toggle("on", fonte.simulada);
-  // Recarrega o histórico na fonte recém-ativada: sem isso, gráficos, estatísticas e
-  // export continuavam exibindo a série da fonte ANTERIOR (ex.: simulada, após a API
-  // voltar de uma queda) até o operador trocar de pz/período à mão. O typeof protege
-  // a ordem de carga (app.js, que define a função, carrega depois deste arquivo).
-  if (typeof loadHistoryAndStats === "function") loadHistoryAndStats();
+  const banner = document.getElementById("sim-banner");
+  if (banner) banner.classList.toggle("on", fonte.simulada);
+  const label = document.getElementById("fonte-label");
+  if (label) label.textContent = fonte.simulada ? "Fonte: simulação" : "Fonte: monitoramento real";
+  const botao = document.getElementById("btn-simulacao");
+  if (botao) {
+    botao.textContent = fonte.simulada ? "Voltar ao monitoramento" : "Entrar em simulação";
+    botao.setAttribute("aria-pressed", String(fonte.simulada));
+  }
+  if (typeof aoTrocarFonte === "function") aoTrocarFonte();
 }

@@ -66,7 +66,9 @@ function renderMainChart(canvasId, state, color, thresholds, bucketMs, maxData) 
     mx = Math.max(mx, Math.max(...tvs) + 2);
   }
   const sy = v => PAD.top + ch - ((v - mn) / (mx - mn)) * ch;
-  const sx = i => PAD.left + (i / Math.max(data.length - 1, 1)) * cw;
+  const span = tms[tms.length - 1] - tms[0];
+  const tempoValido = tms.length === data.length && tms.every((t, i) => Number.isFinite(t) && (!i || t >= tms[i - 1])) && span > 0;
+  const sx = i => PAD.left + (tempoValido ? (tms[i] - tms[0]) / span : i / Math.max(data.length - 1, 1)) * cw;
 
   c.clearRect(0, 0, W, H);
 
@@ -74,7 +76,7 @@ function renderMainChart(canvasId, state, color, thresholds, bucketMs, maxData) 
   for (let i = 0; i <= 4; i++) {
     const v = mn + (mx - mn) * (i / 4);
     const y = sy(v);
-    c.strokeStyle = "rgba(37,41,48,.9)"; c.lineWidth = 1; c.setLineDash([]);
+    c.strokeStyle = "rgba(105,128,143,.18)"; c.lineWidth = 1; c.setLineDash([]);
     c.beginPath(); c.moveTo(PAD.left, y); c.lineTo(PAD.left + cw, y); c.stroke();
     c.fillStyle = "#454a5c"; c.font = "11px 'IBM Plex Mono'"; c.textAlign = "right";
     c.fillText(v.toFixed(1), PAD.left - 4, y + 3);
@@ -96,25 +98,13 @@ function renderMainChart(canvasId, state, color, thresholds, bucketMs, maxData) 
     c.fillStyle = color; c.fill(); return;
   }
 
-  // Área
-  const grad = c.createLinearGradient(0, PAD.top, 0, PAD.top + ch);
-  grad.addColorStop(0, color + "30"); grad.addColorStop(1, color + "00");
-  c.beginPath(); c.moveTo(sx(0), sy(data[0]));
-  for (let i = 1; i < data.length; i++) {
-    const x0 = sx(i-1), y0 = sy(data[i-1]), x1 = sx(i), y1 = sy(data[i]);
-    c.bezierCurveTo((x0+x1)/2, y0, (x0+x1)/2, y1, x1, y1);
-  }
-  c.lineTo(sx(data.length-1), PAD.top+ch);
-  c.lineTo(PAD.left, PAD.top+ch); c.closePath();
-  c.fillStyle = grad; c.fill();
-
   // Linha — P1: gap visível (moveTo) em vez de ligar pontos separados por um intervalo
   // grande demais (> 2×bucketMs) — dado ausente nunca é interpolado silenciosamente.
   c.beginPath(); c.moveTo(sx(0), sy(data[0]));
   for (let i = 1; i < data.length; i++) {
     const x0 = sx(i-1), y0 = sy(data[i-1]), x1 = sx(i), y1 = sy(data[i]);
     if (isGap(i)) { c.moveTo(x1, y1); continue; }
-    c.bezierCurveTo((x0+x1)/2, y0, (x0+x1)/2, y1, x1, y1);
+    c.lineTo(x1, y1);
   }
   c.strokeStyle = color; c.lineWidth = 1.5; c.setLineDash([]); c.stroke();
 
@@ -139,22 +129,25 @@ function renderMainChart(canvasId, state, color, thresholds, bucketMs, maxData) 
 
   // Labels X
   c.fillStyle = "#454a5c"; c.font = "11px 'IBM Plex Mono'"; c.textAlign = "center";
-  const step = Math.max(1, Math.floor(labels.length / 6));
+  const step = Math.max(1, Math.ceil(labels.length / Math.max(2, Math.floor(cw / 120))));
   for (let i = 0; i < labels.length; i += step)
-    c.fillText(labels[i], sx(i), H - 6);
+    c.fillText(tempoValido && span >= 86400000
+      ? new Date(tms[i]).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " " + labels[i]
+      : labels[i], sx(i), H - 6);
 
   // Último ponto
   const lx = sx(data.length-1), ly = sy(data[data.length-1]);
   c.beginPath(); c.arc(lx, ly, 5, 0, Math.PI*2); c.fillStyle = color; c.fill();
-  c.fillStyle = "#dde1ed"; c.font = "11px 'IBM Plex Mono'"; c.textAlign = "right";
+  c.fillStyle = "#314d60"; c.font = "11px 'IBM Plex Mono'"; c.textAlign = "right";
   c.fillText(data[data.length-1].toFixed(2), lx - 10, ly - 9);
 }
 
 function redrawCharts() {
-  const bucketMs = (PERIODOS[periodoSelecionado] || {}).bucketMs;
-  renderMainChart("chart-n", charts.n, "#8fa0bf", [
-    { v: CFG.thrCritico, col: "rgba(240,72,72,.5)",  lbl: `${CFG.thrCritico} m crítico` },
-    { v: CFG.thrAtencao, col: "rgba(240,192,64,.5)", lbl: `${CFG.thrAtencao} m atenção` },
+  const bucketMs = Number.isFinite(histPontos.bucketSeg) && histPontos.bucketSeg > 0
+    ? histPontos.bucketSeg * 1000 : (PERIODOS[periodoSelecionado] || {}).bucketMs;
+  renderMainChart("chart-n", charts.n, "#237b83", [
+    { v: CFG.thrCritico, col: "rgba(189,53,60,.85)",  lbl: `${CFG.thrCritico} m crítico` },
+    { v: CFG.thrAtencao, col: "rgba(147,98,0,.85)", lbl: `${CFG.thrAtencao} m atenção` },
   ], bucketMs, charts.n.maxData);
   renderMainChart("chart-t", charts.t, "#7e8ba3", null, bucketMs);
 }

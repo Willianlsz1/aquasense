@@ -16,6 +16,15 @@ O painel local corrigido também foi conferido com dados reais. O teste de queda
 Wi-Fi/reenvio ficou pendente; as correções web ainda não foram publicadas.
 Veja o [registro de evidências e limitações](docs/VALIDACAO_BANCADA_2026-09-12.md).
 
+## Painel operacional — revisão local de 13/09/2026
+
+O painel principal preserva mapa, tendências e exportações, com identidade AquaSense.
+A fonte real é o padrão; simulação exige escolha explícita e fica identificada.
+O histórico de alertas consulta o servidor e informa o limite de 50 registros da rede.
+CSV/Excel de leituras representam os intervalos disponíveis, não todas as amostras brutas.
+Veja os [critérios, referências e limitações](docs/CRITERIOS_UI_OPERACIONAL.md).
+Esta revisão é local e não foi publicada.
+
 ## Histórico registrado do projeto (julho/2026)
 
 - ✅ **Plataforma em produção:** Worker + D1 + KV no ar, dashboard publicado, eventos persistentes disponíveis para consulta/auditoria e deploy automático no merge da `main`.

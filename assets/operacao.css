@@ -1,0 +1,61 @@
+/* Camada visual do painel operacional; mantém os componentes existentes. */
+:root { --bg-base:#eef2f4; --bg-panel:#fff; --bg-card:#f8fafb; --bg-card2:#eaf0f3; --border:#ced8df; --border2:#dfe6eb; --text-1:#203444; --text-2:#526877; --text-3:#617480; --green:#147b79; --blue:#246c94; --yellow:#936200; --red:#bd353c; }
+header { height:68px; background:#152f40; color:#edf7fa; padding:0 28px; }
+.logo-name { color:#edf7fa; letter-spacing:3px; }
+.logo-ring { border-color:#75d5d0; border-radius:55% 55% 55% 5%; transform:rotate(-45deg); }
+.logo-ring-inner { background:#75d5d0; }
+.header-center, .live-pill { color:#d0e1e8; }
+.live-pill { background:#203f50; border-color:#3c5867; }
+.live-dot { display:none; }
+.statusbar { min-height:46px; padding:8px 28px; flex-wrap:wrap; background:#e2eaee; }
+.statusbar .btn-export { margin-left:auto; }
+.root { width:100%; max-width:1680px; margin:auto; padding:24px 28px; gap:20px; grid-template-rows:none; }
+.operation-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.eyebrow { font:10px var(--mono); letter-spacing:1.5px; color:#49717f; }
+h1 { font-size:24px; font-weight:500; margin-top:6px; }
+.panel,.mcard { border-radius:5px; box-shadow:0 1px 2px #17384b08; min-width:0; }
+.panel-hdr { min-height:50px; }
+.panel-title { font-size:12px; letter-spacing:.7px; font-weight:600; }
+.panel-sub { line-height:1.6; color:var(--text-2); }
+.overview-row { grid-template-columns:1.15fr 1fr; }
+.pz-grid { gap:10px; padding:16px; }
+.pz-card { border-radius:4px; background:#f8fafb; }
+.pz-card.selected { border-color:#147b79; background:#eaf5f4; box-shadow:inset 0 3px #147b79; }
+.pz-card-value { color:#203444; }
+.map-area,#pz-map { height:230px; }
+.pz-detail-label { font-size:17px; border-bottom:1px solid var(--border); padding-bottom:12px; }
+.reading-context { font:12px var(--mono); color:#526877; margin-top:-10px; line-height:1.7; }
+.metrics-row.sem-temp { grid-template-columns:1.5fr 1fr; }
+.mcard { padding:20px; }
+.mcard-value { font-size:44px; }
+.cv-neutral { color:#203444; }
+.cv-yellow,.al-atencao { color:#936200; }
+.cv-red,.al-critico { color:#bd353c; }
+.chart-area { height:300px; flex:none; }
+.charts-row,.bottom-row { gap:20px; }
+.bottom-row { grid-template-columns:1fr 1.6fr; }
+.analysis-row { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:20px; align-items:start; }
+.analysis-row .charts-row { min-width:0; grid-template-columns:1fr; }
+.btn-export,.period-pill { color:#284a5c; border-color:#b7c8d1; background:#f8fafb; padding:7px 11px; }
+.period-pill.active { color:#fff; background:#236977; border-color:#236977; }
+.btn-export:hover { background:#e4eff0; }
+.btn-export:disabled,.is-disabled { opacity:.5; cursor:not-allowed; }
+button:focus-visible,a:focus-visible { outline:3px solid #227eae; outline-offset:3px; }
+.pz-card:focus-visible { outline:3px solid #227eae; outline-offset:3px; }
+.mstat { min-width:0; }
+.mstat-val { overflow-wrap:anywhere; }
+.panel-hdr-actions { flex-wrap:wrap; }
+.howto-bar { background:#f7f9fa; }
+.sim-banner { background:#fff0c6; color:#684c00; border-color:#ddba53; }
+.alb-normal,.alb-semsinal { background:#f0f4f6; }
+.al-normal { color:#415c6a; }
+.al-info { line-height:1.7; }
+.tb-normal-neutro,.mbadge { color:#506574; }
+.persisted-panel .alert-table-wrap { max-height:310px; overflow:auto; }
+table { width:100%; }
+th { color:#526877; background:#f3f6f8; }
+td { line-height:1.5; }
+.td-msg { color:#314d60; }
+@media(max-width:1000px) { .overview-row,.bottom-row,.analysis-row { grid-template-columns:1fr; } .header-center { display:none; } .panel-hdr { flex-wrap:wrap; gap:12px; } }
+@media(max-width:800px) { .metrics-row,.metrics-row.sem-temp { grid-template-columns:1fr; } }
+@media(max-width:600px) { header { padding:12px 16px; height:auto; gap:12px; flex-wrap:wrap; } .root { padding:18px 12px; } .statusbar { padding:8px 12px; } .operation-heading { align-items:flex-start; flex-direction:column; } h1 { font-size:21px; } .metrics-row.sem-temp,.metrics-row { grid-template-columns:1fr; } .pz-grid { grid-template-columns:1fr; } .alert-table-wrap { overflow:auto; } .panel-hdr-actions { gap:8px; } .chart-area { height:260px; } }

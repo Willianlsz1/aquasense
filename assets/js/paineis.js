@@ -1,3 +1,8 @@
+// Escapa valores dinâmicos nas estruturas HTML legadas.
+function textoHtml(valor) {
+  return String(valor ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
 ﻿// ── PAINÉIS (DOM) ─────────────────────────────────────────────────────────────
 // Renderização de DOM que não é canvas: cards da visão geral, mapa Leaflet,
 // painel de nível de alerta (com/sem sinal), taxa de variação, tabelas de
@@ -35,14 +40,14 @@ function setAlert(n) {
   const { lv } = classifyComHisterese(n, lastLevel);
   let desc, icon;
   if (lv === "normal") {
-    desc = `Nível d'água na faixa segura (< ${CFG.thrAtencao} m): operação normal, sem ação necessária`;
+    desc = `Leitura na faixa normal configurada. Este estado não atesta a segurança da estrutura.`;
     // P6 — ícone neutro no estado normal (cor reservada a anormalidade, ISA-101)
     icon = `<circle cx="8" cy="8" r="5.5" stroke="#7c8196" stroke-width="1.5"/><path d="M5.5 8l2 2 3.5-3.5" stroke="#7c8196" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
   } else if (lv === "atencao") {
     desc = `Nível entre ${CFG.thrAtencao} e ${CFG.thrCritico} m: observar de perto e intensificar o monitoramento`;
     icon = `<path d="M8 2L14.5 13.5H1.5L8 2Z" stroke="#f0c040" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6.5V9.5" stroke="#f0c040" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.5" r=".75" fill="#f0c040"/>`;
   } else {
-    desc = `Nível acima de ${CFG.thrCritico} m: ACIONAR EQUIPE DE GEOTECNIA IMEDIATAMENTE`;
+    desc = `Faixa crítica configurada: verificar a leitura e seguir o procedimento definido pelo responsável.`;
     icon = `<circle cx="8" cy="8" r="5.5" stroke="#f04848" stroke-width="1.5"/><path d="M8 5v3.5" stroke="#f04848" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11" r=".75" fill="#f04848"/>`;
   }
   const upperLbl = { normal: "NORMAL", atencao: "ATENÇÃO", critico: "CRÍTICO" }[lv];
@@ -169,10 +174,10 @@ function linhaHistorico(e, colBadgeLbl) {
   return `
     <tr>
       <td class="td-dot"><span class="ev-dot-sm" style="background:${e.color}"></span></td>
-      <td class="td-msg">${e.msg}</td>
-      <td class="td-val">${e.nivel} m</td>
-      <td class="td-badge"><span class="tbadge tb-${e.lv}">${colBadgeLbl}</span></td>
-      <td class="td-time">${e.time}</td>
+      <td class="td-msg">${textoHtml(e.msg)}</td>
+      <td class="td-val">${textoHtml(e.nivel)} m</td>
+      <td class="td-badge"><span class="tbadge tb-${e.lv}">${textoHtml(colBadgeLbl)}</span></td>
+      <td class="td-time">${textoHtml(e.time)}</td>
     </tr>`;
 }
 
@@ -182,7 +187,7 @@ function renderAlarmesTable() {
   if (countEl) countEl.textContent = `${alarmes.length} alarme${alarmes.length !== 1 ? "s" : ""}`;
   if (!tbody) return;
   if (!alarmes.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--text-3);text-align:center;padding:16px">Nenhum alarme ativo</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--text-3);text-align:center;padding:16px">Nenhuma ocorrência nesta sessão</td></tr>`;
     return;
   }
   // Coluna "Ação" mostra a ação esperada (ACOES), não o rótulo de status
@@ -244,12 +249,12 @@ function atualizarVisaoGeral(mapa) {
         ? `última leitura ${formatUltimaLeitura(ultimaRecepcao)}`
         : "nenhuma leitura recebida";
       return `
-        <div class="pz-card pz-sem-sinal${sel}" data-pz="${pz.id}">
+        <div class="pz-card pz-sem-sinal${sel}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
           <div class="pz-card-top">
-            <span class="pz-card-id">${pz.id}</span>
+            <span class="pz-card-id">${textoHtml(pz.id)}</span>
             <span class="tbadge tb-semsinal">SEM SINAL</span>
           </div>
-          <div class="pz-card-name">${pz.nome}</div>
+          <div class="pz-card-name">${textoHtml(pz.nome)}</div>
           <div class="pz-card-value valor-esmaecido">${valorHtml}</div>
           <div class="pz-card-lastseen">${lastSeen}</div>
         </div>`;
@@ -259,24 +264,30 @@ function atualizarVisaoGeral(mapa) {
     const taxa = d && Number.isFinite(d.taxa_m_dia) ? d.taxa_m_dia : null;
     const taxaRapida = taxa !== null && Math.abs(taxa) > CFG.taxaMaxMDia;
     const chipHtml = taxaRapida
-      ? `<span class="chip-taxa-rapida" title="Variação rápida: investigar (referência profissional: acima de 0,1 m/dia já é gatilho)">📈 variação rápida</span>`
+      ? `<span class="chip-taxa-rapida" title="Variação rápida: investigar (limiar definido na configuração do projeto)">📈 variação rápida</span>`
       : "";
 
     // P6 — badge NORMAL neutro (ISA-101: cor = anormalidade, ~90% da UI neutra)
     const badgeCls = cls.lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${cls.lv}`;
     return `
-      <div class="pz-card${sel}" data-pz="${pz.id}">
+      <div class="pz-card${sel}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
         <div class="pz-card-top">
-          <span class="pz-card-id">${pz.id}</span>
+          <span class="pz-card-id">${textoHtml(pz.id)}</span>
           <span class="${badgeCls}">${cls.lbl}</span>
         </div>
-        <div class="pz-card-name">${pz.nome}</div>
+        <div class="pz-card-name">${textoHtml(pz.nome)}</div>
         <div class="pz-card-value">${valorHtml}</div>
         ${chipHtml}
       </div>`;
   }).join("");
   grid.querySelectorAll(".pz-card").forEach(card => {
     card.addEventListener("click", () => selectPiezometro(card.dataset.pz));
+    card.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectPiezometro(card.dataset.pz);
+      }
+    });
   });
 }
 
@@ -301,7 +312,7 @@ function initMap() {
       const marker = L.circleMarker([pz.lat, pz.lng], {
         radius: 9, weight: 2, color: "#8a94ad", fillColor: "#8a94ad", fillOpacity: .85,
       }).addTo(leafletMap);
-      marker.bindPopup(`<b>${pz.nome}</b>`);
+      marker.bindPopup(`<b>${textoHtml(pz.nome)}</b>`);
       marker.on("click", () => selectPiezometro(pz.id));
       pzMarkers[pz.id] = marker;
     });
@@ -324,7 +335,7 @@ function atualizarMapa(mapa) {
     const col = corPorStatus(semSinal ? "semsinal" : cls.lv);
     marker.setStyle({ color: col, fillColor: col, radius: pz.id === pzSelecionado ? 11 : 9 });
     marker.setPopupContent(
-      `<b>${pz.nome}</b><br>Nível: ${!semSinal && nivel !== null ? nivel.toFixed(2) + " m" : "···"}<br>Status: ${cls.lbl}`
+      `<b>${textoHtml(pz.nome)}</b><br>Nível: ${!semSinal && nivel !== null ? nivel.toFixed(2) + " m" : "···"}<br>Status: ${cls.lbl}`
     );
   });
 }
@@ -333,13 +344,13 @@ function updatePzLabels() {
   const pz = PIEZOMETROS.find(p => p.id === pzSelecionado);
   const nome = pz ? pz.nome : "";
   const dl = document.getElementById("pz-detail-label");
-  if (dl) dl.innerHTML = `Detalhes de: <b>${pzSelecionado}${nome ? " · " + nome : ""}</b>`;
+  if (dl) dl.textContent = `Detalhes de: ${pzSelecionado}${nome ? " · " + nome : ""}`;
   const at = document.getElementById("alert-pz-tag");
   if (at) at.textContent = pzSelecionado;
   const rt = document.getElementById("pz-tag-readings");
   if (rt) rt.textContent = pzSelecionado;
   const et = document.getElementById("events-title");
-  if (et) et.textContent = `Alarmes & Eventos (${pzSelecionado})`;
+  if (et) et.textContent = `Sessão atual · todos os instrumentos`;
 }
 
 // ── TAXA DE VARIAÇÃO (P3) ─────────────────────────────────────────────────────
@@ -358,7 +369,7 @@ function renderTaxa(taxa) {
   const rapida = Math.abs(taxa) > CFG.taxaMaxMDia;
   el.textContent = `${rapida ? "📈 " : ""}${sinal}${taxa.toFixed(2)} m/dia`;
   el.className = "mstat-val" + (rapida ? " warn" : "");
-  if (rapida) el.title = "Variação rápida: investigar (referência profissional: acima de 0,1 m/dia já é gatilho)";
+  if (rapida) el.title = "Variação rápida: investigar (limiar definido na configuração do projeto)";
   else el.removeAttribute("title");
 }
 

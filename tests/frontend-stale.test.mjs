@@ -48,7 +48,7 @@ function carregarRelatorio() {
 
 function carregarApp() {
   const elementos = new Map();
-  const contagens = { renderTaxa: [], semSinal: [], addTaxaRow: 0, pushSpark: 0, pushChart: 0, pushStats: 0, pushReading: 0, setAlert: 0 };
+  const contagens = { renderTaxa: [], semSinal: [], addTaxaRow: 0, pushSpark: 0, pushChart: 0, pushStats: 0, pushReading: 0, setAlert: 0, status: [] };
   const document = { querySelectorAll: () => [], getElementById: id => {
     if (!elementos.has(id)) elementos.set(id, elemento());
     return elementos.get(id);
@@ -59,6 +59,9 @@ function carregarApp() {
     lastLevel: null, sparks: {}, charts: {}, histPontos: { n: [] }, readingsHistory: [],
     PERIODOS: { "24h": {}, "7d": {}, "30d": {} }, periodoSelecionado: "24h", pzSelecionado: "PZ-01",
     PIEZOMETROS: [{ id: "PZ-01" }, { id: "PZ-02" }], pzLatest: {},
+    pzComm: {}, alarmes: [], eventos: [], histReqId: 0, failCount: 0,
+    fonte: { simulada: false, ultimos: async () => ({}), historico: async () => ({ pontos: [] }) },
+    FonteApi: {}, FonteSimulada: {},
     updatePeriodLabels() {}, updatePzLabels() {}, atualizarVisaoGeral() {}, atualizarMapa() {}, renderReadingsTable() {},
     statsWin: { n: [], p: [], t: [], nMax: [] },
     renderTaxa: taxa => contagens.renderTaxa.push(taxa),
@@ -67,9 +70,10 @@ function carregarApp() {
     pushStats: () => { contagens.pushStats++; }, pushReading: () => { contagens.pushReading++; },
     setAlert: () => { contagens.setAlert++; }, addTaxaRow: () => { contagens.addTaxaRow++; }, redrawCharts: () => {},
     updateStats: () => {}, aplicarMaxNivelPico: () => {},
+    checarTransicoesComunicacao() {}, setStatus: (...args) => contagens.status.push(args), renderTable() {},
   });
   const antesDoBoot = appSource.split("(async function init()")[0];
-  new vm.Script(`${utilSource}\n${antesDoBoot}\nloadHistoryAndStats = async () => {};\nglobalThis.app = { applyData, selectPeriodo, selectPiezometro };`).runInContext(contexto);
+  new vm.Script(`${utilSource}\n${antesDoBoot}\nloadHistoryAndStats = async () => {};\nglobalThis.app = { applyData, selectPeriodo, selectPiezometro, poll, solicitarPoll };`).runInContext(contexto);
   return { app: contexto.app, elementos, contagens, contexto };
 }
 
@@ -205,6 +209,53 @@ test("trocar instrumento continua iniciando um estado de alerta próprio", () =>
   app.selectPiezometro("PZ-02");
   assert.equal(contexto.lastLevel, null);
   assert.equal(contexto.lastTaxaRapidaState, false);
+});
+
+test("resposta vazia de /ultimos mantém monitoramento real e marca apenas o instrumento sem sinal", async () => {
+  const { app, contagens, contexto } = carregarApp();
+  contexto.fonte = { simulada: false, ultimos: async () => ({}) };
+
+  await app.poll();
+
+  assert.equal(contexto.fonte.simulada, false);
+  assert.equal(contagens.status.at(-1)[0], "live");
+  assert.equal(contagens.semSinal.length, 1);
+});
+
+test("falha de /ultimos não muda a fonte para simulação", async () => {
+  const { app, contagens, contexto, elementos } = carregarApp();
+  const fonteReal = { simulada: false, ultimos: async () => { throw new Error("HTTP 503"); } };
+  contexto.fonte = fonteReal;
+  contexto.pzLatest = { "PZ-01": { nivel: 8, recebidoEm: Date.now() / 1000 } };
+  app.applyData(contexto.pzLatest["PZ-01"]);
+
+  await app.poll();
+
+  assert.equal(contexto.fonte, fonteReal);
+  assert.equal(contagens.status.at(-1)[0], "err");
+  assert.match(contagens.status.at(-1)[1], /Monitoramento real indisponível/);
+  assert.equal(Object.keys(contexto.pzLatest).length, 0, "não reutiliza telemetria anterior no mapa ou seleção");
+  assert.equal(elementos.get("val-n").textContent, "···");
+  assert.equal(elementos.get("val-p").textContent, "···");
+  assert.equal(contagens.semSinal.length, 1);
+});
+
+test("poll atrasado da fonte anterior não aplica seus dados após a troca", async () => {
+  const { app, contagens, contexto } = carregarApp();
+  let concluir;
+  contexto.fonte = {
+    simulada: false,
+    ultimos: () => new Promise(resolve => { concluir = resolve; }),
+  };
+  const emVoo = app.poll();
+  contexto.fonte = {
+    simulada: true,
+    ultimos: async () => ({ "PZ-01": { nivel: 9.5, ts: Math.floor(Date.now() / 1000), recebidoEm: Math.floor(Date.now() / 1000) } }),
+  };
+  concluir({ "PZ-01": { nivel: 2.4, ts: Math.floor(Date.now() / 1000), recebidoEm: Math.floor(Date.now() / 1000) } });
+  await emVoo;
+
+  assert.equal(contagens.pushReading, 0, "a resposta antiga foi descartada");
 });
 
 test("sem sinal usa a última recepção, não o relógio adiantado do instrumento", () => {

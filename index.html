@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/operacao.css">
 </head>
 <body>
 
@@ -17,50 +18,53 @@
     <div class="logo-ring"><div class="logo-ring-inner"></div></div>
     <span class="logo-name">AQUASENSE</span>
   </div>
-  <span class="header-center">Monitoramento de Piezômetros · AquaSense</span>
+  <span class="header-center">Rede de instrumentação · Monitoramento</span>
   <div class="live-pill">
     <span class="live-dot"></span>
-    <span id="live-time">Ao vivo · --</span>
+    <span id="live-time">Relógio local · --</span>
   </div>
 </header>
 
 <div class="statusbar">
   <span class="sdot s-err" id="sdot"></span>
-  <span id="stext">Conectando à API...</span>
+  <span id="stext" role="status">Conectando à API...</span>
+  <button id="btn-simulacao" class="btn-export" type="button" aria-pressed="false">Iniciar simulação</button>
 </div>
 
 <div class="sim-banner" id="sim-banner">
-  ⚠ Modo simulação: dados fictícios para demonstração (sensor/API indisponível)
+  SIMULAÇÃO ATIVA · Dados fictícios para demonstração. Não representam o protótipo conectado.
 </div>
 
 <div class="howto-bar">
   <button class="howto-toggle" id="howto-toggle" type="button">❓ Como ler este painel</button>
   <div class="howto-content" id="howto-content">
-    <div class="howto-item">💧 <b>Nível d'água:</b> altura da água dentro do tubo do piezômetro, em metros. Quanto mais alto, maior a pressão da água dentro da barragem.</div>
-    <div class="howto-item">🟢🟡🔴 <b>Faixas:</b> Normal (abaixo de 12 m) = operação segura · Atenção (12–15 m) = observar de perto · Crítico (acima de 15 m) = acionar a equipe de geotecnia imediatamente.</div>
-    <div class="howto-item">📈 <b>Gráficos:</b> mostram como o nível variou ao longo do tempo; as linhas tracejadas marcam os limites de segurança.</div>
+    <div class="howto-item"><b>Nível:</b> leitura em metros conforme a configuração do instrumento. A bancada HC-SR04 usa uma escala didática.</div>
+    <div class="howto-item"><b>Faixas:</b> classificam a leitura pelos limites configurados. A condição de um instrumento não determina a segurança da estrutura.</div>
+    <div class="howto-item">📈 <b>Gráficos:</b> mostram como o nível variou ao longo do tempo; as linhas tracejadas marcam os limites configurados.</div>
     <div class="howto-item">🔔 <b>Alertas:</b> quando o nível cruza um limite, o painel registra o evento por escrito e destaca visualmente a faixa. Sem leitura recente, o estado exibido é <b>SEM SINAL</b>.</div>
   </div>
 </div>
 
-<div class="root">
+<main class="root">
+  <div class="operation-heading"><div><span class="eyebrow">AQUASENSE / PAINEL OPERACIONAL</span><h1>Monitoramento de piezômetros</h1></div><span class="panel-tag">Protótipo didático · SAGA / SENAI</span></div>
 
   <!-- VISÃO GERAL + MAPA -->
   <div class="overview-row">
     <div class="panel">
-      <div class="panel-hdr"><span class="panel-title">Visão Geral dos Piezômetros</span></div>
-      <div class="panel-sub">Clique em um piezômetro para ver seus detalhes</div>
+      <div class="panel-hdr"><span class="panel-title">Instrumentos da rede</span></div>
+      <div class="panel-sub">Selecione um instrumento para consultar leituras e registros</div>
       <div class="pz-grid" id="pz-grid"></div>
     </div>
     <div class="panel">
       <div class="panel-hdr"><span class="panel-title">Localização</span></div>
-      <div class="panel-sub">Coordenadas ilustrativas (Complexo de Germano, Mariana/MG)</div>
+      <div class="panel-sub">Mapa de demonstração · posições ilustrativas em Mariana/MG</div>
       <div class="map-area"><div id="pz-map"></div></div>
     </div>
   </div>
 
   <div class="pz-detail-label" id="pz-detail-label">Detalhes de: <b>PZ-01 · Dique Norte</b></div>
 
+  <div class="reading-context" id="reading-context" role="status">Aguardando a primeira consulta.</div>
   <!-- MÉTRICAS -->
   <div class="metrics-row sem-temp" id="metrics-row">
     <!-- Nível d'água (métrica principal do desafio SAGA) -->
@@ -84,7 +88,7 @@
     <!-- Pressão (leitura bruta do sensor) -->
     <div class="mcard">
       <div class="mcard-top">
-        <span class="mcard-label">Poropressão</span>
+        <span class="mcard-label">Pressão</span>
         <span class="mbadge mb-blue" id="badge-p">···</span>
       </div>
       <div class="mcard-value cv-neutral">
@@ -92,8 +96,8 @@
       </div>
       <div class="sparkline-wrap"><canvas id="spark-p"></canvas></div>
       <div class="mcard-stats">
-        <div class="mstat"><span class="mstat-lbl lbl-min">Mín 24h</span><span class="mstat-val" id="p-min">···</span></div>
-        <div class="mstat"><span class="mstat-lbl lbl-max">Máx 24h</span><span class="mstat-val" id="p-max">···</span></div>
+        <div class="mstat"><span class="mstat-lbl">Mín sessão</span><span class="mstat-val" id="p-min">···</span></div>
+        <div class="mstat"><span class="mstat-lbl">Máx sessão</span><span class="mstat-val" id="p-max">···</span></div>
         <div class="mstat"><span class="mstat-lbl">Variação</span><span class="mstat-val" id="p-delta">···</span></div>
       </div>
     </div>
@@ -116,6 +120,7 @@
     </div>
   </div>
 
+  <div class="analysis-row">
   <!-- GRÁFICOS -->
   <div class="charts-row sem-temp" id="charts-row">
     <div class="panel">
@@ -127,14 +132,15 @@
             <button class="period-pill" data-range="7d" type="button">7d</button>
             <button class="period-pill" data-range="30d" type="button">30d</button>
           </div>
-          <button class="btn-export" id="btn-export" type="button" title="Dados brutos em CSV: formato universal de auditoria, importável em qualquer software de engenharia">📥 Dados brutos (CSV)</button>
-          <button class="btn-export" id="btn-export-xls" type="button" title="Planilha Excel formatada: título, cores por status e resumo do período, pronta para imprimir ou apresentar">📊 Relatório (Excel)</button>
-          <a class="btn-export" id="btn-relatorio" href="relatorio.html" target="_blank" title="Documento A4 pronto para salvar como PDF: resumo, gráfico, tabela e auditoria do período">📄 Relatório (PDF)</a>
+          <button class="btn-export" id="btn-export" type="button" title="Exporta os intervalos disponíveis no gráfico, com identificação da fonte">CSV · intervalos</button>
+          <button class="btn-export" id="btn-export-xls" type="button" title="Planilha Excel formatada: título, cores por status e resumo do período, pronta para imprimir ou apresentar">Excel</button>
+          <a class="btn-export" id="btn-relatorio" href="relatorio.html" target="_blank" title="Documento A4 pronto para salvar como PDF: resumo, gráfico, tabela e auditoria do período">PDF</a>
         </div>
       </div>
       <!-- P5 — legenda curta: pico do intervalo desenhado junto da média, não escondido -->
+      <div class="panel-sub">Série por intervalos: média e máximo. Exportações seguem os dados disponíveis, não o conjunto bruto de amostras.</div>
       <div class="chart-legend-inline">
-        <span class="cl-item"><span class="cl-swatch"></span>média</span>
+        <span class="cl-item"><span class="cl-swatch"></span>média / leitura recente</span>
         <span class="cl-item"><span class="cl-swatch cl-max"></span>máx do intervalo</span>
       </div>
       <div class="chart-area"><canvas id="chart-n"></canvas></div>
@@ -148,12 +154,10 @@
     </div>
   </div>
 
-  <!-- ALERTA + LEITURAS + EVENTOS -->
-  <div class="bottom-row">
     <!-- Alerta -->
     <div class="panel">
       <div class="panel-hdr">
-        <span class="panel-title">Nível de Alerta</span>
+        <span class="panel-title">Condição da leitura</span>
         <span class="panel-tag" id="alert-pz-tag">PZ-01</span>
       </div>
       <div class="panel-sub">Situação atual do piezômetro selecionado</div>
@@ -177,13 +181,23 @@
         </div>
       </div>
 
-      <div class="al-info" id="ainfo">Monitoramento contínuo ativo.</div>
+      <div class="al-info" id="ainfo">Aguardando confirmação da fonte.</div>
     </div>
 
+  </div>
+<section class="panel persisted-panel" aria-labelledby="persistent-title">
+  <div class="panel-hdr"><h2 class="panel-title" id="persistent-title">Histórico registrado no servidor</h2><button class="btn-export" id="btn-export-alertas" type="button">Exportar alertas · CSV</button></div>
+  <p class="panel-sub">Instrumento selecionado · consulta aos últimos 50 registros da rede. Independente do período do gráfico; não constitui histórico completo de auditoria.</p>
+  <p class="panel-sub" id="servidor-eventos-status" role="status">Aguardando consulta.</p>
+  <div class="alert-table-wrap"><table><thead><tr><th>Data / hora</th><th>Instrumento</th><th>Tipo</th><th>Evento</th><th>Ação</th></tr></thead><tbody id="servidor-eventos-tbody"></tbody></table></div>
+</section>
+
+  <!-- ALERTA + LEITURAS + EVENTOS -->
+  <div class="bottom-row">
     <!-- Últimas leituras -->
     <div class="panel">
       <div class="panel-hdr">
-        <span class="panel-title">Últimas Leituras</span>
+        <span class="panel-title">Leituras disponíveis</span>
         <span class="panel-tag" id="pz-tag-readings">PZ-01</span>
       </div>
       <div class="alert-table-wrap">
@@ -213,7 +227,7 @@
       </div>
       <div class="ev-subpanel">
         <div class="ev-subpanel-hdr">
-          <span class="ev-subpanel-title">🔔 Alarmes (exigem ação)</span>
+          <span class="ev-subpanel-title">Ocorrências observadas nesta sessão</span>
           <span class="panel-tag" id="alarm-count">0 alarmes</span>
         </div>
         <div class="alert-table-wrap ev-table-wrap-sm">
@@ -230,7 +244,7 @@
             <tbody id="alarm-tbody">
               <tr>
                 <td colspan="5" style="color:var(--text-3);text-align:center;padding:16px">
-                  Nenhum alarme ativo
+                  Nenhuma ocorrência nesta sessão
                 </td>
               </tr>
             </tbody>
@@ -265,7 +279,7 @@
     </div>
   </div>
 
-</div>
+</main>
 
 <script src="assets/js/config.js"></script>
 <script src="assets/js/util.js"></script>
@@ -275,6 +289,8 @@
 <script src="assets/js/paineis.js"></script>
 <script src="assets/js/exportar_xls.js"></script>
 <script src="assets/js/exportar.js"></script>
+<script src="assets/js/eventos-persistidos.js"></script>
+<script src="assets/js/operacao.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>

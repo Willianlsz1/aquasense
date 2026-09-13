@@ -37,6 +37,9 @@ function selectPiezometro(id) {
   atualizarMapa(pzLatest);
   loadHistoryAndStats();
   if (pzLatest[id]) applyData(pzLatest[id]);
+  else mostrarSemSinalSelecionado();
+  atualizarResumoDaFonte();
+  carregarEventosDaFonte();
   atualizarLinkRelatorio();
 }
 
@@ -48,6 +51,8 @@ function selectPeriodo(p) {
   // O período muda o histórico, não o estado operacional do instrumento.
   resetPzState({ preservarAlertas: true });
   loadHistoryAndStats();
+  atualizarResumoDaFonte();
+  carregarEventosDaFonte();
   atualizarLinkRelatorio();
 }
 
@@ -55,7 +60,14 @@ function selectPeriodo(p) {
 // só o href muda, a página relatorio.html é aberta (aba nova) quando clicado.
 function atualizarLinkRelatorio() {
   const el = document.getElementById("btn-relatorio");
-  if (el) el.href = "relatorio.html?pz=" + pzSelecionado + "&range=" + periodoSelecionado;
+  if (!el) return;
+  const indisponivelNaSimulacao = Boolean(typeof fonte !== "undefined" && fonte.simulada);
+  el.href = indisponivelNaSimulacao ? "#" : "relatorio.html?pz=" + pzSelecionado + "&range=" + periodoSelecionado;
+  if (el.classList) el.classList.toggle("is-disabled", indisponivelNaSimulacao);
+  if (typeof el.setAttribute === "function") el.setAttribute("aria-disabled", String(indisponivelNaSimulacao));
+  el.title = indisponivelNaSimulacao
+    ? "Relatório PDF disponível apenas para dados reais do sistema"
+    : "Documento A4 pronto para salvar como PDF: resumo, gráfico, tabela e auditoria do período";
 }
 
 // Carrega histórico do piezômetro/período selecionados (nível + temperatura),
@@ -111,17 +123,18 @@ async function loadHistoryAndStats() {
   // terminarmos, histReqId avança e nós descartamos nosso resultado silenciosamente (ver
   // checagens após cada await abaixo) em vez de sobrescrever a seleção atual com dados velhos.
   const meuId = ++histReqId;
+  const fonteDaRequisicao = fonte;
   let pontos, bucketSeg;
   try {
-    ({ pontos, bucket_seg: bucketSeg } = await fonte.historico(pzSelecionado, periodoSelecionado));
+    ({ pontos, bucket_seg: bucketSeg } = await fonteDaRequisicao.historico(pzSelecionado, periodoSelecionado));
   } catch (e) {
-    if (meuId !== histReqId) return; // seleção mudou enquanto a 1ª chamada estava em voo
+    if (meuId !== histReqId || fonteDaRequisicao !== fonte) return;
     const mensagem = `Histórico indisponível: não foi possível carregar ${pzSelecionado} (${PERIODOS[periodoSelecionado].label}).`;
     setHistoricoIndisponivel(mensagem);
     addInfoRow(mensagem);
     return;
   }
-  if (meuId !== histReqId) return; // seleção mudou enquanto o histórico estava em voo
+  if (meuId !== histReqId || fonteDaRequisicao !== fonte) return;
 
   limparHistoricoCarregado();
   histSimulado = false; // fonte.simulada já identifica a simulação global no export.
@@ -280,6 +293,71 @@ function applyData({ nivel, pressao, temperatura, taxa_m_dia, ts, recebidoEm }) 
   setAlert(nivel);
 }
 
+function limparMetricasAtuais() {
+  ["val-n", "val-p", "val-t"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = "···"; el.className = "cv-neutral"; }
+  });
+  ["badge-n", "badge-p", "badge-t"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.className = "mbadge"; el.textContent = id === "badge-n" ? "Sem sinal" : "Sem sensor"; }
+  });
+  document.getElementById("pz-detail-label")?.classList.add("telemetria-stale");
+  document.getElementById("metrics-row")?.classList.add("telemetria-stale");
+  document.getElementById("card-t")?.classList.add("oculta-metrica");
+  document.getElementById("panel-chart-t")?.classList.add("oculta-metrica");
+  document.getElementById("metrics-row")?.classList.add("sem-temp");
+  document.getElementById("charts-row")?.classList.add("sem-temp");
+  renderTaxa(null);
+}
+
+function mostrarSemSinalSelecionado() {
+  limparMetricasAtuais();
+  setAlertSemSinal(null);
+}
+
+function limparEstadoDaFonte() {
+  // A fonte é parte da proveniência: não deixar alarmes, cards ou leituras de uma
+  // fonte parecerem pertencer à outra.
+  histReqId++;
+  histSimulado = false;
+  pzLatest = {};
+  pzComm = {};
+  alarmes = [];
+  eventos = [];
+  lastLevel = null;
+  lastTaxaRapidaState = false;
+  resetPzState();
+  limparMetricasAtuais();
+  setAlertSemSinal(null);
+  renderTable();
+  atualizarVisaoGeral(pzLatest);
+  atualizarMapa(pzLatest);
+  atualizarLinkRelatorio();
+}
+
+function atualizarResumoDaFonte(apiIndisponivel = false) {
+  if (typeof atualizarResumoOperacional === "function") {
+    atualizarResumoOperacional(pzSelecionado, { apiIndisponivel });
+  }
+}
+
+function carregarEventosDaFonte() {
+  if (typeof carregarEventosPersistidos === "function") carregarEventosPersistidos();
+}
+
+function aoTrocarFonte() {
+  limparEstadoDaFonte();
+  const mensagem = fonte.simulada
+    ? "Modo simulação escolhido manualmente · dados fictícios de demonstração"
+    : "Monitoramento real selecionado · aguardando dados do sistema";
+  setStatus(fonte.simulada ? "sim" : "live", mensagem);
+  atualizarResumoDaFonte(false);
+  carregarEventosDaFonte();
+  loadHistoryAndStats();
+  solicitarPoll();
+}
+
 // ── RELÓGIO ───────────────────────────────────────────────────────────────────
 function updateClock() {
   const n = new Date();
@@ -288,7 +366,7 @@ function updateClock() {
   const hh = String(n.getHours()).padStart(2, "0");
   const mi = String(n.getMinutes()).padStart(2, "0");
   const ss = String(n.getSeconds()).padStart(2, "0");
-  document.getElementById("live-time").textContent = `Ao vivo · ${dd} ${mm} ${n.getFullYear()} ${hh}:${mi}:${ss}`;
+  document.getElementById("live-time").textContent = `Relógio local · ${dd} ${mm} ${n.getFullYear()} ${hh}:${mi}:${ss}`;
 }
 
 // ── COMO LER ESTE PAINEL (recolhível) ────────────────────────────────────────
@@ -309,46 +387,52 @@ function initPeriodPills() {
 }
 
 // ── POLLING ───────────────────────────────────────────────────────────────────
-// Roda a cada CFG.poll (10s), sempre — não existe mais um setInterval paralelo
-// para a simulação. Quando `fonte` é a simulada, fonte.ultimos() devolve os
-// valores gerados e o poll não percebe diferença nenhuma.
+let pollEmAndamento = false;
+let pollPendente = false;
+
+function solicitarPoll() {
+  if (pollEmAndamento) { pollPendente = true; return; }
+  return poll();
+}
+
+// Roda a cada CFG.poll (10s). A fonte simulada só é usada pelo botão explícito;
+// uma falha da API conserva a interface em monitoramento real e informa a falha.
 async function poll() {
+  if (pollEmAndamento) { pollPendente = true; return; }
+  pollEmAndamento = true;
+  const fonteDaRequisicao = fonte;
   try {
-    const dadosTodos = await fonte.ultimos();
+    const dadosTodos = await fonteDaRequisicao.ultimos();
+    if (fonteDaRequisicao !== fonte) return;
     pzLatest = dadosTodos;
+    failCount = 0;
+    setStatus(fonte.simulada ? "sim" : "live", fonte.simulada
+      ? "Modo simulação ativo · dados fictícios de demonstração"
+      : `Sistema online · consulta às ${new Date().toLocaleTimeString("pt-BR")}`);
 
-    if (fonte.simulada) {
-      // Enquanto em modo simulado, tenta também um ping barato à API real para
-      // detectar quando ela volta e trocar de fonte automaticamente.
-      try {
-        pzLatest = await FonteApi.ultimos();
-        trocarFonte(FonteApi);
-        failCount = 0;
-        setStatus("live", `Sistema online · consulta às ${new Date().toLocaleTimeString("pt-BR")}`);
-      } catch (_) {
-        setStatus("sim", "Modo simulação ativo · sem conexão com o sistema");
-      }
-    } else {
-      failCount = 0;
-      setStatus("live", `Sistema online · consulta às ${new Date().toLocaleTimeString("pt-BR")}`);
-    }
-
-    checarTransicoesComunicacao(pzLatest); // P1 — eventos de ok↔stale de todos os pz
+    checarTransicoesComunicacao(pzLatest);
     atualizarVisaoGeral(pzLatest);
     atualizarMapa(pzLatest);
     const sel = pzLatest[pzSelecionado];
-    if (!sel || !Number.isFinite(sel.nivel)) throw new Error(`Sem dados recentes para ${pzSelecionado}`);
-    applyData(sel);
+    if (!sel || !Number.isFinite(sel.nivel)) mostrarSemSinalSelecionado();
+    else applyData(sel);
+    atualizarResumoDaFonte(false);
+    carregarEventosDaFonte();
   } catch (e) {
+    if (fonteDaRequisicao !== fonte) return;
     failCount++;
+    pzLatest = {};
+    atualizarVisaoGeral(pzLatest);
+    atualizarMapa(pzLatest);
+    mostrarSemSinalSelecionado();
     console.warn("Fonte de leituras:", e.message);
-    if (failCount === 1) {
-      setStatus("err", `Falha na API: ${e.message}`);
-      addInfoRow("Falha de conexão com o sistema · ativando modo simulação");
-    }
-    if (failCount >= 2 && !fonte.simulada) {
-      trocarFonte(FonteSimulada);
-      setStatus("sim", "Modo simulação ativo · sem conexão com o sistema");
+    setStatus("err", `Monitoramento real indisponível · ${e.message}`);
+    atualizarResumoDaFonte(true);
+  } finally {
+    pollEmAndamento = false;
+    if (pollPendente) {
+      pollPendente = false;
+      solicitarPoll();
     }
   }
 }
@@ -361,8 +445,12 @@ async function poll() {
   // Antes de montar mapa/grid e iniciar o polling: tenta carregar config do servidor
   await loadConfig();
 
+  iniciarEventosPersistidos();
+  carregarEventosDaFonte();
   initHowto();
   initPeriodPills();
+  const simBtn = document.getElementById("btn-simulacao");
+  if (simBtn) simBtn.addEventListener("click", () => trocarFonte(fonte.simulada ? FonteApi : FonteSimulada));
   updatePeriodLabels();
   updatePzLabels();
   initMap();
@@ -373,8 +461,14 @@ async function poll() {
   const exportXlsBtn = document.getElementById("btn-export-xls");
   if (exportXlsBtn) exportXlsBtn.addEventListener("click", exportXLS);
 
+  const pdfBtn = document.getElementById("btn-relatorio");
+  if (pdfBtn) pdfBtn.addEventListener("click", event => {
+    if (fonte.simulada) event.preventDefault();
+  });
+
   atualizarVisaoGeral(pzLatest);
   atualizarMapa(pzLatest);
+  atualizarLinkRelatorio();
 
   // Carrega histórico do período/piezômetro selecionados
   await loadHistoryAndStats();
@@ -384,13 +478,13 @@ async function poll() {
     if (leafletMap) leafletMap.invalidateSize();
   });
 
-  await poll();
-  setInterval(poll, CFG.poll);
+  await solicitarPoll();
+  setInterval(solicitarPoll, CFG.poll);
 
   // Navegadores estrangulam (ou pausam) o setInterval de poll() em abas em background —
   // ao voltar, o operador poderia olhar por até um ciclo inteiro (CFG.poll) para um dado
   // que já está velho sem perceber. Ao readquirir visibilidade, força um poll() imediato.
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") poll();
+    if (document.visibilityState === "visible") solicitarPoll();
   });
 })();
