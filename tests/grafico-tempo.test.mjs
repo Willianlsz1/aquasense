@@ -27,7 +27,7 @@ test("gráfico respeita distância temporal e não une lacunas nem preenche áre
 
 test("redesenho usa o intervalo retornado pela fonte para detectar lacunas", () => {
   const sandbox = vm.createContext({
-    histPontos: { bucketSeg: 6 * 3600 },
+    document: {}, histPontos: { bucketSeg: 6 * 3600 },
     PERIODOS: { "30d": { bucketMs: 8 * 3600 * 1000 } },
     periodoSelecionado: "30d", CFG: {}, charts: { n: {}, t: {} },
   });

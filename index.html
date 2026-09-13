@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="assets/js/tema.js"></script>
 <title>AquaSense · Monitoramento de Piezômetros</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -10,6 +11,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="assets/operacao.css">
+<link rel="stylesheet" href="assets/tema.css">
 </head>
 <body>
 
@@ -19,6 +21,7 @@
     <span class="logo-name">AQUASENSE</span>
   </div>
   <span class="header-center">Rede de instrumentação · Monitoramento</span>
+  <button class="btn-export" id="btn-tema" type="button" aria-pressed="false">Modo escuro</button>
   <div class="live-pill">
     <span class="live-dot"></span>
     <span id="live-time">Relógio local · --</span>

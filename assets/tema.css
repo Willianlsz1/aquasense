@@ -1,0 +1,23 @@
+:root { color-scheme:light; }
+:root[data-tema="escuro"] {
+  color-scheme:dark;
+  --bg-base:#101b24; --bg-panel:#182731; --bg-card:#182731; --bg-card2:#233743;
+  --border:#3c515f; --border2:#30434f; --text-1:#e0eaf0; --text-2:#b7c8d2;
+  --text-3:#9bb0bd; --green:#65c5be; --blue:#81c4ed; --yellow:#f0c66a; --red:#ff858a;
+}
+[data-tema="escuro"] .statusbar,[data-tema="escuro"] .howto-bar { background:#1c303d; }
+[data-tema="escuro"] .pz-card { background:#20323e; }
+[data-tema="escuro"] .pz-card.selected { background:#203f44; border-color:#65c5be; box-shadow:inset 0 3px #65c5be; }
+[data-tema="escuro"] .pz-card-value,[data-tema="escuro"] .cv-neutral { color:var(--text-1); }
+[data-tema="escuro"] .reading-context,[data-tema="escuro"] .eyebrow,
+[data-tema="escuro"] .td-msg,[data-tema="escuro"] .al-normal,
+[data-tema="escuro"] .tb-normal-neutro,[data-tema="escuro"] .mbadge { color:var(--text-2); }
+[data-tema="escuro"] .btn-export,[data-tema="escuro"] .period-pill { color:var(--text-1); background:#233b49; border-color:#526b7a; }
+[data-tema="escuro"] .btn-export:hover { background:#304e5f; }
+[data-tema="escuro"] .period-pill.active { background:#287480; color:#fff; }
+[data-tema="escuro"] th { background:#213642; color:var(--text-2); }
+[data-tema="escuro"] .alb-normal,[data-tema="escuro"] .alb-semsinal { background:#243640; }
+[data-tema="escuro"] .cv-yellow,[data-tema="escuro"] .al-atencao { color:var(--yellow); }
+[data-tema="escuro"] .cv-red,[data-tema="escuro"] .al-critico { color:var(--red); }
+/* Cartografia mantém as cores originais para preservar a leitura dos elementos. */
+#btn-tema { white-space:nowrap; }
