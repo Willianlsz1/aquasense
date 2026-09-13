@@ -3,7 +3,7 @@
 // estado persistido no KV e o checkAlerts() que varre as 3 camadas
 // (nível, comunicação, taxa) a cada ciclo do cron.
 
-import { lerUltimosNiveis, lerUltimasLeiturasTodas, lerLeituraBaseline } from "./db.js";
+import { lerEstadoLeituras, lerLeituraBaseline } from "./db.js";
 import { registrarEventoComunicacao, registrarEventoNivel, registrarEventoTaxa } from "./eventos.js";
 import { PIEZOMETRO_ID_RE } from "./config.js";
 
@@ -118,7 +118,7 @@ export async function checkAlerts(cfg, env, estado) {
     // Um piezômetro em SEM_SINAL simplesmente não aparece aqui: dado ausente
     // não conta como NORMAL, então ele fica de fora da avaliação de nível
     // (em vez de "puxar" a última leitura antiga e mascarar o silêncio).
-    const niveis = await lerUltimosNiveis(env);
+    const { niveis, ultimas } = await lerEstadoLeituras(env);
     const agora = Date.now();
     const agoraSeg = Math.floor(agora / 1000);
 
@@ -147,7 +147,7 @@ export async function checkAlerts(cfg, env, estado) {
     // Camada de COMUNICAÇÃO (P2) — consulta TODOS os piezômetros já
     // cadastrados, sem janela de tempo, para detectar silêncio prolongado.
     // É deliberadamente separada da camada de nível acima.
-    const ultimas = await lerUltimasLeiturasTodas(env);
+    // O mesmo snapshot consultado acima alimenta comunicação e taxa.
 
     // P3 — usa a mesma leitura atual e a mesma referência temporal de
     // GET /ultimos. A recepção recente define se a leitura ainda é elegível;

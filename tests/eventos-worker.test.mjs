@@ -117,7 +117,7 @@ test("cron registra transição ATENCAO sem chamar rede", async () => {
     DB: {
       prepare(sql) {
         const results = sql.includes("COALESCE(recebido_em, ts)")
-          ? [{ piezometro: "PZ-01", nivel_agua: 12.5 }]
+          ? [{ piezometro: "PZ-01", nivel_agua: 12.5, nivel_recente: 12.5, ts: agoraSeg, recebido_em: agoraSeg }]
           : sql.includes("WHERE piezometro = ?1")
             ? []
             : [{

@@ -32,7 +32,7 @@ function criarEnv({ piezometros = "[]", niveis = [], ultimas = [], baseline = nu
             return this;
           },
           async all() {
-            if (sql.includes("COALESCE(recebido_em, ts)")) return { results: niveis };
+            if (sql.includes("nivel_recente")) return { results: ultimas.map(row => ({ ...row, nivel_recente: niveis.find(n => n.piezometro === row.piezometro)?.nivel_agua ?? null })) };
             if (sql.includes("WHERE piezometro = ?1")) {
               aoBuscarBaseline?.(args);
               return { results: baseline ? [baseline] : [] };

@@ -80,70 +80,8 @@ export async function inserirLeituras(env, normalizadas) {
   await env.DB.batch(batch);
 }
 
-// Busca o último nível d'água de CADA piezômetro que teve leitura nos
-// últimos 5 minutos. Idêntico em espírito a lerUltimosNiveis() do
-// server.js, mas consultando o D1 em vez do InfluxDB.
-// O frescor é medido por recebido_em (relógio do SERVIDOR), nunca por ts: com o
-// relógio do device atrasado > 5 min, o filtro por ts devolvia vazio e a camada
-// de NÍVEL ficava cega (um CRÍTICO real nunca notificava) — mesma deriva já
-// tratada na camada de comunicação (ver alertas.js). COALESCE cobre linhas
-// antigas gravadas antes da coluna recebido_em existir.
-export async function lerUltimosNiveis(env) {
-  const desde = Math.floor(Date.now() / 1000) - 300; // últimos 5 minutos
-
-  const { results } = await env.DB.prepare(
-    `SELECT l.piezometro, l.nivel_agua
-       FROM leituras l
-       JOIN (
-         SELECT piezometro, MAX(id) AS mid
-           FROM leituras
-          WHERE COALESCE(recebido_em, ts) >= ?1
-          GROUP BY piezometro
-       ) m ON l.id = m.mid`
-  )
-    .bind(desde)
-    .all();
-
-  const niveis = {};
-  for (const row of results || []) {
-    const valor = Number(row.nivel_agua);
-    if (!Number.isFinite(valor)) continue;
-    niveis[row.piezometro] = valor;
-  }
-  return niveis;
-}
-
-// P2 — busca a última leitura de CADA piezômetro já cadastrado, SEM janela
-// de tempo (ao contrário de lerUltimosNiveis, que só enxerga quem falou nos
-// últimos 5 min). É essa consulta sem filtro que permite detectar quando um
-// instrumento parou de reportar: se ele sumisse da query, não haveria como
-// saber há quanto tempo está mudo.
-// Também alimenta o GET /ultimos, que precisa dos campos opcionais — por isso
-// a query traz pressao/temperatura junto (uma única função dona desta
-// consulta, em vez de duas variações quase iguais).
-export async function lerUltimasLeiturasTodas(env) {
-  const { results } = await env.DB.prepare(
-    `SELECT l.piezometro, l.nivel_agua, l.pressao, l.temperatura, l.ts, l.recebido_em
-       FROM leituras l
-       JOIN (
-         SELECT piezometro, MAX(id) AS mid FROM leituras GROUP BY piezometro
-       ) m ON l.id = m.mid`
-  ).all();
-
-  const ultimas = {};
-  for (const row of results || []) {
-    ultimas[row.piezometro] = {
-      nivel_agua: Number(row.nivel_agua),
-      pressao: row.pressao,
-      temperatura: row.temperatura,
-      ts: Number(row.ts),
-      // Fallback para linhas antigas (gravadas antes da migração 0001), que
-      // ficam com recebido_em NULL.
-      recebido_em: Number(row.recebido_em) || Number(row.ts),
-    };
-  }
-  return ultimas;
-}
+// Consultas indexadas de estado atual ficam isoladas do histórico agregado.
+export { lerUltimosNiveis, lerUltimasLeiturasTodas, lerEstadoLeituras } from "./db-ultimas.js";
 
 // P3 — busca, para um piezômetro, a leitura mais próxima (mais recente que
 // não ultrapasse) de um instante-alvo no passado. Usada tanto pelo motor de

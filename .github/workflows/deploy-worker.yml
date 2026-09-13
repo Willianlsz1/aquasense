@@ -66,5 +66,10 @@ jobs:
           npx wrangler@4 d1 execute piezometro-db --remote
           --file=migrations/0003_retencao_diaria.sql
 
+      - name: Migração D1 0004 (índices de estado atual)
+        run: >
+          npx wrangler@4 d1 execute piezometro-db --remote
+          --file=migrations/0004_indices_estado.sql
+
       - name: Publicar Worker
         run: npx wrangler@4 deploy
