@@ -44,3 +44,17 @@ Acesso local à API e aos mapas depende da rede e das permissões de origem do s
 Testes locais e simulação não validam bancada, serviço publicado ou instrumentação industrial.
 Limiares precisam ser definidos pelo responsável pelo caso de uso. Firmware/OLED não
 fazem parte desta revisão. Nenhuma publicação remota é realizada por este trabalho.
+
+## Conferência em 13/09/2026
+
+- `/ultimos` respondeu HTTP 200. O cabeçalho `Access-Control-Allow-Origin` permite
+  `https://willianlsz1.github.io`, não a origem da prévia local. Isso explica a falha
+  de acesso no navegador local; não foi necessário alterar CORS em produção.
+- Uma prévia temporária, restrita a `127.0.0.1`, intermediou somente consultas GET
+  aos endpoints existentes. Os arquivos do produto mantêm a URL original da API.
+- O painel consultou os dados reais e exibiu `SEM SINAL`: última recepção de PZ-01
+  em 12/09/2026 às 17:09:22, horário local. Não houve comprovação de nova medição física.
+- A consulta retornou 50 eventos para PZ-01. Selecionar PZ-02 exibiu zero eventos
+  dentro desse recorte, sem afirmar ausência de eventos fora dos últimos 50.
+- Testes de exportação verificam 72 intervalos completos, classificação pelo máximo
+  mesmo com média normal, e identificação de simulação em CSV e Excel.
