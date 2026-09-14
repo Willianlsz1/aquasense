@@ -34,3 +34,9 @@ retenção ou exportações. Nenhum dado é apagado por esta migração.
   real deve ser medido após a liberação da cota diária e a implantação dos índices.
 - O limite já consumido não é restaurado por esta alteração. Se o D1 bloquear a
   migração, a publicação é interrompida antes de substituir o Worker.
+
+## Publicação confirmada
+
+Em 13/09, os índices foram aplicados e o workflow de publicação concluiu com sucesso
+no commit `0cc0d78`. A consulta posterior ainda retornou bloqueio por cota diária.
+Não há medição confirmada de economia em produção ou recuperação após o reset.

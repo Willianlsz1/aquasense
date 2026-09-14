@@ -1,5 +1,8 @@
 # Identidade e proposta de interface AquaSense
 
+> Registro histórico. Estado atual: [ESCOPO_ATUAL.md](ESCOPO_ATUAL.md). As observações abaixo mantêm sua data; não são instruções para retomar etapas fora do escopo.
+
+
 ## Direção
 
 AquaSense é o nome do produto. Água e medição orientam a identidade: símbolo de

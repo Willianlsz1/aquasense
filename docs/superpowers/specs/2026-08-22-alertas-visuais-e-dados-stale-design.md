@@ -1,5 +1,8 @@
 # Alertas visuais e tratamento de dados stale
 
+> Plano histórico encerrado. Não executar como lista de tarefas atual. O escopo vigente é [ESCOPO_ATUAL.md](../../ESCOPO_ATUAL.md). Exemplos de retirada de funcionalidades e contagens de testes abaixo retratam a versão da época.
+
+
 ## Objetivo
 
 Simplificar o AquaSense para o uso real do prototipo: manter alertas escritos e visuais no dashboard, remover as integracoes externas de Telegram e SMS e impedir que uma leitura antiga seja apresentada como taxa ou estatistica atual.

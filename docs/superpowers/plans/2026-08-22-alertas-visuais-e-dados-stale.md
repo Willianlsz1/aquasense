@@ -1,5 +1,8 @@
 # Alertas visuais e dados stale Implementation Plan
 
+> Plano histórico encerrado. Não executar como lista de tarefas atual. O escopo vigente é [ESCOPO_ATUAL.md](../../ESCOPO_ATUAL.md). Exemplos de retirada de funcionalidades e contagens de testes abaixo retratam a versão da época.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Remover Telegram/Twilio do AquaSense, preservar o registro escrito de alertas e impedir que a ultima leitura stale alimente indicadores atuais.

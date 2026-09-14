@@ -43,7 +43,7 @@ Não se adotam percentuais de cor ou taxas de alarme como exigências universais
 Acesso local à API e aos mapas depende da rede e das permissões de origem do servidor.
 Testes locais e simulação não validam bancada, serviço publicado ou instrumentação industrial.
 Limiares precisam ser definidos pelo responsável pelo caso de uso. Firmware/OLED não
-fazem parte desta revisão. Nenhuma publicação remota é realizada por este trabalho.
+fazem parte desta revisão. A versão revisada foi publicada em 13/09/2026.
 
 ## Conferência em 13/09/2026
 

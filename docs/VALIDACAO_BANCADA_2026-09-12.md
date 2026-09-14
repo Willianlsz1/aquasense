@@ -1,5 +1,8 @@
 # Validação funcional de bancada — 12/09/2026
 
+> Registro histórico. Estado atual: [ESCOPO_ATUAL.md](ESCOPO_ATUAL.md). As observações abaixo mantêm sua data; não são instruções para retomar etapas fora do escopo.
+
+
 ## Escopo e evidências
 
 ESP32 com HC-SR04 e OLED, instrumento PZ-01. Leituras acompanhadas pela
