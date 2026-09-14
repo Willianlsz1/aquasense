@@ -7,6 +7,7 @@ dashboard, registros escritos e indicação visual de condições.
 
 **Escopo vigente:** [bancada com os recursos disponíveis](docs/ESCOPO_ATUAL.md).
 Não depende de testes em mineração, outro sensor ou construção de equipamento industrial.
+O TCC inclui um estudo empresarial hipotético para mineração, com referências de preços e cenários financeiros; isso não altera os recursos da bancada nem comprova implantação comercial.
 
 ## Funcionamento
 

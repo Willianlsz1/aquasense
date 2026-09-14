@@ -1,6 +1,6 @@
 # Escopo atual do AquaSense
 
-Decisão da equipe confirmada em 13/09/2026. Este documento define o escopo vigente;
+Decisão da equipe atualizada em 14/09/2026. Este documento define o escopo vigente;
 planos anteriores não acrescentam requisitos ao TCC.
 
 ## Objetivo
@@ -10,7 +10,11 @@ o armazenamento em nuvem, a visualização do histórico e o tratamento de falha
 O contexto de aplicação é o monitoramento de piezômetros, representado por uma escala
 didática. O protótipo não mede diretamente a poropressão de uma estrutura real.
 
-## Recursos e limites
+## Estudo empresarial aprovado
+
+O TCC também apresenta uma proposta empresarial para monitoramento de piezômetros em mineração, com especificação conceitual, referências de preços, custos e cenários financeiros. A bancada demonstra o conceito. Esse estudo não exige compra de equipamentos de campo nem implantação real. Cotações de referência, premissas e resultados calculados devem ser identificados. A documentação interna em `projeto/ESTUDO_VIABILIDADE_EMPRESARIAL.md` e o texto do TCC concentram a análise.
+
+## Recursos e limites da execução física
 
 - ESP32, HC-SR04, protoboard, cabos, USB e Wi-Fi já disponíveis.
 - Não é necessária compra de outro sensor para concluir o projeto.
@@ -63,7 +67,7 @@ lotação descarta as mais antigas. Não declarar garantia de zero perda.
 - `CRITERIOS_UI_OPERACIONAL.md` e `OTIMIZACAO_D1.md`: decisões técnicas específicas.
 - `tcc/TCC_AQUASENSE.md`: texto acadêmico revisado; substitui o rascunho antigo.
 - `prototipo/`: guias e testes acessíveis à equipe.
-- `projeto/`: contexto conceitual revisto; não constitui plano industrial futuro.
+- `projeto/`: contexto conceitual revisto; inclui o estudo empresarial aprovado, separado da execução física.
 
 Os diretórios de documentação interna permanecem locais conforme o `.gitignore`.
-Custos industriais e retorno comercial anteriores não são resultados deste protótipo.
+Projeções antigas sem fonte não são resultados do protótipo. O estudo de 14/09 apresenta novos cenários com fontes e premissas explícitas.
