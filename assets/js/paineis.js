@@ -40,7 +40,7 @@ function setAlert(n) {
   const { lv } = classifyComHisterese(n, lastLevel);
   let desc, icon;
   if (lv === "normal") {
-    desc = `Leitura na faixa normal configurada. Este estado não atesta a segurança da estrutura.`;
+    desc = `Nível dentro da faixa esperada. Acompanhamento de rotina pelo painel.`;
     // P6 — ícone neutro no estado normal (cor reservada a anormalidade, ISA-101)
     icon = `<circle cx="8" cy="8" r="5.5" stroke="#7c8196" stroke-width="1.5"/><path d="M5.5 8l2 2 3.5-3.5" stroke="#7c8196" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
   } else if (lv === "atencao") {
@@ -348,7 +348,7 @@ function updatePzLabels() {
   const pz = PIEZOMETROS.find(p => p.id === pzSelecionado);
   const nome = pz ? pz.nome : "";
   const dl = document.getElementById("pz-detail-label");
-  if (dl) dl.textContent = `Detalhes de: ${pzSelecionado}${nome ? " · " + nome : ""}`;
+  if (dl) dl.textContent = `${pzSelecionado}${nome ? " · " + nome : ""}`;
   const at = document.getElementById("alert-pz-tag");
   if (at) at.textContent = pzSelecionado;
   const rt = document.getElementById("pz-tag-readings");

@@ -7,6 +7,22 @@ function saudacao(data = new Date()) {
   return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
 }
 
+// Botões de troca rápida de instrumento, com a condição de cada um.
+function atualizarSeletorPz(mapa, confirmado) {
+  const seletor = document.getElementById("pz-seletor");
+  if (!seletor) return;
+  seletor.innerHTML = PIEZOMETROS.map(pz => {
+    const leitura = mapa[pz.id];
+    let st = "", txt = "condição não confirmada";
+    if (confirmado) {
+      if (estadoComunicacao(leitura) === "stale" || !Number.isFinite(leitura?.nivel)) { st = "semsinal"; txt = "sem sinal"; }
+      else { const c = classifyNivel(leitura.nivel); st = c.lv; txt = c.lbl.toLowerCase(); }
+    }
+    return `<button type="button" data-pz="${textoHtml(pz.id)}" aria-pressed="${pz.id === pzSelecionado}" title="${textoHtml(pz.nome)} · ${txt}"><i class="st-${st}"></i>${textoHtml(pz.id)}</button>`;
+  }).join("");
+  seletor.querySelectorAll("button").forEach(b => b.addEventListener("click", () => selectPiezometro(b.dataset.pz)));
+}
+
 // Frase e indicadores calculados das últimas leituras. Leitura antiga conta como
 // SEM SINAL e nunca como normal; falha da API não é apresentada como situação da rede.
 function atualizarResumoRede(mapa) {
@@ -21,6 +37,7 @@ function atualizarResumoRede(mapa) {
   };
 
   const semResposta = typeof failCount !== "undefined" && failCount > 0 && !Object.keys(mapa || {}).length;
+  atualizarSeletorPz(mapa || {}, !semResposta);
   if (semResposta) {
     frase.textContent = "Não foi possível consultar a API. A situação atual dos instrumentos não está confirmada.";
     ["kpi-alerta", "kpi-semsinal", "kpi-recepcao"].forEach(id => definir(id, "–", "não confirmado", "of"));
@@ -87,16 +104,20 @@ function iniciarBalaoGrafico() {
   });
 }
 
-// Destaca no menu lateral a seção visível.
+// Destaca no menu lateral a última seção cujo topo já passou do terço da tela.
 function iniciarMenuLateral() {
   const links = [...document.querySelectorAll(".nav a[href^='#']")];
-  if (!links.length || typeof IntersectionObserver === "undefined") return;
-  const observador = new IntersectionObserver(entradas => {
-    entradas.filter(e => e.isIntersecting).forEach(e => {
-      links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
-    });
-  }, { rootMargin: "-30% 0px -60% 0px" });
-  links.forEach(a => { const alvo = document.querySelector(a.getAttribute("href")); if (alvo) observador.observe(alvo); });
+  const secoes = links.map(a => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  if (!secoes.length) return;
+  const marcar = () => {
+    const limite = window.innerHeight / 3;
+    let atual = secoes[0];
+    secoes.forEach(sec => { if (sec.getBoundingClientRect().top <= limite) atual = sec; });
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) atual = secoes[secoes.length - 1];
+    links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + atual.id));
+  };
+  window.addEventListener("scroll", marcar, { passive: true });
+  marcar();
 }
 
 iniciarBalaoGrafico();

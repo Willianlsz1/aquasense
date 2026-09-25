@@ -29,7 +29,9 @@ Não se adotam percentuais de cor ou taxas de alarme como exigências universais
 2. Simulação depende do botão e permanece identificada. PDF real fica bloqueado nesse modo.
 3. Trocar a fonte limpa leituras e séries anteriores. Falha de consulta deixa a condição
    atual sem confirmação e identifica valores anteriores como referência.
-4. O mapa declara que as posições são ilustrativas.
+4. As posições do mapa são ilustrativas. Decisão da equipe (25/09/2026): o painel
+   usa linguagem de produto, sem avisos de "didático"; a indicação de SIMULAÇÃO,
+   SEM SINAL e "não confirmado" permanece obrigatória.
 5. O histórico do servidor consulta `/alerts`: até 50 registros da rede, filtrados
    pelo instrumento selecionado. Não equivale a arquivo completo ou imutável de auditoria.
 6. CSV de alertas identifica origem, filtro, horário local/UTC e eventual cache.
