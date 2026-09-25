@@ -1,11 +1,10 @@
 /*
  * ============================================================================
- * PIEZOMETRO_CORE.H — núcleo comum dos firmwares AQUASENSE (simulação + físico)
+ * PIEZOMETRO_CORE.H — núcleo comum dos firmwares AQUASENSE (bancada + UCT)
  * ============================================================================
  *
- * Este arquivo concentra tudo que é IGUAL entre os firmwares (sketch.ino
- * BMP180, sketch_fisico_jsn_sr04t.ino, sketch_uct_4a20ma.ino,
- * sketch_demo_hc_sr04.ino): WiFi, NTP, store & forward, envio HTTP ao
+ * Este arquivo concentra tudo que é IGUAL entre os firmwares
+ * (sketch_demo_hc_sr04.ino da bancada e sketch_uct_4a20ma.ino da UCT): WiFi, NTP, store & forward, envio HTTP ao
  * /ingest, classificação de nível, LEDs, buzzer e tela. O que muda de um
  * sensor para o outro (como medir o nível) fica no próprio .ino, que
  * implementa um "adapter" de sensor definido pelo contrato abaixo. O que

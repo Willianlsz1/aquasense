@@ -17,8 +17,8 @@ const publicAndFirmwareFiles = [
   "cloudflare-worker/README.md",
   "docs/GUIA_MESTRE.md",
   "index.html",
-  "firmware/sketch.ino",
-  "firmware/sketch_fisico_jsn_sr04t.ino",
+  "firmware/aquasense_hc_sr04/aquasense_hc_sr04.ino",
+  "firmware/sketch_uct_4a20ma.ino",
 ];
 
 const externalChannelIdentifiers = [

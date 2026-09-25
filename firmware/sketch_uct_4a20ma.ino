@@ -6,9 +6,9 @@
  * ============================================================================
  *
  * ⚠️ ESTE ARQUIVO É O ADAPTER DA UCT (Unidade de Controle e Telemetria)
- * INDUSTRIAL, a validar conforme docs/projeto/HOMOLOGACAO_UCT.md. Difere dos
- * dois sketches anteriores (sketch.ino = BMP180 de simulação Wokwi;
- * sketch_fisico_jsn_sr04t.ino = ultrassônico stand-in da maquete didática):
+ * INDUSTRIAL, a validar conforme docs/projeto/HOMOLOGACAO_UCT.md. Firmware de
+ * referência, não montado nem ensaiado. Difere do sketch de bancada
+ * (sketch_demo_hc_sr04.ino = HC-SR04 com escala didática):
  * aqui o nível vem de um TRANSDUTOR PIEZOMÉTRICO SUBMERSÍVEL de loop de
  * corrente 4-20 mA — o mesmo fenômeno físico do piezômetro real (poropressão
  * convertida em corrente proporcional), não um stand-in. Ver

@@ -2,7 +2,7 @@
 
 Cloudflare Worker para o protótipo de bancada ESP32 e HC-SR04. O D1 armazena
 leituras; KV armazena estados e registros do motor de alertas. A interface está
-no GitHub Pages. Consulte [escopo](../docs/ESCOPO_ATUAL.md).
+no GitHub Pages. Consulte o [guia mestre](../docs/GUIA_MESTRE.md).
 
 ## Rotas
 
@@ -37,7 +37,8 @@ interrompe a publicação. Conferir o resultado do workflow e o endpoint após o
 
 As consultas atuais usam os índices de instrumento e recepção introduzidos pela
 migração 0004. O motor usa um snapshot de leituras por ciclo; as regras de faixa,
-histerese, comunicação e taxa foram preservadas. Ver [otimização](../docs/OTIMIZACAO_D1.md).
+histerese, comunicação e taxa foram preservadas. A economia real de `rows_read`
+em produção ainda não foi medida.
 
 ## Limites
 

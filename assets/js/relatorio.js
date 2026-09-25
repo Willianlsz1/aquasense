@@ -6,7 +6,7 @@
 // responder, mostra uma mensagem de erro — nunca inventa números.
 
 // ── FETCH ────────────────────────────────────────────────────────────────────
-// Wrapper local (mesmo padrão de alerta.js): esta página não carrega fontes.js
+// Wrapper local: esta página não carrega fontes.js
 // inteiro (que traz os adapters de simulação, sem sentido num documento
 // impresso) — só o suficiente pra falar com a API. Serve também de apiGet()
 // global pro loadConfig() de config.js, reaproveitando-o em vez de duplicá-lo.
@@ -19,7 +19,7 @@ async function apiGet(path, timeoutMs = 10000) {
 // loadConfig() (config.js) referencia `pzSelecionado` global quando /config
 // devolve piezômetros — variável que essa página também usa (abaixo) pra saber
 // qual piezômetro o operador escolheu. Sem declará-la aqui, vira ReferenceError
-// dentro do loadConfig() (mesmo problema resolvido em alerta.js).
+// dentro do loadConfig().
 let pzSelecionado = null;
 let rangeSelecionado = "24h";
 

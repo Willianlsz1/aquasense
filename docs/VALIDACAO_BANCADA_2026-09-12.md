@@ -1,6 +1,6 @@
 # Validação funcional de bancada — 12/09/2026
 
-> Registro histórico. Estado atual: [ESCOPO_ATUAL.md](ESCOPO_ATUAL.md). As observações abaixo mantêm sua data; não são instruções para retomar etapas fora do escopo.
+> Registro histórico. Estado atual: [GUIA_MESTRE.md](GUIA_MESTRE.md). As observações abaixo mantêm sua data; não são instruções para retomar etapas fora do escopo.
 
 
 ## Escopo e evidências

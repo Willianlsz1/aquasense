@@ -1,95 +1,81 @@
 # Guia mestre do AquaSense
 
-## O que a equipe entrega
+O documento mestre é o texto do TCC **AquaSense_TCC_v5** (PDF, mantido fora do
+repositório). Este guia liga as seções do TCC aos arquivos do código e separa o
+que já foi comprovado do que é especificação ou plano.
 
-Um protótipo funcional de bancada com ESP32 e HC-SR04, para demonstrar aquisição,
-transmissão, armazenamento e apresentação de leituras no contexto de piezômetros.
-O [escopo atual](ESCOPO_ATUAL.md) define as entregas. A conclusão do TCC não depende
-de teste em mineração, troca de sensor ou fabricação de equipamento industrial.
+## O que o TCC apresenta
 
-## Medição e escala
+| Parte do TCC | Situação | Onde está no repositório |
+|---|---|---|
+| Protótipo V1 — bancada (seção 4.1.1) | Montado e validado em 12/09/2026 | `firmware/aquasense_hc_sr04/`, [validação](VALIDACAO_BANCADA_2026-09-12.md) |
+| Protótipo V2 — tubo de acrílico (seção 4.1.2) | Planejado; peças cotadas | [roteiro de ensaios](ENSAIOS_V2.md) |
+| UCT comercial (seções 4.2 a 4.5) | Especificação; não montada | `firmware/sketch_uct_4a20ma.ino`, `firmware/piezometro_deep_sleep.h` (referência, sem ensaio) |
+| Software e nuvem (seção 4.6) | Publicado e com testes locais | `cloudflare-worker/`, `index.html`, `relatorio.html`, `assets/` |
+| Manual, manutenção, mercado e finanças (seções 5 a 10) | Somente no texto do TCC | — |
 
-O HC-SR04 mede distância até um alvo. O firmware usa mediana de tentativas válidas
-e converte distância em nível equivalente: `max(0, 40 - distancia_cm) * 0,5`.
-Por exemplo, distância de 20 cm corresponde a 10 m didáticos. O valor exibido não
-é uma coluna real de dez metros nem uma medição direta de poropressão.
+Os protótipos e a UCT compartilham o núcleo do firmware (`piezometro_core.h`),
+o servidor e o painel. Mudam o sensor, a comunicação, a energia e a proteção.
 
-Normal, atenção e crítico representam faixas configuradas para a demonstração.
-Os valores de referência são 12 e 15 m didáticos, com histerese de 0,2 m na descida.
-Esses limites não são critérios de segurança de uma estrutura real.
+## Medição e escala do V1
 
-Ausência de eco válido é falha do sensor. O último valor pode ser referência, mas
-não é enviado como amostra nova. Um eco válido distante pode resultar em nível zero
-pela fórmula; isso é diferente de ausência de eco.
+O HC-SR04 mede distância até um alvo. O firmware usa a mediana de cinco tentativas
+e converte a distância em nível equivalente: `max(0, 40 - distancia_cm) * 0,5`.
+Distância de 20 cm corresponde a 10 m didáticos. O valor exibido não é uma coluna
+real de dez metros nem uma medição direta de poropressão.
+
+Faixas: NORMAL abaixo de 12 m, ATENÇÃO a partir de 12 m e CRÍTICO a partir de 15 m,
+com histerese de 0,2 m na descida. São valores de demonstração; em campo, os limites
+de cada instrumento vêm da geotecnia do cliente.
+
+Ausência de eco válido é FALHA SENSOR: o último valor pode servir de referência,
+mas não é enviado como amostra nova.
 
 ## Cadeia de dados
 
-1. ESP32 recebe a leitura do HC-SR04, registra a condição e prepara o envio.
-2. `/ingest` autentica o dispositivo e valida o conteúdo recebido.
-3. D1 guarda leituras e horários de medição e recepção; reenvios com o mesmo
-   instrumento e horário são tratados pelo índice único existente.
-4. O motor de alertas executa a cada minuto. Estado e registros ficam no KV.
-5. A dashboard consulta `/ultimos`, `/dados`, `/alerts` e `/config`.
+1. O ESP32 lê o sensor, classifica a faixa e prepara o envio.
+2. `POST /ingest` autentica o dispositivo e valida o conteúdo.
+3. O D1 guarda as leituras com horário de medição (`ts`) e de recepção (`recebido_em`).
+4. A cada minuto, o motor de alertas avalia nível, taxa de variação e comunicação;
+   estados e eventos ficam no KV.
+5. O painel consulta `/ultimos`, `/dados`, `/alerts` e `/config` a cada dez segundos.
 
-Horário da medição (`ts`) e recepção (`recebido_em`) têm funções diferentes.
-O frescor usa recepção; a taxa de variação usa o tempo da medição. A taxa calculada
-na bancada com alvo móvel não demonstra evolução geotécnica de uma estrutura.
+O frescor usa a recepção; sem recepção por mais de 120 s, o ponto aparece como
+SEM SINAL. A taxa de variação usa o horário da medição.
 
-## Interface atual
+## Painel web
 
-- Rede de instrumentos e mapa com coordenadas ilustrativas.
-- Seleção de instrumento, leitura, origem, última recepção e condição.
-- Gráficos 24h/7d/30d, com média, pico e lacunas temporais visíveis.
-- Tema claro/escuro, preferência salva e seleção de instrumento por teclado.
-- Simulação manual identificada; falha da API não a ativa automaticamente.
-- SEM SINAL para leitura antiga; indisponibilidade para consulta sem confirmação.
-- Registros do servidor separados dos eventos da sessão. O servidor retorna até
-  50 eventos da rede; o filtro por instrumento pode mostrar menos.
-
-CSV e Excel contêm os intervalos disponíveis, identificação de fonte e classificação
-pelo pico. O relatório PDF consulta dados reais e fica bloqueado na simulação.
-Não chamar esses arquivos de histórico bruto completo ou auditoria imutável.
-
-## Firmware e hardware
-
-A distribuição de uma aba está em `firmware/aquasense_hc_sr04/aquasense_hc_sr04.ino`.
-O núcleo modular gera esse arquivo; consulte `firmware/UMA_ABA.md` antes de editar.
-Credenciais ficam na cópia privada, fora do Git. Variantes de outros sensores são
-legadas e não integram as entregas atuais.
-
-O OLED permaneceu apagado e sua investigação está suspensa. Não há LEDs montados;
-o buzzer não foi validado. A apresentação pode usar serial e dashboard. Não houve
-nova gravação da placa nesta revisão documental.
+- Rede de instrumentos com mapa ilustrativo e seleção por teclado.
+- Leitura atual, origem do dado, última recepção e condição do ponto.
+- Gráficos de 24h, 7d e 30d com média, pico e lacunas visíveis.
+- Eventos do servidor (até 50 da rede) separados dos eventos da sessão.
+- Exportação CSV, Excel e relatório PDF (`relatorio.html`); o PDF fica bloqueado
+  na simulação.
+- Simulação só por escolha manual, identificada na tela e nas exportações.
+  Falha da API mostra indisponibilidade; não ativa simulação.
+- Tema claro e escuro, com a preferência salva.
 
 ## O que foi comprovado
 
-O [registro de 12/09](VALIDACAO_BANCADA_2026-09-12.md) descreve observações de nível,
-faixas, ausência de eco, recuperação e HTTP 204. Não mede precisão nem comprova
-reenvio offline. Desligar Wi-Fi do computador não interrompe o ESP32 no roteador.
+| Evidência | Data | Limite |
+|---|---|---|
+| Faixas, falha de eco, recuperação e HTTP 204 na bancada | 12/09/2026 | Sem régua: não mede exatidão. Sem teste de queda de rede do ESP32. |
+| OLED exibiu FALHA SENSOR | 12/09/2026 | O display apagou depois, no mesmo dia; a causa não foi confirmada. |
+| Painel e Worker publicados | 13/09/2026 | Publicado não significa disponível hoje. A cota diária do D1 já bloqueou consultas. |
+| Testes automatizados | 25/09/2026 | 49/49 aprovados localmente (`npm test`). O TCC v5 cita 31/31, contagem de 12/09. |
 
-Em 13/09 a dashboard, o tema e as otimizações de consultas foram publicados.
-A última suíte executada passou 49 testes. Os testes de SQLite usam banco local;
-isso não substitui medição de consumo ou disponibilidade em produção.
+## Limites conhecidos
 
-## Limites operacionais
-
-O buffer é RAM: até 120 envios, aproximadamente 20 minutos no intervalo de dez
-segundos. Lotação descarta o mais antigo; reinício perde pendências. Se o horário
-do dispositivo faltar, o servidor estima tempos do lote. Não há garantia de zero perda.
-
-O D1 tem cota de uso. Em 13/09 ela bloqueou consultas. Os índices foram aplicados,
-mas não restauram a cota consumida. [Otimização e validação](OTIMIZACAO_D1.md).
-
-Os dados brutos têm retenção configurada de 180 dias; dias completos anteriores
-são consolidados. A tabela diária ainda não tem endpoint de consulta no painel.
-Essa consolidação preserva resumos, não cada amostra indefinidamente.
+- O buffer do V1 fica em RAM: até 120 envios, cerca de 20 minutos. Quando lota,
+  descarta o mais antigo; um reinício perde as pendências. A UCT prevê flash.
+- LEDs não estão montados; o buzzer não foi validado.
+- Dados brutos ficam retidos por 180 dias; dias anteriores viram resumos diários,
+  ainda sem consulta no painel.
+- Os índices da migração 0004 reduziram as consultas ao D1 no código; a economia
+  real em produção ainda não foi medida.
 
 ## Como demonstrar
 
-Apresentar o objetivo, mostrar a distância física e a escala, mover um alvo para
-observar as faixas, consultar histórico e exportação e explicar SEM SINAL e simulação.
-Registrar data, firmware utilizado e o que foi observado. Para avaliar precisão,
-comparar distâncias repetidas com uma régua disponível, sem pressupor resultado.
-
-A documentação econômica usa recursos disponíveis e limitações; não promete
-retorno comercial, substituição de equipes ou implantação de unidades em campo.
+Apresentar o problema, mostrar a distância física e a escala, mover o alvo (ou a
+água, no V2) pelas faixas, consultar histórico e exportação e explicar SEM SINAL e
+simulação. Registrar data, firmware e o que foi observado.
