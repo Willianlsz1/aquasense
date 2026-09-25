@@ -15,6 +15,8 @@ function atualizarResumoOperacional(pzId, { apiIndisponivel = false } = {}) {
     document.getElementById("adesc").textContent = "Não foi possível consultar a API. A condição atual do instrumento não está confirmada.";
     document.getElementById("badge-n").textContent = "Não confirmado";
     document.getElementById("badge-n").className = "mbadge";
+    const badgePressao = document.getElementById("badge-p");
+    if (badgePressao) { badgePressao.textContent = "Não confirmado"; badgePressao.className = "mbadge"; }
     document.getElementById("val-n").className = "cv-neutral";
   }
 }

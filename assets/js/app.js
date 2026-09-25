@@ -246,6 +246,8 @@ function applyData({ nivel, pressao, temperatura, taxa_m_dia, ts, recebidoEm }) 
     renderTaxa(null);
     const badgeNivel = document.getElementById("badge-n");
     if (badgeNivel) { badgeNivel.className = "mbadge"; badgeNivel.textContent = "Sem sinal"; }
+    const badgePressao = document.getElementById("badge-p");
+    if (badgePressao) { badgePressao.className = "mbadge"; badgePressao.textContent = "Sem sinal"; }
     setAlertSemSinal(Number.isFinite(recebidoEm) ? recebidoEm : ts);
     return;
   }
@@ -300,7 +302,7 @@ function limparMetricasAtuais() {
   });
   ["badge-n", "badge-p", "badge-t"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.className = "mbadge"; el.textContent = id === "badge-n" ? "Sem sinal" : "Sem sensor"; }
+    if (el) { el.className = "mbadge"; el.textContent = id === "badge-t" ? "Sem sensor" : "Sem sinal"; }
   });
   document.getElementById("pz-detail-label")?.classList.add("telemetria-stale");
   document.getElementById("metrics-row")?.classList.add("telemetria-stale");
