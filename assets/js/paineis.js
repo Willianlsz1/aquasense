@@ -256,7 +256,7 @@ function atualizarVisaoGeral(mapa) {
           </div>
           <div class="pz-card-name">${textoHtml(pz.nome)}</div>
           <div class="pz-card-value valor-esmaecido">${valorHtml}</div>
-          <div class="pz-card-lastseen">${lastSeen}</div>
+          <div class="pz-bar"><span class="pz-card-lastseen">${lastSeen}</span></div>
         </div>`;
     }
 
@@ -269,14 +269,17 @@ function atualizarVisaoGeral(mapa) {
 
     // P6 — badge NORMAL neutro (ISA-101: cor = anormalidade, ~90% da UI neutra)
     const badgeCls = cls.lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${cls.lv}`;
+    // Barra proporcional ao nível, com o limite crítico perto do fim da escala.
+    const largura = nivel !== null ? clamp(nivel / (CFG.thrCritico * 1.15), 0.06, 1) * 100 : 6;
     return `
-      <div class="pz-card${sel}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
+      <div class="pz-card nivel-${cls.lv}${sel}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
         <div class="pz-card-top">
           <span class="pz-card-id">${textoHtml(pz.id)}</span>
           <span class="${badgeCls}">${cls.lbl}</span>
         </div>
         <div class="pz-card-name">${textoHtml(pz.nome)}</div>
         <div class="pz-card-value">${valorHtml}</div>
+        <div class="pz-bar"><span style="width:${largura.toFixed(1)}%">${valorHtml}</span></div>
         ${chipHtml}
       </div>`;
   }).join("");
@@ -289,6 +292,7 @@ function atualizarVisaoGeral(mapa) {
       }
     });
   });
+  if (typeof atualizarResumoRede === "function") atualizarResumoRede(mapa);
 }
 
 // ── MAPA ──────────────────────────────────────────────────────────────────────

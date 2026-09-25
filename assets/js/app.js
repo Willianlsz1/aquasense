@@ -374,9 +374,13 @@ function initHowto() {
   const btn = document.getElementById("howto-toggle");
   const content = document.getElementById("howto-content");
   if (!btn || !content) return;
+  const icone = btn.querySelector("svg");
+  btn.setAttribute("aria-expanded", "false");
   btn.addEventListener("click", () => {
     const open = content.classList.toggle("open");
-    btn.textContent = open ? "❓ Ocultar explicação" : "❓ Como ler este painel";
+    btn.textContent = open ? "Ocultar explicação" : "Como ler este painel";
+    if (icone) btn.prepend(icone);
+    btn.setAttribute("aria-expanded", String(open));
   });
 }
 

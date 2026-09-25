@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -6,79 +6,93 @@
 <script src="assets/js/tema.js"></script>
 <title>AquaSense · Monitoramento de Piezômetros</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="assets/styles.css">
-<link rel="stylesheet" href="assets/operacao.css">
-<link rel="stylesheet" href="assets/tema.css">
+<link rel="stylesheet" href="assets/painel.css">
 </head>
 <body>
+<div class="app">
 
-<header>
-  <div class="logo">
-    <div class="logo-ring"><div class="logo-ring-inner"></div></div>
-    <span class="logo-name">AQUASENSE</span>
+<aside class="side">
+  <div class="brand">
+    <span class="brand-logo" aria-hidden="true"><svg width="16" height="18" viewBox="0 0 16 18"><path d="M8 1c3.2 4.2 6 7.5 6 10.6A6 6 0 0 1 2 11.6C2 8.5 4.8 5.2 8 1z" fill="#fff"/><path d="M4.3 12.2h7.4" stroke="#0d7380" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+    AquaSense
   </div>
-  <span class="header-center">Rede de instrumentação · Monitoramento</span>
-  <button class="btn-export" id="btn-tema" type="button" aria-pressed="false">Modo escuro</button>
-  <div class="live-pill">
-    <span class="live-dot"></span>
-    <span id="live-time">Relógio local · --</span>
+  <nav class="nav" aria-label="Seções do painel">
+    <div class="nav-lbl">Monitoramento</div>
+    <a href="#visao-geral" class="on"><svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="6" height="8" rx="1.5"/><rect x="10" y="2" width="6" height="5" rx="1.5"/><rect x="2" y="12" width="6" height="4" rx="1.5"/><rect x="10" y="9" width="6" height="7" rx="1.5"/></svg>Visão geral</a>
+    <a href="#instrumento"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 14l4.5-5 3.5 3 6-7"/></svg>Histórico</a>
+    <a href="#registros"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M9 2.5l7 12.5H2z"/><path d="M9 8v3M9 13v.2" stroke-linecap="round"/></svg>Alertas e eventos</a>
+    <a href="#leituras"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h7l3.5 3.5V16H4z"/><path d="M7 9h5M7 12.5h5" stroke-linecap="round"/></svg>Leituras</a>
+  </nav>
+  <div class="side-foot">
+    <div class="promo">
+      <b><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7v4M8 4.8v.2" stroke-linecap="round"/></svg>Protótipo didático</b>
+      <p>Leituras do protótipo de bancada, com escala de demonstração. Não avalia a segurança de uma estrutura real.</p>
+      <span>SAGA · SENAI · 2026</span>
+    </div>
+    <div class="tema-opcoes" id="tema-opcoes" role="group" aria-label="Tema do painel">
+      <button type="button" data-tema-opcao="claro" aria-pressed="true">☀ Claro</button>
+      <button type="button" data-tema-opcao="escuro" aria-pressed="false">☾ Escuro</button>
+    </div>
   </div>
-</header>
+</aside>
 
-<div class="statusbar">
-  <span class="sdot s-err" id="sdot"></span>
-  <span id="stext" role="status">Conectando à API...</span>
-  <button id="btn-simulacao" class="btn-export" type="button" aria-pressed="false">Iniciar simulação</button>
-</div>
+<main class="main">
+  <div class="top">
+    <div class="crumb"><span>Principal</span><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 3l4 4-4 4"/></svg><span class="crumb-atual">Monitoramento de piezômetros</span></div>
+    <div class="top-sp"></div>
+    <div class="statusbar"><span class="sdot s-err" id="sdot"></span><span id="stext" role="status">Conectando à API...</span></div>
+    <button id="btn-simulacao" class="btn-export" type="button" aria-pressed="false">Iniciar simulação</button>
+  </div>
 
-<div class="sim-banner" id="sim-banner">
-  SIMULAÇÃO ATIVA · Dados fictícios para demonstração. Não representam o protótipo conectado.
-</div>
+  <div class="meta">
+    <span><svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><path d="M9 5.5V9l2.5 1.5" stroke-linecap="round"/></svg><span id="live-time">Relógio local · --</span></span>
+    <span><svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 16s5-4.6 5-8.5A5 5 0 0 0 4 7.5C4 11.4 9 16 9 16z"/><circle cx="9" cy="7.5" r="1.8"/></svg>Rede de demonstração · Mariana/MG</span>
+    <button class="howto-toggle" id="howto-toggle" type="button"><svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><path d="M7.2 7a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4M9 12.6v.1" stroke-linecap="round"/></svg>Como ler este painel</button>
+  </div>
 
-<div class="howto-bar">
-  <button class="howto-toggle" id="howto-toggle" type="button">❓ Como ler este painel</button>
   <div class="howto-content" id="howto-content">
     <div class="howto-item"><b>Nível:</b> leitura em metros conforme a configuração do instrumento. A bancada HC-SR04 usa uma escala didática.</div>
     <div class="howto-item"><b>Faixas:</b> classificam a leitura pelos limites configurados. A condição de um instrumento não determina a segurança da estrutura.</div>
-    <div class="howto-item">📈 <b>Gráficos:</b> mostram como o nível variou ao longo do tempo; as linhas tracejadas marcam os limites configurados.</div>
-    <div class="howto-item">🔔 <b>Alertas:</b> quando o nível cruza um limite, o painel registra o evento por escrito e destaca visualmente a faixa. Sem leitura recente, o estado exibido é <b>SEM SINAL</b>.</div>
+    <div class="howto-item"><b>Gráficos:</b> mostram como o nível variou ao longo do tempo; as linhas tracejadas marcam os limites configurados.</div>
+    <div class="howto-item"><b>Alertas:</b> quando o nível cruza um limite, o painel registra o evento por escrito e destaca visualmente a faixa. Sem leitura recente, o estado exibido é <b>SEM SINAL</b>.</div>
   </div>
-</div>
 
-<main class="root">
-  <div class="operation-heading"><div><span class="eyebrow">AQUASENSE / PAINEL OPERACIONAL</span><h1>Monitoramento de piezômetros</h1></div><span class="panel-tag">Protótipo didático · SAGA / SENAI</span></div>
+  <div class="sim-banner" id="sim-banner">SIMULAÇÃO ATIVA · Dados fictícios para demonstração. Não representam o protótipo conectado.</div>
 
-  <!-- VISÃO GERAL + MAPA -->
-  <div class="overview-row">
+  <section class="hero" id="visao-geral" aria-labelledby="saudacao">
+    <h1 id="saudacao">Situação da rede de piezômetros</h1>
+    <p id="resumo-rede" role="status">Aguardando a primeira consulta.</p>
+  </section>
+
+  <section class="grid g-kpi" aria-label="Indicadores da rede">
+    <div class="kpi"><div class="kpi-lbl">Em alerta</div><div class="kpi-val"><b id="kpi-alerta">–</b><span class="kpi-sub" id="kpi-alerta-sub">aguardando</span></div></div>
+    <div class="kpi"><div class="kpi-lbl">Sem sinal</div><div class="kpi-val"><b id="kpi-semsinal">–</b><span class="kpi-sub" id="kpi-semsinal-sub">aguardando</span></div></div>
+    <div class="kpi"><div class="kpi-lbl">Última recepção</div><div class="kpi-val"><b id="kpi-recepcao">–</b><span class="kpi-sub" id="kpi-recepcao-sub">aguardando</span></div></div>
+  </section>
+
+  <section class="grid g-2">
     <div class="panel">
-      <div class="panel-hdr"><span class="panel-title">Instrumentos da rede</span></div>
-      <div class="panel-sub">Selecione um instrumento para consultar leituras e registros</div>
+      <div class="panel-hdr"><span class="panel-title">Instrumentos por nível atual</span><span class="panel-tag">selecione para detalhar</span></div>
       <div class="pz-grid" id="pz-grid"></div>
     </div>
     <div class="panel">
-      <div class="panel-hdr"><span class="panel-title">Localização</span></div>
-      <div class="panel-sub">Mapa de demonstração · posições ilustrativas em Mariana/MG</div>
+      <div class="panel-hdr"><span class="panel-title">Localização</span><span class="panel-tag">posições ilustrativas</span></div>
       <div class="map-area"><div id="pz-map"></div></div>
     </div>
+  </section>
+
+  <div class="detalhe" id="instrumento">
+    <h2 class="pz-detail-label" id="pz-detail-label">Detalhes de: PZ-01 · Dique Norte</h2>
+    <div class="reading-context" id="reading-context" role="status">Aguardando a primeira consulta.</div>
   </div>
 
-  <div class="pz-detail-label" id="pz-detail-label">Detalhes de: <b>PZ-01 · Dique Norte</b></div>
-
-  <div class="reading-context" id="reading-context" role="status">Aguardando a primeira consulta.</div>
-  <!-- MÉTRICAS -->
   <div class="metrics-row sem-temp" id="metrics-row">
-    <!-- Nível d'água (métrica principal do desafio SAGA) -->
     <div class="mcard">
-      <div class="mcard-top">
-        <span class="mcard-label">Nível d'água</span>
-        <span class="mbadge" id="badge-n">···</span>
-      </div>
-      <div class="mcard-value cv-neutral">
-        <span id="val-n">···</span><span class="mcard-unit">m</span>
-      </div>
+      <div class="mcard-top"><span class="mcard-label">Nível d'água</span><span class="mbadge" id="badge-n">···</span></div>
+      <div class="mcard-value cv-neutral"><span id="val-n">···</span><span class="mcard-unit">m</span></div>
       <div class="sparkline-wrap"><canvas id="spark-n"></canvas></div>
       <div class="mcard-stats mcard-stats-4">
         <div class="mstat"><span class="mstat-lbl lbl-min">Mín 24h</span><span class="mstat-val" id="n-min">···</span></div>
@@ -87,16 +101,9 @@
         <div class="mstat"><span class="mstat-lbl">Taxa</span><span class="mstat-val" id="n-taxa">···</span></div>
       </div>
     </div>
-
-    <!-- Pressão (leitura bruta do sensor) -->
     <div class="mcard">
-      <div class="mcard-top">
-        <span class="mcard-label">Pressão</span>
-        <span class="mbadge mb-blue" id="badge-p">···</span>
-      </div>
-      <div class="mcard-value cv-neutral">
-        <span id="val-p">···</span><span class="mcard-unit" id="unit-p">kPa</span>
-      </div>
+      <div class="mcard-top"><span class="mcard-label">Pressão</span><span class="mbadge mb-blue" id="badge-p">···</span></div>
+      <div class="mcard-value cv-neutral"><span id="val-p">···</span><span class="mcard-unit" id="unit-p">kPa</span></div>
       <div class="sparkline-wrap"><canvas id="spark-p"></canvas></div>
       <div class="mcard-stats">
         <div class="mstat"><span class="mstat-lbl">Mín sessão</span><span class="mstat-val" id="p-min">···</span></div>
@@ -104,16 +111,10 @@
         <div class="mstat"><span class="mstat-lbl">Variação</span><span class="mstat-val" id="p-delta">···</span></div>
       </div>
     </div>
-
     <!-- Temperatura: oculta até um sensor real enviar a grandeza (ver applyData) -->
     <div class="mcard oculta-metrica" id="card-t">
-      <div class="mcard-top">
-        <span class="mcard-label">Temperatura</span>
-        <span class="mbadge mb-blue" id="badge-t">···</span>
-      </div>
-      <div class="mcard-value cv-neutral">
-        <span id="val-t">···</span><span class="mcard-unit">°C</span>
-      </div>
+      <div class="mcard-top"><span class="mcard-label">Temperatura</span><span class="mbadge mb-blue" id="badge-t">···</span></div>
+      <div class="mcard-value cv-neutral"><span id="val-t">···</span><span class="mcard-unit">°C</span></div>
       <div class="sparkline-wrap"><canvas id="spark-t"></canvas></div>
       <div class="mcard-stats">
         <div class="mstat"><span class="mstat-lbl lbl-min">Mín 24h</span><span class="mstat-val" id="t-min">···</span></div>
@@ -123,166 +124,101 @@
     </div>
   </div>
 
-  <div class="analysis-row">
-  <!-- GRÁFICOS -->
-  <div class="charts-row sem-temp" id="charts-row">
-    <div class="panel">
-      <div class="panel-hdr">
-        <span class="panel-title">Histórico de Nível d'água</span>
-        <div class="panel-hdr-actions">
-          <div class="period-pills">
-            <button class="period-pill active" data-range="24h" type="button">24h</button>
-            <button class="period-pill" data-range="7d" type="button">7d</button>
-            <button class="period-pill" data-range="30d" type="button">30d</button>
+  <div class="grid g-analise">
+    <div class="charts-row sem-temp" id="charts-row">
+      <div class="panel">
+        <div class="panel-hdr">
+          <span class="panel-title">Histórico do nível d'água</span>
+          <div class="panel-hdr-actions">
+            <button class="btn-export" id="btn-export" type="button" title="Exporta os intervalos disponíveis no gráfico, com identificação da fonte">CSV</button>
+            <button class="btn-export" id="btn-export-xls" type="button" title="Planilha Excel formatada: título, cores por status e resumo do período">Excel</button>
+            <a class="btn-export btn-escuro" id="btn-relatorio" href="relatorio.html" target="_blank" title="Documento A4 pronto para salvar como PDF: resumo, gráfico, tabela e auditoria do período">Relatório PDF</a>
           </div>
-          <button class="btn-export" id="btn-export" type="button" title="Exporta os intervalos disponíveis no gráfico, com identificação da fonte">CSV · intervalos</button>
-          <button class="btn-export" id="btn-export-xls" type="button" title="Planilha Excel formatada: título, cores por status e resumo do período, pronta para imprimir ou apresentar">Excel</button>
-          <a class="btn-export" id="btn-relatorio" href="relatorio.html" target="_blank" title="Documento A4 pronto para salvar como PDF: resumo, gráfico, tabela e auditoria do período">PDF</a>
         </div>
+        <div class="panel-hdr">
+          <div class="period-pills" role="group" aria-label="Período">
+            <button class="period-pill active" data-range="24h" type="button">24 horas</button>
+            <button class="period-pill" data-range="7d" type="button">7 dias</button>
+            <button class="period-pill" data-range="30d" type="button">30 dias</button>
+          </div>
+          <div class="chart-legend-inline">
+            <span class="cl-item"><span class="cl-swatch"></span>média / leitura</span>
+            <span class="cl-item"><span class="cl-swatch cl-max"></span>máx. do intervalo</span>
+            <span class="cl-item"><span class="cl-swatch cl-at"></span>atenção</span>
+            <span class="cl-item"><span class="cl-swatch cl-cr"></span>crítico</span>
+          </div>
+        </div>
+        <div class="chart-area" id="chart-area-n"><canvas id="chart-n"></canvas><div class="chart-tip" id="chart-tip" aria-hidden="true"></div></div>
+        <p class="panel-sub">Série por intervalos: média e máximo. Exportações seguem os dados disponíveis, não o conjunto bruto de amostras.</p>
       </div>
-      <!-- P5 — legenda curta: pico do intervalo desenhado junto da média, não escondido -->
-      <div class="panel-sub">Série por intervalos: média e máximo. Exportações seguem os dados disponíveis, não o conjunto bruto de amostras.</div>
-      <div class="chart-legend-inline">
-        <span class="cl-item"><span class="cl-swatch"></span>média / leitura recente</span>
-        <span class="cl-item"><span class="cl-swatch cl-max"></span>máx do intervalo</span>
+      <div class="panel oculta-metrica" id="panel-chart-t">
+        <div class="panel-hdr"><span class="panel-title">Histórico de temperatura</span><span class="panel-tag" id="temp-period-tag">24h</span></div>
+        <div class="chart-area"><canvas id="chart-t"></canvas></div>
       </div>
-      <div class="chart-area"><canvas id="chart-n"></canvas></div>
     </div>
-    <div class="panel oculta-metrica" id="panel-chart-t">
-      <div class="panel-hdr">
-        <span class="panel-title">Histórico de Temperatura</span>
-        <span class="panel-tag" id="temp-period-tag">24h</span>
-      </div>
-      <div class="chart-area"><canvas id="chart-t"></canvas></div>
-    </div>
-  </div>
 
-    <!-- Alerta -->
-    <div class="panel">
-      <div class="panel-hdr">
-        <span class="panel-title">Condição da leitura</span>
-        <span class="panel-tag" id="alert-pz-tag">PZ-01</span>
-      </div>
-      <div class="panel-sub">Situação atual do piezômetro selecionado</div>
-
+    <div class="panel soft">
+      <div class="panel-hdr"><span class="panel-title">Condição atual</span><span class="panel-tag" id="alert-pz-tag">PZ-01</span></div>
       <div class="alert-level-box alb-normal" id="abox">
-        <div class="al-icon ali-normal" id="aicon">
-          <svg id="asvg" viewBox="0 0 16 16" fill="none"></svg>
-        </div>
+        <div class="al-icon ali-normal" id="aicon"><svg id="asvg" viewBox="0 0 16 16" fill="none"></svg></div>
         <div>
           <div class="al-state al-normal" id="astate">AGUARDANDO</div>
           <div class="al-desc" id="adesc">Conectando ao sensor...</div>
         </div>
       </div>
-
       <div class="threshold-bar">
-        <div class="tb-labels"><span>Normal</span><span>Atenção</span><span>Crítico</span></div>
-        <div class="tb-track">
+        <div class="tb-track" aria-hidden="true">
           <div class="tb-seg tb-green"></div>
           <div class="tb-seg tb-yellow" id="tby"></div>
           <div class="tb-seg tb-red" id="tbr"></div>
         </div>
+        <div class="tb-labels"><span>Normal</span><span>Atenção</span><span>Crítico</span></div>
       </div>
-
       <div class="al-info" id="ainfo">Aguardando confirmação da fonte.</div>
     </div>
-
   </div>
-<section class="panel persisted-panel" aria-labelledby="persistent-title">
-  <div class="panel-hdr"><h2 class="panel-title" id="persistent-title">Histórico registrado no servidor</h2><button class="btn-export" id="btn-export-alertas" type="button">Exportar alertas · CSV</button></div>
-  <p class="panel-sub">Instrumento selecionado · consulta aos últimos 50 registros da rede. Independente do período do gráfico; não constitui histórico completo de auditoria.</p>
-  <p class="panel-sub" id="servidor-eventos-status" role="status">Aguardando consulta.</p>
-  <div class="alert-table-wrap"><table><thead><tr><th>Data / hora</th><th>Instrumento</th><th>Tipo</th><th>Evento</th><th>Ação</th></tr></thead><tbody id="servidor-eventos-tbody"></tbody></table></div>
-</section>
 
-  <!-- ALERTA + LEITURAS + EVENTOS -->
-  <div class="bottom-row">
-    <!-- Últimas leituras -->
+  <section class="panel" id="registros" aria-labelledby="persistent-title" style="margin-top:14px">
+    <div class="panel-hdr"><h2 class="panel-title" id="persistent-title">Histórico registrado no servidor</h2><button class="btn-export" id="btn-export-alertas" type="button">Exportar alertas · CSV</button></div>
+    <p class="panel-sub">Instrumento selecionado · consulta aos últimos 50 registros da rede. Independente do período do gráfico; não constitui histórico completo de auditoria.</p>
+    <p class="panel-sub" id="servidor-eventos-status" role="status">Aguardando consulta.</p>
+    <div class="alert-table-wrap"><table><thead><tr><th>Data / hora</th><th>Instrumento</th><th>Tipo</th><th>Evento</th><th>Ação</th></tr></thead><tbody id="servidor-eventos-tbody"></tbody></table></div>
+  </section>
+
+  <div class="grid g-2" id="leituras">
     <div class="panel">
-      <div class="panel-hdr">
-        <span class="panel-title">Leituras disponíveis</span>
-        <span class="panel-tag" id="pz-tag-readings">PZ-01</span>
-      </div>
+      <div class="panel-hdr"><span class="panel-title">Leituras disponíveis</span><span class="panel-tag" id="pz-tag-readings">PZ-01</span></div>
       <div class="alert-table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>Hora</th>
-              <th>Nível d'água</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="readings-tbody">
-            <tr>
-              <td colspan="3" style="color:var(--text-3);text-align:center;padding:16px">
-                Aguardando dados...
-              </td>
-            </tr>
-          </tbody>
+          <thead><tr><th>Hora</th><th>Nível d'água</th><th>Status</th></tr></thead>
+          <tbody id="readings-tbody"><tr><td colspan="3" style="color:var(--text-3);text-align:center;padding:16px">Aguardando dados...</td></tr></tbody>
         </table>
       </div>
     </div>
 
-    <!-- Tabela de alarmes/eventos (P4 — ISA-18.2: alarme exige ação, evento é informativo) -->
+    <!-- Alarmes exigem ação; eventos são informativos (ISA-18.2) -->
     <div class="panel">
-      <div class="panel-hdr">
-        <span class="panel-title" id="events-title">Alarmes &amp; Eventos</span>
-      </div>
+      <div class="panel-hdr"><span class="panel-title" id="events-title">Alarmes &amp; Eventos</span></div>
       <div class="ev-subpanel">
-        <div class="ev-subpanel-hdr">
-          <span class="ev-subpanel-title">Ocorrências observadas nesta sessão</span>
-          <span class="panel-tag" id="alarm-count">0 alarmes</span>
-        </div>
+        <div class="ev-subpanel-hdr"><span class="ev-subpanel-title">Ocorrências observadas nesta sessão</span><span class="panel-tag" id="alarm-count">0 alarmes</span></div>
         <div class="alert-table-wrap ev-table-wrap-sm">
           <table>
-            <thead>
-              <tr>
-                <th class="td-dot"></th>
-                <th>Alarme</th>
-                <th>Nível d'água</th>
-                <th>Ação</th>
-                <th>Hora</th>
-              </tr>
-            </thead>
-            <tbody id="alarm-tbody">
-              <tr>
-                <td colspan="5" style="color:var(--text-3);text-align:center;padding:16px">
-                  Nenhuma ocorrência nesta sessão
-                </td>
-              </tr>
-            </tbody>
+            <thead><tr><th class="td-dot"></th><th>Alarme</th><th>Nível</th><th>Ação</th><th>Hora</th></tr></thead>
+            <tbody id="alarm-tbody"><tr><td colspan="5" style="color:var(--text-3);text-align:center;padding:16px">Nenhuma ocorrência nesta sessão</td></tr></tbody>
           </table>
         </div>
-
-        <div class="ev-subpanel-hdr">
-          <span class="ev-subpanel-title">Eventos</span>
-          <span class="panel-tag" id="ev-count">0 eventos</span>
-        </div>
+        <div class="ev-subpanel-hdr"><span class="ev-subpanel-title">Eventos</span><span class="panel-tag" id="ev-count">0 eventos</span></div>
         <div class="alert-table-wrap ev-table-wrap-sm">
           <table>
-            <thead>
-              <tr>
-                <th class="td-dot"></th>
-                <th>Evento</th>
-                <th>Nível d'água</th>
-                <th>Status</th>
-                <th>Hora</th>
-              </tr>
-            </thead>
-            <tbody id="ev-tbody">
-              <tr>
-                <td colspan="5" style="color:var(--text-3);text-align:center;padding:16px">
-                  Aguardando dados...
-                </td>
-              </tr>
-            </tbody>
+            <thead><tr><th class="td-dot"></th><th>Evento</th><th>Nível</th><th>Status</th><th>Hora</th></tr></thead>
+            <tbody id="ev-tbody"><tr><td colspan="5" style="color:var(--text-3);text-align:center;padding:16px">Aguardando dados...</td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
   </div>
-
 </main>
+</div>
 
 <script src="assets/js/config.js"></script>
 <script src="assets/js/util.js"></script>
@@ -294,6 +230,7 @@
 <script src="assets/js/exportar.js"></script>
 <script src="assets/js/eventos-persistidos.js"></script>
 <script src="assets/js/operacao.js"></script>
+<script src="assets/js/interface.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>

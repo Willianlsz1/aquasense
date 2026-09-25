@@ -45,7 +45,11 @@ SEM SINAL. A taxa de variação usa o horário da medição.
 
 ## Painel web
 
-- Rede de instrumentos com mapa ilustrativo e seleção por teclado.
+- Resumo no topo (frase e indicadores de alerta, sem sinal e última recepção),
+  calculado das últimas leituras. Leitura antiga conta como SEM SINAL; falha da
+  API aparece como "não confirmado", nunca como rede normal.
+- Instrumentos em barras proporcionais ao nível, com mapa ilustrativo e seleção
+  por teclado.
 - Leitura atual, origem do dado, última recepção e condição do ponto.
 - Gráficos de 24h, 7d e 30d com média, pico e lacunas visíveis.
 - Eventos do servidor (até 50 da rede) separados dos eventos da sessão.
