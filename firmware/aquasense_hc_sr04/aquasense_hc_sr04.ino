@@ -1,10 +1,11 @@
-// AQUASENSE — HC-SR04 + OLED SSD1306 — UMA ÚNICA ABA
+// AQUASENSE — HC-SR04 + TFT ST7789 — UMA ÚNICA ABA
 // Gerado por tools/gerar-firmware-unico.mjs a partir dos fontes da bancada.
 // Edite a configuração abaixo na cópia LOCAL da Arduino IDE.
 // Não publique este arquivo depois de preencher senha e chave.
 // Escala didática: max(0, 40 - distância em cm) * 0,5 m.
 // ECHO no GPIO 18 exige divisor de tensão; mantenha a montagem já testada.
-// Bibliotecas: Adafruit GFX e Adafruit SSD1306; placa ESP32 Dev Module.
+// Tela TFT SPI: SCK 14, SDA 13, CS 25, DC 27, RST 26; VCC em 3V3.
+// Bibliotecas: Adafruit GFX e Adafruit ST7735 and ST7789; placa ESP32 Dev Module.
 
 // ===== CREDENCIAIS (preencha antes de usar!) =====
 #define WIFI_SSID   "SUA_REDE_WIFI"
@@ -30,7 +31,7 @@
 
 // ===== VARIÁVEIS DO ADAPTER (para display/serial) =====
 
-// ===== TELA OLED =====
+// ===== TELA =====
 #include <Arduino.h>
 
 // ===== SLOTS DE LINHA (mesma ordem/semântica das linhas do OLED atual) =====
@@ -66,100 +67,105 @@ class Tela {
   virtual void atenuar() {}
 };
 
-#include <Wire.h>
+#include <SPI.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_ST7789.h>
 
-// ===== DISPLAY OLED =====
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C
+// ===== TELA TFT ST7789 (SPI) =====
+#define TFT_SCK   14   // pino SCK da tela
+#define TFT_MOSI  13   // pino SDA da tela
+#define TFT_CS    25
+#define TFT_DC    27
+#define TFT_RST   26
+#define TFT_LARGURA 320  // deitada (rotação 1)
+#define TFT_ALTURA  240
 
-class TelaSSD1306 : public Tela {
+class TelaST7789 : public Tela {
  public:
-  TelaSSD1306() : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET) {}
+  TelaST7789() : spi(HSPI), display(&spi, TFT_CS, TFT_DC, TFT_RST) {}
 
   bool iniciar() override {
-    Wire.beginTransmission(SCREEN_ADDRESS);
-    uint8_t erro = Wire.endTransmission();
-    Serial.printf("OLED I2C 0x%02X: codigo %u (0 = respondeu)\n", SCREEN_ADDRESS, erro);
-    if (erro != 0) return false;
-    bool ok = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS, true, false);
-    if (ok) display.setTextColor(SSD1306_WHITE);
-    return ok;
+    spi.begin(TFT_SCK, -1, TFT_MOSI, TFT_CS);
+    display.init(240, 320);
+    display.setRotation(1);
+    display.setTextWrap(false);
+    fundoPronto = false;
+    return true;
   }
 
   void limpar() override {
-    display.clearDisplay();
+    if (fundoPronto) return;
+    display.fillScreen(ST77XX_BLACK);
+    display.fillRect(0, 0, TFT_LARGURA, 32, ST77XX_BLUE);
+    faixaAtual = 255;
+    rotuloAtual[0] = '\0';
+    fundoPronto = true;
   }
 
   void escreverLinha(uint8_t slot, const char* texto) override {
     switch (slot) {
-      case SLOT_TITULO:
-        display.setTextSize(1);
-        display.setCursor(0, 0);
-        display.print(texto);
-        display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
-        break;
-      case SLOT_NIVEL:
-        display.setTextSize(1);
-        display.setCursor(0, 15);
-        display.print(texto);
-        break;
-      case SLOT_EXTRA_1:
-        display.setTextSize(1);
-        display.setCursor(0, 25);
-        display.print(texto);
-        break;
-      case SLOT_EXTRA_2:
-        display.setTextSize(1);
-        display.setCursor(0, 35);
-        display.print(texto);
-        break;
-      case SLOT_WIFI_STATUS:
-        break;
-      default:
-        break;
+      case SLOT_TITULO:    linha(texto, 2, 20, 16, 9, ST77XX_WHITE, ST77XX_BLUE); break;
+      case SLOT_NIVEL:     linha(texto, 3, 16, 8, 50, ST77XX_WHITE, ST77XX_BLACK); break;
+      case SLOT_EXTRA_1:   linha(texto, 2, 25, 8, 96, ST77XX_CYAN, ST77XX_BLACK); break;
+      case SLOT_EXTRA_2:   linha(texto, 2, 25, 8, 124, ST77XX_CYAN, ST77XX_BLACK); break;
+      default: break;
     }
   }
 
   void destacarStatus(const char* rotulo, uint8_t faixa) override {
-    (void)faixa; // SSD1306 é monocromático — a faixa não muda nada aqui; um
-    display.drawLine(0, 45, 128, 45, SSD1306_WHITE);
-    display.setTextSize(2);
-    display.setCursor(0, 50);
-    if (rotulo[0] != '\0') display.print(rotulo);
+    if (faixa == faixaAtual && strcmp(rotulo, rotuloAtual) == 0) return;
+    faixaAtual = faixa;
+    strncpy(rotuloAtual, rotulo, sizeof(rotuloAtual) - 1);
+    rotuloAtual[sizeof(rotuloAtual) - 1] = '\0';
+
+    uint16_t fundo = ST77XX_GREEN, texto = ST77XX_BLACK;
+    if (faixa == FAIXA_ATENCAO) fundo = ST77XX_YELLOW;
+    else if (faixa == FAIXA_CRITICO) { fundo = ST77XX_RED; texto = ST77XX_WHITE; }
+    else if (faixa == FAIXA_FALHA) { fundo = ST77XX_MAGENTA; texto = ST77XX_WHITE; }
+
+    display.fillRect(0, 160, TFT_LARGURA, 80, fundo);
+    display.setTextSize(4);  // 24 px por caractere
+    display.setTextColor(texto);
+    int16_t x = (TFT_LARGURA - (int16_t)strlen(rotulo) * 24) / 2;
+    display.setCursor(x < 0 ? 0 : x, 184);
+    display.print(rotulo);
   }
 
-  void mostrar() override {
-    display.display();
-  }
+  void mostrar() override {}  // desenha direto no TFT; nada a enviar
 
   void mostrarTelaInicio() override {
-    display.clearDisplay();
+    display.fillScreen(ST77XX_BLACK);
+    display.setTextColor(ST77XX_CYAN);
+    display.setTextSize(4);
+    display.setCursor(52, 60);
+    display.print("AquaSense");
+    display.setTextColor(ST77XX_WHITE);
     display.setTextSize(2);
-    display.setCursor(10, 5);
-    display.println("AquaSense");
-
-    display.setTextSize(1);
-    display.setCursor(8, 30);
-    display.println("Nivel de agua em");
-    display.setCursor(18, 42);
-    display.println("piezometros");
-
-    display.setCursor(10, 55);
-    display.println("Iniciando...");
-
-    display.display();
-  }
-
-  void atenuar() override {
-    display.dim(true);
+    display.setCursor(64, 120);
+    display.print("Nivel de agua em");
+    display.setCursor(94, 144);
+    display.print("piezometros");
+    display.setCursor(88, 196);
+    display.print("Iniciando...");
+    fundoPronto = false;  // a próxima leitura repinta o fundo de operação
   }
 
  private:
-  Adafruit_SSD1306 display;
+  void linha(const char* texto, uint8_t tamanho, int largura, int16_t x, int16_t y,
+             uint16_t cor, uint16_t fundo) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%-*.*s", largura, largura, texto);
+    display.setTextSize(tamanho);
+    display.setTextColor(cor, fundo);
+    display.setCursor(x, y);
+    display.print(buf);
+  }
+
+  SPIClass spi;
+  Adafruit_ST7789 display;
+  bool fundoPronto = false;
+  uint8_t faixaAtual = 255;
+  char rotuloAtual[16] = "";
 };
 
 // ===== CONEXÃO, ENVIO E ALERTAS =====
@@ -195,8 +201,8 @@ void linhasExtrasDisplay(Tela &t);
 void linhasExtrasSerial();
 
 // ===== IMPLEMENTAÇÃO DE TELA EM USO =====
-TelaSSD1306 telaSsd1306;
-Tela* tela = &telaSsd1306;
+TelaST7789 telaSt7789;
+Tela* tela = &telaSt7789;
 
 // ===== ESTADO DA ÚLTIMA LEITURA (preenchido pelo adapter via lerSensor) =====
 Leitura leituraAtual = {0, 0, 0, false, false, false};
@@ -432,13 +438,13 @@ void coreSetup() {
   Serial.println("===========================================");
   Serial.println();
 
-  Wire.begin(21, 22); // barramento I2C da tela (compartilhado com o BMP180, quando houver)
+  Wire.begin(21, 22); // barramento I2C livre para sensores (ADS1115, BMP180), quando houver
 
-  Serial.print("Inicializando OLED... ");
+  Serial.print("Inicializando tela... ");
   displayOk = tela->iniciar();
   if (!displayOk) {
     Serial.println("ERRO!");
-    Serial.println("OLED ausente — seguindo em modo degradado (sem display)");
+    Serial.println("Tela ausente — seguindo em modo degradado (sem display)");
   } else {
     Serial.println("OK!");
   }

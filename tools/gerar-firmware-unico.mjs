@@ -37,26 +37,27 @@ const inicioSensor = sensor.indexOf('float distanciaCm');
 const ajustes = compacto(sensor.slice(0, inicioSensor));
 sensor = compacto(sensor.slice(inicioSensor));
 const tela = compacto(ler('tela.h'));
-const oled = compacto(ler('tela_ssd1306.h').replace(/^#include "tela.h"\s*$/gm, ''));
+const tft = compacto(ler('tela_st7789.h').replace(/^#include "tela.h"\s*$/gm, ''));
 const nucleo = compacto(ler('piezometro_core.h')
-  .replace(/^#include "tela(?:_ssd1306)?\.h"\s*$/gm, '')
+  .replace(/^#include "tela(?:_st7789)?\.h"\s*$/gm, '')
   .replace(/#define PIEZOMETRO_MAIN\(\)[\s\S]*$/, ''));
-const texto = `// AQUASENSE — HC-SR04 + OLED SSD1306 — UMA ÚNICA ABA
+const texto = `// AQUASENSE — HC-SR04 + TFT ST7789 — UMA ÚNICA ABA
 // Gerado por tools/gerar-firmware-unico.mjs a partir dos fontes da bancada.
 // Edite a configuração abaixo na cópia LOCAL da Arduino IDE.
 // Não publique este arquivo depois de preencher senha e chave.
 // Escala didática: max(0, 40 - distância em cm) * 0,5 m.
 // ECHO no GPIO 18 exige divisor de tensão; mantenha a montagem já testada.
-// Bibliotecas: Adafruit GFX e Adafruit SSD1306; placa ESP32 Dev Module.
+// Tela TFT SPI: SCK 14, SDA 13, CS 25, DC 27, RST 26; VCC em 3V3.
+// Bibliotecas: Adafruit GFX e Adafruit ST7735 and ST7789; placa ESP32 Dev Module.
 
 ${configuracao}
 
 ${ajustes}
 
-// ===== TELA OLED =====
+// ===== TELA =====
 ${tela}
 
-${oled}
+${tft}
 
 // ===== CONEXÃO, ENVIO E ALERTAS =====
 ${nucleo}

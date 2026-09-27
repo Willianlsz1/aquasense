@@ -43,7 +43,8 @@
 #include <math.h>
 
 #include "tela.h"
-#include "tela_ssd1306.h"
+// OLED antigo: trocar por tela_ssd1306.h e ajustar a instância abaixo.
+#include "tela_st7789.h"
 
 // ===== INTERVALOS (ms) =====
 // Modo de campo a bateria/solar (duty cycling, sem ficar sempre ligado):
@@ -85,10 +86,10 @@ void linhasExtrasDisplay(Tela &t);
 void linhasExtrasSerial();
 
 // ===== IMPLEMENTAÇÃO DE TELA EM USO =====
-// Trocar de hardware (ex.: TFT ILI9341) é criar tela_ili9341.h implementando
-// Tela e trocar as duas linhas abaixo — core e sketches só falam com Tela.
-TelaSSD1306 telaSsd1306;
-Tela* tela = &telaSsd1306;
+// Trocar de hardware é incluir outro tela_*.h que implemente Tela e trocar
+// as duas linhas abaixo — core e sketches só falam com Tela.
+TelaST7789 telaSt7789;
+Tela* tela = &telaSt7789;
 
 // ===== ESTADO DA ÚLTIMA LEITURA (preenchido pelo adapter via lerSensor) =====
 Leitura leituraAtual = {0, 0, 0, false, false, false};
@@ -351,16 +352,16 @@ void coreSetup() {
   Serial.println("===========================================");
   Serial.println();
 
-  Wire.begin(21, 22); // barramento I2C da tela (compartilhado com o BMP180, quando houver)
+  Wire.begin(21, 22); // barramento I2C livre para sensores (ADS1115, BMP180), quando houver
 
-  Serial.print("Inicializando OLED... ");
+  Serial.print("Inicializando tela... ");
   // Instrumento de SEGURANÇA: a tela é um componente SECUNDÁRIO — sua
   // falha não pode travar o setup e derrubar leitura/alertas/telemetria.
   // Só registra o problema e segue em modo degradado (sem tela).
   displayOk = tela->iniciar();
   if (!displayOk) {
     Serial.println("ERRO!");
-    Serial.println("OLED ausente — seguindo em modo degradado (sem display)");
+    Serial.println("Tela ausente — seguindo em modo degradado (sem display)");
   } else {
     Serial.println("OK!");
   }
