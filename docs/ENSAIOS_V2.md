@@ -2,7 +2,7 @@
 
 Roteiro da Tabela 6 do TCC v5. O V2 usa o mesmo ESP32, HC-SR04 e firmware do V1,
 montados num tubo de acrílico transparente de 30 cm com régua graduada.
-**Situação: nenhum ensaio realizado.** Preencher as tabelas somente com valores
+**Situação: ensaio 3 realizado em bancada (27/09/2026); demais pendentes.** Preencher as tabelas somente com valores
 observados, com data e versão do firmware.
 
 Registro de cada sessão: data, responsáveis, commit do firmware, instrumento
@@ -28,6 +28,17 @@ Resultado: menor, maior, média e dispersão.
 Desligar o roteador por 10 minutos e religar. Conferir no histórico se as leituras
 do período chegaram. O buffer em RAM comporta cerca de 20 minutos; reiniciar o
 ESP32 durante o ensaio invalida o resultado.
+
+**Resultado em 27/09/2026 (bancada, sem tubo; firmware `5905928`, PZ-01).** Roteador
+desligado das 13:31 às 13:43 (~12 min), ESP32 ligado. Consulta ao D1 por minuto:
+de 13:32 a 13:40, 6 leituras por minuto (uma a cada 10 s), sem lacuna, recebidas
+depois com atraso de 92 s a 622 s — ou seja, vieram do buffer após a volta da rede.
+A reconexão ocorreu por volta de 13:42 sem reiniciar a placa. No momento da queda
+(13:30–13:31) chegaram 7 leituras em vez de 12: perda de ~50 s, provavelmente
+porque o envio em curso ficou bloqueado até o tempo limite do HTTP (8 s). Nenhuma
+leitura duplicada foi observada na contagem. O período sem rede não gerou evento
+de comunicação, pois durou menos que `SILENCE_ALERT_SEC` (15 min); o ensaio 4
+continua pendente.
 
 ## 4. Perda de sinal
 
