@@ -265,7 +265,7 @@ void deepSleepCiclo() {
   Serial.printf("Ciclo concluído: %d enviada(s), %d retida(s)\n",
                 enviadas, rtcBufferCount);
 
-  // OLED opcional — em campo ninguém olha o display, mas ajuda a depurar
+  // Tela opcional — em campo ninguém olha o display, mas ajuda a depurar
   // com o hardware na mão durante os testes. Sem delay longo: só desenha e
   // já segue para dormir(). Fala só com a interface Tela (ver tela.h) — não
   // conhece mais Adafruit_SSD1306 diretamente. É uma tela de depuração

@@ -8,14 +8,14 @@
  * /ingest, classificação de nível e tela. O que muda de um
  * sensor para o outro (como medir o nível) fica no próprio .ino, que
  * implementa um "adapter" de sensor definido pelo contrato abaixo. O que
- * muda de um HARDWARE DE TELA para o outro (hoje só o OLED SSD1306) fica em
- * tela_ssd1306.h — o core só fala com a interface Tela (ver tela.h), nunca
+ * muda de um HARDWARE DE TELA para o outro (hoje o TFT ST7789; o OLED SSD1306
+ * antigo segue disponível) fica em tela_st7789.h / tela_ssd1306.h — o core só fala com a interface Tela (ver tela.h), nunca
  * com o tipo concreto do display.
  *
  * COMO USAR NO ARDUINO IDE / WOKWI:
  * Este .h entra como uma ABA A MAIS dentro da mesma pasta do sketch (Arduino
  * IDE: "New Tab" → nome "piezometro_core.h"; no Wokwi: crie o arquivo com
- * esse nome no mesmo projeto), junto de tela.h e tela_ssd1306.h. O .ino faz
+ * esse nome no mesmo projeto), junto de tela.h e tela_st7789.h. O .ino faz
  * "#include "piezometro_core.h"" DEPOIS de definir credenciais/limiares
  * (normalmente via "#include "piezometro_config_local.h"" — ver o modelo em
  * piezometro_config_local.h.example) e ANTES de implementar os hooks do

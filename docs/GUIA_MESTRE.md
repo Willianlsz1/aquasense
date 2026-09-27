@@ -63,8 +63,11 @@ SEM SINAL. A taxa de variação usa o horário da medição.
 
 | Evidência | Data | Limite |
 |---|---|---|
-| Faixas, falha de eco, recuperação e HTTP 204 na bancada | 12/09/2026 | Sem régua: não mede exatidão. Sem teste de queda de rede do ESP32. |
-| OLED exibiu FALHA SENSOR | 12/09/2026 | O display apagou depois, no mesmo dia; a causa não foi confirmada. |
+| Faixas, falha de eco, recuperação e HTTP 204 na bancada | 12/09/2026 | Sem régua: não mede exatidão. |
+| OLED exibiu FALHA SENSOR | 12/09/2026 | O display apagou depois, no mesmo dia; substituído pelo TFT. |
+| TFT ST7789 com as quatro faixas e tela de campo | 27/09/2026 | Conferência por fotos, sem água no tubo. |
+| Queda de rede (12 min) e perda de sinal (18 min) | 27/09/2026 | Bancada; ~50 s perdidos no instante da queda. [Ensaios](ENSAIOS_V2.md). |
+| HTTPS com certificado do servidor validado | 27/09/2026 | Depende de NTP e das raízes gravadas no firmware. |
 | Painel e Worker publicados | 13/09/2026 | Publicado não significa disponível hoje. A cota diária do D1 já bloqueou consultas. |
 | Testes automatizados | 25/09/2026 | 49/49 aprovados localmente (`npm test`). O TCC v5 cita 31/31, contagem de 12/09. |
 
@@ -72,7 +75,7 @@ SEM SINAL. A taxa de variação usa o horário da medição.
 
 - O buffer do V1 fica em RAM: até 120 envios, cerca de 20 minutos. Quando lota,
   descarta o mais antigo; um reinício perde as pendências. A UCT prevê flash.
-- O protótipo não usa LEDs nem buzzer: o estado aparece no OLED e no painel.
+- O protótipo não usa LEDs nem buzzer: o estado aparece no display TFT e no painel.
 - Dados brutos ficam retidos por 180 dias; dias anteriores viram resumos diários,
   ainda sem consulta no painel.
 - Os índices da migração 0004 reduziram as consultas ao D1 no código; a economia

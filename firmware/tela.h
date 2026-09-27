@@ -5,15 +5,13 @@
  *
  * O core (piezometro_core.h) e os hooks de sensor dos sketches enxergam
  * SOMENTE esta interface — nunca o tipo concreto do display (hoje
- * Adafruit_SSD1306, escondido dentro de tela_ssd1306.h). Isso permite trocar
- * o hardware de tela (ex.: substituir o OLED monocromático por um TFT
- * ILI9341 colorido) criando um novo arquivo "tela_xxx.h" que implemente
- * Tela — sem editar o core nem nenhum dos sketches. O adapter atual do OLED
- * está em tela_ssd1306.h.
+ * Adafruit_ST7789, escondido dentro de tela_st7789.h). Foi assim que o OLED
+ * monocromático (tela_ssd1306.h) foi trocado pelo TFT colorido: um novo
+ * arquivo "tela_xxx.h" que implementa Tela, sem mudar a lógica do core.
  *
  * ORIENTADA A "LINHAS/SLOTS": cada informação do painel ocupa um slot fixo
- * (constantes SLOT_*), reproduzindo o layout atual do OLED 128x64 mono. Um
- * adapter colorido pode usar os mesmos slots com fontes/posições/cores
+ * (constantes SLOT_*), herdados do layout do OLED 128x64 mono. Cada
+ * adapter pode usar os mesmos slots com fontes/posições/cores
  * diferentes — a interface não amarra pixels, só CONTEÚDO.
  * ============================================================================
  */

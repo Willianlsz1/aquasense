@@ -36,8 +36,8 @@ Sensor → ESP32 → HTTPS /ingest → Cloudflare Worker → D1 (leituras) + KV 
 
 | Etapa | Situação |
 |---|---|
-| Protótipo V1 — ESP32 + HC-SR04 em bancada, Wi-Fi | Validado em 12/09/2026 ([registro](docs/VALIDACAO_BANCADA_2026-09-12.md)) |
-| Protótipo V2 — mesmo sistema num tubo de acrílico com água | Em montagem ([roteiro de ensaios](docs/ENSAIOS_V2.md)) |
+| Protótipo V1 — ESP32 + HC-SR04 + TFT ST7789 em bancada, Wi-Fi | Validado em 12/09/2026 ([registro](docs/VALIDACAO_BANCADA_2026-09-12.md)); em 27/09/2026, display TFT, queda de rede, perda de sinal e HTTPS com certificado validado ([ensaios](docs/ENSAIOS_V2.md), [firmware](docs/REGISTRO_FIRMWARE.md)) |
+| Protótipo V2 — mesmo sistema num tubo de acrílico com água | Em montagem; exatidão, repetibilidade e faixas com água pendentes ([roteiro de ensaios](docs/ENSAIOS_V2.md)) |
 | UCT comercial — sonda 4–20 mA, ADS1115, 4G, energia solar | Especificada no TCC; não montada |
 | Servidor e painel | [Publicados](https://willianlsz1.github.io/aquasense/); 49 testes locais aprovados |
 

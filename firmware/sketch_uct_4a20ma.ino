@@ -1,7 +1,7 @@
 /*
  * ============================================================================
  * AQUASENSE — MONITORAMENTO ONLINE DO NÍVEL DE ÁGUA EM PIEZÔMETROS
- * ESP32 + UCT (transdutor piezométrico 4-20 mA + ADS1115) + OLED +
+ * ESP32 + UCT (transdutor piezométrico 4-20 mA + ADS1115) + TELA +
  * SERVIDOR (JSON) + STORE&FORWARD — FIRMWARE DA UCT INDUSTRIAL
  * ============================================================================
  *
@@ -30,18 +30,17 @@
  *   Transdutor 4-20 mA (loop) → shunt 150 Ω 0,1% → GND
  *   ADS1115 AIN0 → nó entre o transdutor e o shunt (mede a tensão SOBRE o
  *                  shunt, entrada single-ended referenciada ao GND comum)
- *   ADS1115 I2C: SDA→GPIO21  SCL→GPIO22 — MESMO barramento do OLED
- *                (endereços diferentes, sem conflito: ADS1115 em 0x48,
- *                OLED SSD1306 em 0x3C — os dois convivem no mesmo Wire.begin)
+ *   ADS1115 I2C: SDA→GPIO21  SCL→GPIO22 (0x48). A tela TFT do núcleo usa
+ *                SPI em outros pinos (ver tela_st7789.h), sem conflito.
  *   ADS1115: VCC→3V3  GND→GND  ADDR→GND (fixa o endereço em 0x48)
  *
- * Bibliotecas: Adafruit SSD1306, Adafruit GFX Library (OLED, já usadas nos
- * outros sketches) + Adafruit_ADS1X15 (novo — biblioteca do conversor A/D).
+ * Bibliotecas: Adafruit ST7735 and ST7789, Adafruit GFX Library (tela, já
+ * usadas nos outros sketches) + Adafruit_ADS1X15 (conversor A/D).
  *
  * ENVIO / STORE & FORWARD / ALERTAS / IDENTIFICAÇÃO: ver piezometro_core.h —
  * este .ino só implementa a parte específica do sensor (leitura do ADS1115 +
  * conversão corrente/tensão → metros); todo o resto (WiFi, NTP, buffer,
- * envio HTTP, OLED) é do núcleo comum, compartilhado com os
+ * envio HTTP, tela) é do núcleo comum, compartilhado com os
  * outros dois firmwares. O JSON aqui só carrega "nivel_agua" (+ "ts" quando o
  * NTP sincronizou) — sem pressão/temperatura, pois este transdutor reporta
  * só o nível (a leitura de pressão bruta já é convertida em metros aqui
@@ -51,7 +50,7 @@
  *   - SEMPRE-LIGADO (bancada/homologação — ATIVO neste arquivo): setup/loop
  *     padrão, initSensor()+coreSetup()/coreLoop(). É o modo certo para os
  *     ensaios de docs/projeto/HOMOLOGACAO_UCT.md (E1-E5): precisa do
- *     Serial/OLED vivos o tempo todo para acompanhar a bancada.
+ *     Serial/tela vivos o tempo todo para acompanhar a bancada.
  *   - DEEP SLEEP (campo — opcional, ver piezometro_core.h e
  *     piezometro_deep_sleep.h): para uma instalação de campo a bateria/solar
  *     (Opção C de docs/projeto/ALIMENTACAO_ENERGIA.md), ative ANTES do
@@ -144,7 +143,7 @@ void initSensor() {
   Serial.begin(115200);
   delay(1000);
 
-  Wire.begin(21, 22); // barramento I2C compartilhado com o OLED (0x48 ADS / 0x3C OLED — sem conflito)
+  Wire.begin(21, 22); // barramento I2C do ADS1115 (0x48)
 
   Serial.print("Inicializando ADS1115 (UCT 4-20 mA)... ");
   sensorOk = ads.begin(); // endereço padrão 0x48 (ADDR→GND)
