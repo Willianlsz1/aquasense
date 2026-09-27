@@ -2,7 +2,7 @@
 
 Roteiro da Tabela 6 do TCC v5. O V2 usa o mesmo ESP32, HC-SR04 e firmware do V1,
 montados num tubo de acrílico transparente de 30 cm com régua graduada.
-**Situação: ensaio 3 realizado em bancada (27/09/2026); demais pendentes.** Preencher as tabelas somente com valores
+**Situação: ensaios 3 e 4 realizados em bancada (27/09/2026); demais pendentes.** Preencher as tabelas somente com valores
 observados, com data e versão do firmware.
 
 Registro de cada sessão: data, responsáveis, commit do firmware, instrumento
@@ -44,6 +44,19 @@ continua pendente.
 
 Desligar o protótipo por mais de 2 minutos. Esperado: painel indica SEM SINAL para
 o ponto e registra o evento; ao religar, volta ao estado da leitura atual.
+
+**Resultado em 27/09/2026 (bancada; firmware `5905928`, PZ-01).** Placa desligada da
+energia por ~18 min. Consulta a `/ultimos` e `/alerts` a cada minuto:
+
+| Momento | Observado |
+|---|---|
+| 13:46:07 | Última leitura recebida antes do desligamento |
+| 14:01:45 | Evento de comunicação `SEM_SINAL` registrado (15,6 min de silêncio; limite 15 min) |
+| 14:04:26 | Primeira leitura após religar |
+| 14:04:30 | Evento de comunicação `OK` (restabelecida) registrado |
+
+O servidor detectou a ausência de leituras e registrou perda e retorno. O aviso visual
+de 2 min no painel não foi fotografado neste ensaio.
 
 ## 5. Faixas de alerta
 
