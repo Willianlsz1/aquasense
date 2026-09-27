@@ -13,7 +13,7 @@ const runtimeFiles = [
 ];
 
 const publicAndFirmwareFiles = [
-  "readme.md",
+  "README.md",
   "cloudflare-worker/README.md",
   "docs/GUIA_MESTRE.md",
   "index.html",

@@ -1,25 +1,11 @@
-# HC-SR04 em uma única aba
+# Registro do firmware do protótipo
 
-Abra `aquasense_hc_sr04/aquasense_hc_sr04.ino` na Arduino IDE. Essa pasta contém
-somente um sketch; não é necessário copiar nenhum dos cabeçalhos `.h` do projeto.
-As bibliotecas Adafruit GFX e Adafruit SSD1306 continuam necessárias.
+Histórico de gravação e diagnóstico do sketch de uma aba (`firmware/aquasense_hc_sr04`).
+Instruções de uso: [firmware/README.md](../firmware/README.md).
 
-Na cópia local, preencha Wi-Fi, endereço `/ingest`, chave e instrumento no início
-do arquivo. Os pinos e a escala ficam logo abaixo. Selecione **ESP32 Dev Module**.
-O modelo versionado tem apenas valores de exemplo: mantenha a cópia preenchida
-fora do repositório e não a compartilhe, pois ela contém senha e chave.
+## Cópia preparada para a bancada
 
-O comportamento foi preservado: mediana de cinco tentativas, falha de sensor sem
-envio como medição nova, tela OLED, faixas de alerta, leitura a cada segundo,
-envio a cada dez segundos e buffer em RAM. As rotinas de LEDs e buzzer permanecem
-compatíveis com a versão anterior, embora LEDs não estejam montados na bancada.
-Os metros continuam sendo uma escala didática, não a distância real em metros.
-
-## Cópia preparada nesta máquina
-
-`C:\Users\KABUM\Documents\Arduino\aquasense_hc_sr04\aquasense_hc_sr04.ino`
-
-Essa cópia foi preenchida a partir da configuração local anterior. O projeto
+A cópia local, fora do repositório, foi preenchida a partir da configuração local anterior. O projeto
 antigo `sketch_demo_hc_sr04` permanece como reserva. Use o novo nome na IDE para
 editar em uma aba só. A preparação não regrava automaticamente o ESP32.
 
@@ -49,19 +35,9 @@ O sensor continuou em NORMAL e houve envios HTTP 204. A comunicação com a tela
 falhou nessa tentativa; a causa ainda não foi isolada. O diagnóstico posterior também não recuperou a imagem. A investigação está
 suspensa até a equipe dispor de outro OLED; não repetir ensaios por este roteiro.
 
-## Manutenção do código
+## Remoção de LEDs e buzzer (26/09/2026)
 
-O arquivo único é gerado dos fontes comuns, evitando duas implementações que
-possam divergir. Para atualizar a distribuição depois de alterar esses fontes:
-
-```powershell
-node tools/gerar-firmware-unico.mjs
-```
-
-Para criar uma cópia preenchida, informe `--config` com o cabeçalho privado e
-`--output` com o destino `.ino` fora do repositório. O comando sobrescreve o
-destino; salve eventuais edições feitas na cópia da IDE antes de gerá-la novamente.
-Não é necessário executar esse comando para usar o sketch já preparado.
-
-Os outros sensores (JSN-SR04T, BMP180 e 4–20 mA) continuam em seus projetos
-originais; não devem ser colocados como abas adicionais do sketch HC-SR04.
+O protótipo não usa LEDs nem buzzer. As rotinas foram retiradas do núcleo comum e o
+sketch de uma aba foi gerado de novo. Os três firmwares (uma aba, modular e UCT)
+compilaram para `esp32:esp32:esp32` (core 3.3.11); o de uma aba usa 1.062.936 bytes
+de programa (81%). A nova versão ainda não foi gravada na placa.

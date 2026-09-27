@@ -72,7 +72,7 @@ SEM SINAL. A taxa de variação usa o horário da medição.
 
 - O buffer do V1 fica em RAM: até 120 envios, cerca de 20 minutos. Quando lota,
   descarta o mais antigo; um reinício perde as pendências. A UCT prevê flash.
-- LEDs não estão montados; o buzzer não foi validado.
+- O protótipo não usa LEDs nem buzzer: o estado aparece no OLED e no painel.
 - Dados brutos ficam retidos por 180 dias; dias anteriores viram resumos diários,
   ainda sem consulta no painel.
 - Os índices da migração 0004 reduziram as consultas ao D1 no código; a economia
