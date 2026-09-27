@@ -38,6 +38,7 @@ class TelaST7789 : public Tela {
     // Define os pinos antes da biblioteca abrir o barramento com os padrões.
     spi.begin(TFT_SCK, -1, TFT_MOSI, TFT_CS);
     display.init(240, 320);
+    display.invertDisplay(false);  // este módulo mostrava as cores invertidas
     display.setRotation(1);
     display.setTextWrap(false);
     fundoPronto = false;
