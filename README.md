@@ -63,7 +63,7 @@ hardware, use **Iniciar simulação**: os dados são fictícios e a tela avisa i
 |---|---|
 | ESP32 DevKit (38 pinos) | 1 |
 | Sensor ultrassônico HC-SR04 | 1 |
-| Display OLED 0,96" SSD1306, I²C | 1 |
+| Display TFT ST7789 240 × 320, SPI (7 pinos) | 1 |
 | Resistores de 1 kΩ e 2 kΩ (divisor do ECHO) | 1 de cada |
 | Protoboard, jumpers e cabo USB | — |
 
@@ -77,7 +77,7 @@ O ECHO do HC-SR04 sai em 5 V; o divisor de 1 kΩ / 2 kΩ reduz o sinal para cerc
 ### 3. Gravar o firmware
 
 1. Instale a [Arduino IDE](https://www.arduino.cc/en/software), o pacote de placas
-   **esp32** (Espressif) e as bibliotecas **Adafruit SSD1306** e **Adafruit GFX**.
+   **esp32** (Espressif) e as bibliotecas **Adafruit ST7735 and ST7789** e **Adafruit GFX**.
 2. Copie `firmware/aquasense_hc_sr04/` para uma pasta **fora** do repositório e abra
    o `.ino` na IDE.
 3. Na cópia, preencha Wi-Fi, endereço `/ingest`, chave do dispositivo e instrumento
