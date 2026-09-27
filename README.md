@@ -9,9 +9,9 @@ Equipe: Isadora Muniz, Matheus Martins e Willian Lopes. Orientador: Prof. Jairo.
 ![Node.js 24](https://img.shields.io/badge/Node.js-24-339933)
 ![ESP32](https://img.shields.io/badge/ESP32-Arduino-E7352C)
 
-| Protótipo V1 em bancada | Painel web (modo simulação, dados fictícios) |
+| Protótipo V1 em bancada | Painel web com leituras reais do PZ-01 (27/09/2026) |
 |---|---|
-| ![Protótipo V1: ESP32 e sensor ultrassônico em protoboard](docs/img/prototipo_bancada.jpg) | ![Painel web do AquaSense em modo simulação](docs/img/painel.png) |
+| ![Protótipo V1: ESP32 e sensor ultrassônico em protoboard](docs/img/prototipo_bancada.jpg) | ![Painel web do AquaSense em monitoramento real](docs/img/painel.png) |
 
 ## Problema
 

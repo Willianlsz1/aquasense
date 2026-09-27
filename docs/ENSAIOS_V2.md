@@ -41,6 +41,7 @@ NORMAL, ATENÇÃO e CRÍTICO no display e no painel, e retorno com histerese de 
 
 ## Pendências de montagem
 
-- Modelo do display maior ainda não definido (TCC, Tabela 5).
+- Display definido: TFT ST7789 240×320 (SPI), conferido em bancada em 27/09/2026
+  nas quatro faixas ([registro](REGISTRO_FIRMWARE.md)); falta repetir com água no tubo.
 - Ajustar a escala `max(0, 40 - distancia_cm) * 0,5` à altura real do tubo, se
   necessário, e registrar a escolha.
