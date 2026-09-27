@@ -56,10 +56,16 @@ class TelaST7789 : public Tela {
 
   void escreverLinha(uint8_t slot, const char* texto) override {
     switch (slot) {
-      case SLOT_TITULO:    linha(texto, 2, 20, 16, 9, ST77XX_WHITE, ST77XX_BLUE); break;
-      case SLOT_NIVEL:     linha(texto, 3, 16, 8, 50, ST77XX_WHITE, ST77XX_BLACK); break;
-      case SLOT_EXTRA_1:   linha(texto, 2, 25, 8, 96, ST77XX_CYAN, ST77XX_BLACK); break;
-      case SLOT_EXTRA_2:   linha(texto, 2, 25, 8, 124, ST77XX_CYAN, ST77XX_BLACK); break;
+      case SLOT_TITULO:    linha(texto, 2, 25, 8, 9, ST77XX_WHITE, ST77XX_BLUE); break;
+      case SLOT_NIVEL:     linha(texto, 3, 16, 8, 42, ST77XX_WHITE, ST77XX_BLACK); break;
+      case SLOT_EXTRA_1:   linha(texto, 2, 25, 8, 78, ST77XX_CYAN, ST77XX_BLACK); break;
+      case SLOT_EXTRA_2:   linha(texto, 2, 25, 8, 102, ST77XX_CYAN, ST77XX_BLACK); break;
+      case SLOT_WIFI_STATUS: {
+        // Falha de comunicação em amarelo para chamar a atenção do técnico.
+        bool falha = strncmp(texto, "SEM", 3) == 0 || strncmp(texto, "ERRO", 4) == 0;
+        linha(texto, 2, 25, 8, 130, falha ? ST77XX_YELLOW : ST77XX_WHITE, ST77XX_BLACK);
+        break;
+      }
       default: break;
     }
   }

@@ -39,7 +39,7 @@
 #define SLOT_NIVEL        1  // "Nivel: X.XX m"
 #define SLOT_EXTRA_1      2  // 1ª linha específica do sensor (hook linhasExtrasDisplay)
 #define SLOT_EXTRA_2      3  // 2ª linha específica do sensor (hook linhasExtrasDisplay)
-#define SLOT_WIFI_STATUS  4  // reservado: status de conectividade isolado — hoje os
+#define SLOT_WIFI_STATUS  4  // comunicação (Wi-Fi, último envio, fila), escrita pelo
 
 // ===== FAIXAS DE ALERTA (para destacarStatus) =====
 #define FAIXA_NORMAL   0  // nível < NIVEL_ATENCAO
@@ -105,10 +105,15 @@ class TelaST7789 : public Tela {
 
   void escreverLinha(uint8_t slot, const char* texto) override {
     switch (slot) {
-      case SLOT_TITULO:    linha(texto, 2, 20, 16, 9, ST77XX_WHITE, ST77XX_BLUE); break;
-      case SLOT_NIVEL:     linha(texto, 3, 16, 8, 50, ST77XX_WHITE, ST77XX_BLACK); break;
-      case SLOT_EXTRA_1:   linha(texto, 2, 25, 8, 96, ST77XX_CYAN, ST77XX_BLACK); break;
-      case SLOT_EXTRA_2:   linha(texto, 2, 25, 8, 124, ST77XX_CYAN, ST77XX_BLACK); break;
+      case SLOT_TITULO:    linha(texto, 2, 25, 8, 9, ST77XX_WHITE, ST77XX_BLUE); break;
+      case SLOT_NIVEL:     linha(texto, 3, 16, 8, 42, ST77XX_WHITE, ST77XX_BLACK); break;
+      case SLOT_EXTRA_1:   linha(texto, 2, 25, 8, 78, ST77XX_CYAN, ST77XX_BLACK); break;
+      case SLOT_EXTRA_2:   linha(texto, 2, 25, 8, 102, ST77XX_CYAN, ST77XX_BLACK); break;
+      case SLOT_WIFI_STATUS: {
+        bool falha = strncmp(texto, "SEM", 3) == 0 || strncmp(texto, "ERRO", 4) == 0;
+        linha(texto, 2, 25, 8, 130, falha ? ST77XX_YELLOW : ST77XX_WHITE, ST77XX_BLACK);
+        break;
+      }
       default: break;
     }
   }
@@ -185,6 +190,12 @@ class TelaST7789 : public Tela {
 // ===== STORE & FORWARD =====
 #define BUFFER_MAX 120              // ~20 min de leituras retidas sem rede
 
+// ===== REDE E TELA =====
+#define INTERVALO_RECONEXAO 60000UL // o ESP32 já reconecta sozinho; só insiste a cada 1 min
+#ifndef FUSO_HORARIO_SEG
+#define FUSO_HORARIO_SEG (-3 * 3600) // hora de Brasília na tela (o envio segue em UTC)
+#endif
+
 // ===== CONTRATO DO SENSOR =====
 struct Leitura {
   float nivel;        // m — obrigatório
@@ -219,12 +230,17 @@ bool wifiOk = false;
 bool ntpOk = false;
 bool displayOk = false;
 
+int ultimoCodigoHttp = 0;           // 0 = ainda não tentou; 204 = aceito; <0 = sem conexão
+unsigned long ultimoEnvioOkMs = 0;
+unsigned long ultimaReconexaoMs = 0;
+
 String bufferDados[BUFFER_MAX];
 int bufferCount = 0;
 
 // ===== FUNÇÃO: CONECTAR WIFI =====
 void conectarWiFi() {
   Serial.print("Conectando ao WiFi \"" WIFI_SSID "\"");
+  WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   unsigned long inicio = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - inicio < 15000) {
@@ -298,7 +314,10 @@ void despacharBuffer() {
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.printf("📡 WiFi offline — %d leitura(s) retidas no buffer\n", bufferCount);
-    WiFi.reconnect();
+    if (millis() - ultimaReconexaoMs >= INTERVALO_RECONEXAO) {
+      ultimaReconexaoMs = millis();
+      WiFi.reconnect();
+    }
     return;
   }
   if (!ntpOk) sincronizarNTP();  // tenta recuperar o relógio quando a rede volta
@@ -312,15 +331,19 @@ void despacharBuffer() {
 
   WiFiClientSecure client;
   client.setInsecure(); // simulação/protótipo; em produção use certificado CA
+  client.setHandshakeTimeout(5); // s — rede caída não pode parar a medição por muito tempo
 
   HTTPClient http;
   http.begin(client, SERVER_URL);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("X-Device-Key", DEVICE_KEY);
-  http.setTimeout(8000);
+  http.setConnectTimeout(3000);
+  http.setTimeout(5000);
 
   int code = http.POST(body);
+  ultimoCodigoHttp = code;
   if (code == 204) {
+    ultimoEnvioOkMs = millis();
     Serial.printf("📡 Servidor: %d leitura(s) enviadas (HTTP 204)\n", bufferCount);
     bufferCount = 0;  // sucesso — esvazia o buffer
   } else {
@@ -395,13 +418,39 @@ void mostrarSerial() {
   Serial.println();
 }
 
+// ===== FUNÇÃO: LINHA DE COMUNICAÇÃO DA TELA =====
+void linhaComunicacao(char* buf, size_t tam) {
+  if (WiFi.status() != WL_CONNECTED) {
+    snprintf(buf, tam, "SEM WI-FI  Fila %d %dmin", bufferCount, bufferCount * 10 / 60);
+  } else if (ultimoCodigoHttp < 0) {
+    snprintf(buf, tam, "SEM SERVIDOR  Fila %d", bufferCount);
+  } else if (ultimoCodigoHttp != 0 && ultimoCodigoHttp != 204) {
+    snprintf(buf, tam, "ERRO SERV %d  Fila %d", ultimoCodigoHttp, bufferCount);
+  } else if (ultimoCodigoHttp == 0) {
+    snprintf(buf, tam, "WiFi %lddBm  Aguardando", (long)WiFi.RSSI());
+  } else {
+    unsigned long idade = (millis() - ultimoEnvioOkMs) / 1000;
+    if (idade < 100) snprintf(buf, tam, "WiFi %lddBm  Envio OK %lus", (long)WiFi.RSSI(), idade);
+    else snprintf(buf, tam, "WiFi %lddBm  Envio OK %lum", (long)WiFi.RSSI(), idade / 60);
+  }
+}
+
 // ===== FUNÇÃO: MOSTRAR NA TELA =====
 void mostrarDisplay() {
   if (!displayOk) return;
 
   tela->limpar();
 
-  tela->escreverLinha(SLOT_TITULO, "AQUASENSE PIEZOMETRO");
+  char bufTitulo[32];
+  char hora[9] = "--:--:--";
+  if (ntpOk) {
+    time_t t = time(nullptr) + FUSO_HORARIO_SEG;
+    struct tm tmHora;
+    gmtime_r(&t, &tmHora);
+    strftime(hora, sizeof(hora), "%H:%M:%S", &tmHora);
+  }
+  snprintf(bufTitulo, sizeof(bufTitulo), "%-16s%s", PIEZOMETRO_ID " AQUASENSE", hora);
+  tela->escreverLinha(SLOT_TITULO, bufTitulo);
 
   char bufNivel[32];
   if (!temLeituraValida) snprintf(bufNivel, sizeof(bufNivel), "Nivel: ---");
@@ -409,6 +458,10 @@ void mostrarDisplay() {
   tela->escreverLinha(SLOT_NIVEL, bufNivel);
 
   linhasExtrasDisplay(*tela); // até 2 linhas específicas do sensor (SLOT_EXTRA_1/2)
+
+  char bufCom[32];
+  linhaComunicacao(bufCom, sizeof(bufCom));
+  tela->escreverLinha(SLOT_WIFI_STATUS, bufCom);
 
   const char* rotulo = "NORMAL";
   if (!leituraAtual.valida) rotulo = "FALHA SENSOR";
@@ -575,12 +628,12 @@ Leitura lerSensor() {
 // ===== HOOK: LINHAS EXTRAS NA TELA =====
 void linhasExtrasDisplay(Tela &t) {
   char l1[32];
-  if (distanciaCm < 0) snprintf(l1, sizeof(l1), "Dist: ---");
-  else snprintf(l1, sizeof(l1), "Dist: %.1fcm", distanciaCm);
+  if (distanciaCm < 0) snprintf(l1, sizeof(l1), "Sensor: sem eco");
+  else snprintf(l1, sizeof(l1), "Sensor: %.1f cm", distanciaCm);
   t.escreverLinha(SLOT_EXTRA_1, l1);
 
   char l2[32];
-  snprintf(l2, sizeof(l2), "DEMO %s", wifiOk ? "WiFi:OK" : "WiFi:--");
+  snprintf(l2, sizeof(l2), "Limites: %.0f / %.0f m", (float)NIVEL_ATENCAO, (float)NIVEL_CRITICO);
   t.escreverLinha(SLOT_EXTRA_2, l2);
 }
 

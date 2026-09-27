@@ -27,10 +27,8 @@
 #define SLOT_NIVEL        1  // "Nivel: X.XX m"
 #define SLOT_EXTRA_1      2  // 1ª linha específica do sensor (hook linhasExtrasDisplay)
 #define SLOT_EXTRA_2      3  // 2ª linha específica do sensor (hook linhasExtrasDisplay)
-#define SLOT_WIFI_STATUS  4  // reservado: status de conectividade isolado — hoje os
-                              // adapters de sensor embutem "WiFi:OK/--" dentro do
-                              // texto do SLOT_EXTRA_2; uma tela futura com mais
-                              // espaço (ex. ILI9341) pode usar este slot à parte.
+#define SLOT_WIFI_STATUS  4  // comunicação (Wi-Fi, último envio, fila), escrita pelo
+                              // core; telas pequenas podem ignorar este slot.
 
 // ===== FAIXAS DE ALERTA (para destacarStatus) =====
 // Mesma codificação de corAtual no core (0/1/2) — não inverter.

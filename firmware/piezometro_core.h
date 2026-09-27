@@ -59,6 +59,12 @@
 // ===== STORE & FORWARD =====
 #define BUFFER_MAX 120              // ~20 min de leituras retidas sem rede
 
+// ===== REDE E TELA =====
+#define INTERVALO_RECONEXAO 60000UL // o ESP32 já reconecta sozinho; só insiste a cada 1 min
+#ifndef FUSO_HORARIO_SEG
+#define FUSO_HORARIO_SEG (-3 * 3600) // hora de Brasília na tela (o envio segue em UTC)
+#endif
+
 // ===== CONTRATO DO SENSOR =====
 // Uma leitura do instrumento. O nível (m) é obrigatório; pressão e
 // temperatura são opcionais — o JSON enviado ao backend só inclui os campos
@@ -107,12 +113,19 @@ bool ntpOk = false;
 // pode derrubar a medição — degrada (segue sem tela), nunca trava o setup.
 bool displayOk = false;
 
+// Resultado do último envio, para a tela dizer se o dado chega ao servidor
+// (Wi-Fi conectado não garante isso: chave errada ou servidor fora do ar).
+int ultimoCodigoHttp = 0;           // 0 = ainda não tentou; 204 = aceito; <0 = sem conexão
+unsigned long ultimoEnvioOkMs = 0;
+unsigned long ultimaReconexaoMs = 0;
+
 String bufferDados[BUFFER_MAX];
 int bufferCount = 0;
 
 // ===== FUNÇÃO: CONECTAR WIFI =====
 void conectarWiFi() {
   Serial.print("Conectando ao WiFi \"" WIFI_SSID "\"");
+  WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   unsigned long inicio = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - inicio < 15000) {
@@ -195,7 +208,11 @@ void despacharBuffer() {
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.printf("📡 WiFi offline — %d leitura(s) retidas no buffer\n", bufferCount);
-    WiFi.reconnect();
+    // Forçar a cada 10 s interrompia a reconexão automática em andamento.
+    if (millis() - ultimaReconexaoMs >= INTERVALO_RECONEXAO) {
+      ultimaReconexaoMs = millis();
+      WiFi.reconnect();
+    }
     return;
   }
   if (!ntpOk) sincronizarNTP();  // tenta recuperar o relógio quando a rede volta
@@ -210,15 +227,19 @@ void despacharBuffer() {
 
   WiFiClientSecure client;
   client.setInsecure(); // simulação/protótipo; em produção use certificado CA
+  client.setHandshakeTimeout(5); // s — rede caída não pode parar a medição por muito tempo
 
   HTTPClient http;
   http.begin(client, SERVER_URL);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("X-Device-Key", DEVICE_KEY);
-  http.setTimeout(8000);
+  http.setConnectTimeout(3000);
+  http.setTimeout(5000);
 
   int code = http.POST(body);
+  ultimoCodigoHttp = code;
   if (code == 204) {
+    ultimoEnvioOkMs = millis();
     Serial.printf("📡 Servidor: %d leitura(s) enviadas (HTTP 204)\n", bufferCount);
     bufferCount = 0;  // sucesso — esvazia o buffer
   } else {
@@ -294,6 +315,25 @@ void mostrarSerial() {
   Serial.println();
 }
 
+// ===== FUNÇÃO: LINHA DE COMUNICAÇÃO DA TELA =====
+// O que o técnico precisa saber em campo: o dado está chegando ao servidor?
+// Máx. 25 caracteres (largura da linha no TFT).
+void linhaComunicacao(char* buf, size_t tam) {
+  if (WiFi.status() != WL_CONNECTED) {
+    snprintf(buf, tam, "SEM WI-FI  Fila %d %dmin", bufferCount, bufferCount * 10 / 60);
+  } else if (ultimoCodigoHttp < 0) {
+    snprintf(buf, tam, "SEM SERVIDOR  Fila %d", bufferCount);
+  } else if (ultimoCodigoHttp != 0 && ultimoCodigoHttp != 204) {
+    snprintf(buf, tam, "ERRO SERV %d  Fila %d", ultimoCodigoHttp, bufferCount);
+  } else if (ultimoCodigoHttp == 0) {
+    snprintf(buf, tam, "WiFi %lddBm  Aguardando", (long)WiFi.RSSI());
+  } else {
+    unsigned long idade = (millis() - ultimoEnvioOkMs) / 1000;
+    if (idade < 100) snprintf(buf, tam, "WiFi %lddBm  Envio OK %lus", (long)WiFi.RSSI(), idade);
+    else snprintf(buf, tam, "WiFi %lddBm  Envio OK %lum", (long)WiFi.RSSI(), idade / 60);
+  }
+}
+
 // ===== FUNÇÃO: MOSTRAR NA TELA =====
 // Componente SECUNDÁRIO: se a tela falhou no boot (displayOk == false), não
 // faz nada — medição, alertas e telemetria seguem intactos. Fala só com a
@@ -303,7 +343,17 @@ void mostrarDisplay() {
 
   tela->limpar();
 
-  tela->escreverLinha(SLOT_TITULO, "AQUASENSE PIEZOMETRO");
+  // Instrumento + hora local; sem NTP, a hora fica em traços para não enganar.
+  char bufTitulo[32];
+  char hora[9] = "--:--:--";
+  if (ntpOk) {
+    time_t t = time(nullptr) + FUSO_HORARIO_SEG;
+    struct tm tmHora;
+    gmtime_r(&t, &tmHora);
+    strftime(hora, sizeof(hora), "%H:%M:%S", &tmHora);
+  }
+  snprintf(bufTitulo, sizeof(bufTitulo), "%-16s%s", PIEZOMETRO_ID " AQUASENSE", hora);
+  tela->escreverLinha(SLOT_TITULO, bufTitulo);
 
   char bufNivel[32];
   if (!temLeituraValida) snprintf(bufNivel, sizeof(bufNivel), "Nivel: ---");
@@ -311,6 +361,10 @@ void mostrarDisplay() {
   tela->escreverLinha(SLOT_NIVEL, bufNivel);
 
   linhasExtrasDisplay(*tela); // até 2 linhas específicas do sensor (SLOT_EXTRA_1/2)
+
+  char bufCom[32];
+  linhaComunicacao(bufCom, sizeof(bufCom));
+  tela->escreverLinha(SLOT_WIFI_STATUS, bufCom);
 
   // Rótulo de status SEMPRE visível. O "pisca" original amostrava a paridade
   // de millis()/500, mas o display só atualiza a cada 1 s (múltiplo exato de

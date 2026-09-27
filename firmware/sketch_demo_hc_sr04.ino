@@ -105,12 +105,12 @@ Leitura lerSensor() {
 // ===== HOOK: LINHAS EXTRAS NA TELA =====
 void linhasExtrasDisplay(Tela &t) {
   char l1[32];
-  if (distanciaCm < 0) snprintf(l1, sizeof(l1), "Dist: ---");
-  else snprintf(l1, sizeof(l1), "Dist: %.1fcm", distanciaCm);
+  if (distanciaCm < 0) snprintf(l1, sizeof(l1), "Sensor: sem eco");
+  else snprintf(l1, sizeof(l1), "Sensor: %.1f cm", distanciaCm);
   t.escreverLinha(SLOT_EXTRA_1, l1);
 
   char l2[32];
-  snprintf(l2, sizeof(l2), "DEMO %s", wifiOk ? "WiFi:OK" : "WiFi:--");
+  snprintf(l2, sizeof(l2), "Limites: %.0f / %.0f m", (float)NIVEL_ATENCAO, (float)NIVEL_CRITICO);
   t.escreverLinha(SLOT_EXTRA_2, l2);
 }
 
