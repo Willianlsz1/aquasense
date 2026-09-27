@@ -57,3 +57,14 @@ vermelho), com Wi-Fi OK e valores coerentes com a escala didática. O endpoint
 a tela mostrou FALHA SENSOR (roxo), "Dist: ---" e o último nível identificado como
 "Ultimo", sem apresentá-lo como medição atual. Isso confirma tela, faixas e envio;
 não valida precisão, que será ensaiada com o reservatório de acrílico.
+
+## Validação do certificado HTTPS (27/09/2026)
+
+`setInsecure()` foi trocado por `setCACert()` com as raízes ISRG Root X1/X2
+(Let's Encrypt) e GTS Root R1–R4 (Google Trust Services), da lista da Mozilla
+(certifi 2026.02.25), no núcleo e no modo deep sleep. Antes da troca, uma conexão
+TLS 1.3 ao Worker publicado foi validada no computador apenas com essas raízes
+(emissor atual: Let's Encrypt YE1). O sketch compilou (83% do programa). Falta
+confirmar o envio HTTP 204 na placa. A validação depende do relógio via NTP; se a
+Cloudflare passar a usar outro emissor fora da lista, o envio falha e as leituras
+ficam retidas no buffer até a lista ser atualizada.

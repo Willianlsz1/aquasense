@@ -181,7 +181,7 @@ int despacharBufferRtc() {
   offset += snprintf(body + offset, sizeof(body) - offset, "]}");
 
   WiFiClientSecure client;
-  client.setInsecure(); // simulação/protótipo; em produção use certificado CA
+  client.setCACert(CA_RAIZES);  // raízes definidas em piezometro_core.h
 
   HTTPClient http;
   http.begin(client, SERVER_URL);
