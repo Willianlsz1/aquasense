@@ -64,7 +64,10 @@ não valida precisão, que será ensaiada com o reservatório de acrílico.
 (Let's Encrypt) e GTS Root R1–R4 (Google Trust Services), da lista da Mozilla
 (certifi 2026.02.25), no núcleo e no modo deep sleep. Antes da troca, uma conexão
 TLS 1.3 ao Worker publicado foi validada no computador apenas com essas raízes
-(emissor atual: Let's Encrypt YE1). O sketch compilou (83% do programa). Falta
-confirmar o envio HTTP 204 na placa. A validação depende do relógio via NTP; se a
+(emissor atual: Let's Encrypt YE1). O sketch compilou (83% do programa). Gravado na placa às
+14:31: das 14:32 às 14:34 o `/ultimos` recebeu leituras a cada 10 s, chegando 2–3 s
+após a medição (antes, 0–1 s — o custo da validação no handshake). A tela nova
+mostrou "PZ-01 AQUASENSE 14:32:14", "Sensor: 30.2 cm", "Limites: 12 / 15 m" e
+"WiFi -35dBm  Envio OK 2s". A validação depende do relógio via NTP; se a
 Cloudflare passar a usar outro emissor fora da lista, o envio falha e as leituras
 ficam retidas no buffer até a lista ser atualizada.
