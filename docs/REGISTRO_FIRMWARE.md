@@ -53,5 +53,7 @@ desligada no início da tela.
 Conferência em bancada pelo responsável, por fotos: a tela mostrou NORMAL (21,1 cm,
 9,44 m, verde), ATENÇÃO (15,6 cm, 12,19 m, amarelo) e CRÍTICO! (7,3 cm, 16,34 m,
 vermelho), com Wi-Fi OK e valores coerentes com a escala didática. O endpoint
-`/ultimos` recebeu leituras novas a cada ~10 s no mesmo dia. A faixa FALHA SENSOR
-(roxa) não foi fotografada. Isso confirma tela, faixas e envio; não valida precisão.
+`/ultimos` recebeu leituras novas a cada ~10 s no mesmo dia. Com o ECHO desconectado,
+a tela mostrou FALHA SENSOR (roxo), "Dist: ---" e o último nível identificado como
+"Ultimo", sem apresentá-lo como medição atual. Isso confirma tela, faixas e envio;
+não valida precisão, que será ensaiada com o reservatório de acrílico.
