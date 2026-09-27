@@ -47,7 +47,7 @@ medição de poropressão. Os limites de 12 m e 15 m são de demonstração.
 Estar publicado não garante disponibilidade contínua; a cota diária do D1 já
 bloqueou consultas uma vez.
 
-Detalhes, evidências e limites: [guia mestre](docs/GUIA_MESTRE.md).
+Detalhes, evidências e limites: [guia mestre](docs/GUIA_MESTRE.md). Mercado: [validação de mercado](docs/VALIDACAO_MERCADO.md).
 
 ## Comece aqui
 
