@@ -41,3 +41,17 @@ O protótipo não usa LEDs nem buzzer. As rotinas foram retiradas do núcleo com
 sketch de uma aba foi gerado de novo. Os três firmwares (uma aba, modular e UCT)
 compilaram para `esp32:esp32:esp32` (core 3.3.11); o de uma aba usa 1.062.936 bytes
 de programa (81%). A nova versão ainda não foi gravada na placa.
+
+## Troca do OLED pelo TFT ST7789 (27/09/2026)
+
+O OLED foi substituído por um TFT SPI ST7789 240×320 de 7 pinos, em HSPI:
+SCK 14, SDA 13, CS 25, DC 27, RST 26, VCC 3V3. O HC-SR04 continuou em 5/18.
+O sketch compilou para `esp32:esp32:esp32` (81% do programa) e a suíte local
+passou 49/49. A primeira gravação exibiu cores invertidas; a inversão foi
+desligada no início da tela.
+
+Conferência em bancada pelo responsável, por fotos: a tela mostrou NORMAL (21,1 cm,
+9,44 m, verde), ATENÇÃO (15,6 cm, 12,19 m, amarelo) e CRÍTICO! (7,3 cm, 16,34 m,
+vermelho), com Wi-Fi OK e valores coerentes com a escala didática. O endpoint
+`/ultimos` recebeu leituras novas a cada ~10 s no mesmo dia. A faixa FALHA SENSOR
+(roxa) não foi fotografada. Isso confirma tela, faixas e envio; não valida precisão.
