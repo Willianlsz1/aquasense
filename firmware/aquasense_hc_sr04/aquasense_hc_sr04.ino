@@ -170,14 +170,8 @@ class TelaSSD1306 : public Tela {
 #include <time.h>
 #include <math.h>
 
-// ===== PINOS COMUNS (LEDs/buzzer — iguais nos dois firmwares) =====
-#define LED_VERDE    32
-#define LED_AMARELO  33
-#define LED_VERMELHO 25
-#define BUZZER       26
-
 // ===== INTERVALOS (ms) =====
-#define INTERVALO_LEITURA 1000UL    // leitura local + LEDs + display
+#define INTERVALO_LEITURA 1000UL    // leitura local + display
 #define INTERVALO_ENVIO   10000UL   // envio ao backend (Cloudflare Worker)
 #define INTERVALO_NTP     300000UL  // 5 min — re-sincroniza o relógio periodicamente:
 
@@ -211,11 +205,9 @@ String nivelAlerta = "FALHA SENSOR";
 int corAtual = 3; // 0=Verde, 1=Amarelo, 2=Vermelho, 3=Falha
 bool temLeituraValida = false;
 
-unsigned long ultimoBuzzer  = 0;
 unsigned long ultimaLeitura = 0;
 unsigned long ultimoEnvio   = 0;
 unsigned long ultimoNtp     = 0;
-bool estadoBuzzer = false;
 bool wifiOk = false;
 bool ntpOk = false;
 bool displayOk = false;
@@ -354,58 +346,6 @@ void determinarAlerta() {
   }
 }
 
-// ===== FUNÇÃO: ATUALIZAR LEDS =====
-void atualizarLEDs() {
-  digitalWrite(LED_VERDE, LOW);
-  digitalWrite(LED_AMARELO, LOW);
-  digitalWrite(LED_VERMELHO, LOW);
-
-  if (corAtual == 3) {
-    static bool estadoFalha = false;
-    estadoFalha = !estadoFalha;
-    digitalWrite(LED_AMARELO, estadoFalha); // falha: amarelo piscando
-  }
-  else if (corAtual == 0) {
-    digitalWrite(LED_VERDE, HIGH);          // NORMAL — verde fixo
-  }
-  else if (corAtual == 1) {
-    digitalWrite(LED_AMARELO, HIGH);        // ATENÇÃO — amarelo fixo
-  }
-  else {
-    static bool estadoVermelho = false;
-    estadoVermelho = !estadoVermelho;
-    digitalWrite(LED_VERMELHO, estadoVermelho);
-  }
-}
-
-// ===== FUNÇÃO: ATUALIZAR BUZZER (não bloqueante) =====
-void atualizarBuzzer() {
-  unsigned long agora = millis();
-
-  if (corAtual == 0) {
-    digitalWrite(BUZZER, LOW);
-    estadoBuzzer = false;
-  }
-  else if (corAtual == 1 || corAtual == 3) {
-    if (!estadoBuzzer && agora - ultimoBuzzer >= 2000) {
-      digitalWrite(BUZZER, HIGH);
-      estadoBuzzer = true;
-      ultimoBuzzer = agora;
-    }
-    else if (estadoBuzzer && agora - ultimoBuzzer >= 100) {
-      digitalWrite(BUZZER, LOW);
-      estadoBuzzer = false;
-    }
-  }
-  else {
-    if (agora - ultimoBuzzer >= 500) {
-      estadoBuzzer = !estadoBuzzer;
-      digitalWrite(BUZZER, estadoBuzzer);
-      ultimoBuzzer = agora;
-    }
-  }
-}
-
 // ===== FUNÇÃO: MOSTRAR NO SERIAL =====
 void mostrarSerial() {
   Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -480,42 +420,6 @@ void mostrarTelaInicio() {
   delay(2000);
 }
 
-// ===== FUNÇÃO: TESTAR LEDS =====
-void testarLEDs() {
-  digitalWrite(LED_VERDE, HIGH);
-  delay(300);
-  digitalWrite(LED_VERDE, LOW);
-
-  digitalWrite(LED_AMARELO, HIGH);
-  delay(300);
-  digitalWrite(LED_AMARELO, LOW);
-
-  digitalWrite(LED_VERMELHO, HIGH);
-  delay(300);
-  digitalWrite(LED_VERMELHO, LOW);
-
-  digitalWrite(LED_VERDE, HIGH);
-  digitalWrite(LED_AMARELO, HIGH);
-  digitalWrite(LED_VERMELHO, HIGH);
-  delay(300);
-  digitalWrite(LED_VERDE, LOW);
-  digitalWrite(LED_AMARELO, LOW);
-  digitalWrite(LED_VERMELHO, LOW);
-
-  Serial.println("✅ LEDs OK!");
-}
-
-// ===== FUNÇÃO: TESTAR BUZZER =====
-void testarBuzzer() {
-  for (int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER, HIGH);
-    delay(100);
-    digitalWrite(BUZZER, LOW);
-    delay(100);
-  }
-  Serial.println("✅ Buzzer OK!");
-}
-
 // ===== SETUP COMUM =====
 void coreSetup() {
   Serial.begin(115200); // idempotente — initSensor() pode já ter iniciado o Serial
@@ -527,17 +431,6 @@ void coreSetup() {
   Serial.println("  Instrumento: " PIEZOMETRO_ID);
   Serial.println("===========================================");
   Serial.println();
-
-  pinMode(LED_VERDE, OUTPUT);
-  pinMode(LED_AMARELO, OUTPUT);
-  pinMode(LED_VERMELHO, OUTPUT);
-  pinMode(BUZZER, OUTPUT);
-
-  Serial.println("Testando LEDs...");
-  testarLEDs();
-
-  Serial.println("Testando buzzer...");
-  testarBuzzer();
 
   Wire.begin(21, 22); // barramento I2C da tela (compartilhado com o BMP180, quando houver)
 
@@ -562,7 +455,6 @@ void coreSetup() {
   Serial.println();
 
   determinarAlerta();
-  atualizarLEDs();
   mostrarDisplay();
 }
 
@@ -574,7 +466,6 @@ void coreLoop() {
     ultimaLeitura = agora;
     leituraAtual = lerSensor();
     determinarAlerta();
-    atualizarLEDs();
     mostrarSerial();
     mostrarDisplay();
   }
@@ -589,8 +480,6 @@ void coreLoop() {
     ultimoNtp = agora;
     sincronizarNTP();
   }
-
-  atualizarBuzzer();
 }
 
 // ===== MACRO: SETUP()/LOOP() PADRÃO (modo sempre-ligado) =====

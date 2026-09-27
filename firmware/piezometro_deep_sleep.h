@@ -17,10 +17,10 @@
  * <1 Wh/dia) porque o Wi-Fi só liga durante os poucos segundos do ciclo ativo.
  *
  * QUANDO **NÃO** USAR: na maquete/demonstração da banca. Sem este modo, o
- * ESP32 fica sempre acordado — é o que permite ver o LED mudando de cor, o
- * buzzer apitando e o OLED atualizando ao vivo enquanto a banca observa. Em
+ * ESP32 fica sempre acordado — é o que permite ver o OLED e o painel
+ * atualizando ao vivo enquanto a banca observa. Em
  * deep sleep o dispositivo passa a maior parte do tempo completamente
- * desligado (LEDs apagados, OLED apagado) — ótimo para bateria, péssimo para
+ * desligado (OLED apagado) — ótimo para bateria, péssimo para
  * demonstração ao vivo. Por isso o modo padrão dos sketches continua sendo o
  * de sempre-ligado (coreSetup()/coreLoop()); este header é OPT-IN.
  *

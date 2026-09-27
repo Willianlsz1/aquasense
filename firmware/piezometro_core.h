@@ -5,7 +5,7 @@
  *
  * Este arquivo concentra tudo que é IGUAL entre os firmwares
  * (sketch_demo_hc_sr04.ino da bancada e sketch_uct_4a20ma.ino da UCT): WiFi, NTP, store & forward, envio HTTP ao
- * /ingest, classificação de nível, LEDs, buzzer e tela. O que muda de um
+ * /ingest, classificação de nível e tela. O que muda de um
  * sensor para o outro (como medir o nível) fica no próprio .ino, que
  * implementa um "adapter" de sensor definido pelo contrato abaixo. O que
  * muda de um HARDWARE DE TELA para o outro (hoje só o OLED SSD1306) fica em
@@ -45,16 +45,10 @@
 #include "tela.h"
 #include "tela_ssd1306.h"
 
-// ===== PINOS COMUNS (LEDs/buzzer — iguais nos dois firmwares) =====
-#define LED_VERDE    32
-#define LED_AMARELO  33
-#define LED_VERMELHO 25
-#define BUZZER       26
-
 // ===== INTERVALOS (ms) =====
 // Modo de campo a bateria/solar (duty cycling, sem ficar sempre ligado):
 // ver piezometro_deep_sleep.h — opcional, não afeta os intervalos abaixo.
-#define INTERVALO_LEITURA 1000UL    // leitura local + LEDs + display
+#define INTERVALO_LEITURA 1000UL    // leitura local + display
 #define INTERVALO_ENVIO   10000UL   // envio ao backend (Cloudflare Worker)
 #define INTERVALO_NTP     300000UL  // 5 min — re-sincroniza o relógio periodicamente:
                                      // no Wokwi o clock simulado deriva (fica atrasado)
@@ -103,11 +97,9 @@ String nivelAlerta = "FALHA SENSOR";
 int corAtual = 3; // 0=Verde, 1=Amarelo, 2=Vermelho, 3=Falha
 bool temLeituraValida = false;
 
-unsigned long ultimoBuzzer  = 0;
 unsigned long ultimaLeitura = 0;
 unsigned long ultimoEnvio   = 0;
 unsigned long ultimoNtp     = 0;
-bool estadoBuzzer = false;
 bool wifiOk = false;
 bool ntpOk = false;
 // Instrumento de SEGURANÇA: falha de um componente secundário (tela) não
@@ -259,63 +251,6 @@ void determinarAlerta() {
   }
 }
 
-// ===== FUNÇÃO: ATUALIZAR LEDS =====
-void atualizarLEDs() {
-  digitalWrite(LED_VERDE, LOW);
-  digitalWrite(LED_AMARELO, LOW);
-  digitalWrite(LED_VERMELHO, LOW);
-
-  if (corAtual == 3) {
-    static bool estadoFalha = false;
-    estadoFalha = !estadoFalha;
-    digitalWrite(LED_AMARELO, estadoFalha); // falha: amarelo piscando
-  }
-  else if (corAtual == 0) {
-    digitalWrite(LED_VERDE, HIGH);          // NORMAL — verde fixo
-  }
-  else if (corAtual == 1) {
-    digitalWrite(LED_AMARELO, HIGH);        // ATENÇÃO — amarelo fixo
-  }
-  else {
-    // CRÍTICO — vermelho piscando (alterna a cada ciclo de 1 s)
-    static bool estadoVermelho = false;
-    estadoVermelho = !estadoVermelho;
-    digitalWrite(LED_VERMELHO, estadoVermelho);
-  }
-}
-
-// ===== FUNÇÃO: ATUALIZAR BUZZER (não bloqueante) =====
-// Obs.: digitalWrite funciona com o buzzer do Wokwi e buzzers ativos.
-// Em buzzer passivo real, troque por tone(BUZZER, 2000) / noTone(BUZZER).
-void atualizarBuzzer() {
-  unsigned long agora = millis();
-
-  if (corAtual == 0) {
-    digitalWrite(BUZZER, LOW);
-    estadoBuzzer = false;
-  }
-  else if (corAtual == 1 || corAtual == 3) {
-    // ATENÇÃO/FALHA — beep curto (100 ms) a cada 2 segundos, sem delay()
-    if (!estadoBuzzer && agora - ultimoBuzzer >= 2000) {
-      digitalWrite(BUZZER, HIGH);
-      estadoBuzzer = true;
-      ultimoBuzzer = agora;
-    }
-    else if (estadoBuzzer && agora - ultimoBuzzer >= 100) {
-      digitalWrite(BUZZER, LOW);
-      estadoBuzzer = false;
-    }
-  }
-  else {
-    // CRÍTICO — alterna a cada 500 ms
-    if (agora - ultimoBuzzer >= 500) {
-      estadoBuzzer = !estadoBuzzer;
-      digitalWrite(BUZZER, estadoBuzzer);
-      ultimoBuzzer = agora;
-    }
-  }
-}
-
 // ===== FUNÇÃO: MOSTRAR NO SERIAL =====
 void mostrarSerial() {
   Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -381,8 +316,7 @@ void mostrarDisplay() {
   // 500 ms): a paridade caía sempre no mesmo lado do boot em diante, e o
   // rótulo podia ficar PRESO na fase apagada — ATENCAO/CRITICO sumiam do
   // OLED (visto em bancada em 17/07). Num instrumento de segurança o status
-  // precisa ser legível a qualquer momento; a urgência visual/sonora já é
-  // dos LEDs (piscam) e do buzzer.
+  // precisa ser legível a qualquer momento.
   const char* rotulo = "NORMAL";
   if (!leituraAtual.valida) rotulo = "FALHA SENSOR";
   else if (nivelAlerta == "ATENCAO") rotulo = "ATENCAO";
@@ -403,42 +337,6 @@ void mostrarTelaInicio() {
   delay(2000);
 }
 
-// ===== FUNÇÃO: TESTAR LEDS =====
-void testarLEDs() {
-  digitalWrite(LED_VERDE, HIGH);
-  delay(300);
-  digitalWrite(LED_VERDE, LOW);
-
-  digitalWrite(LED_AMARELO, HIGH);
-  delay(300);
-  digitalWrite(LED_AMARELO, LOW);
-
-  digitalWrite(LED_VERMELHO, HIGH);
-  delay(300);
-  digitalWrite(LED_VERMELHO, LOW);
-
-  digitalWrite(LED_VERDE, HIGH);
-  digitalWrite(LED_AMARELO, HIGH);
-  digitalWrite(LED_VERMELHO, HIGH);
-  delay(300);
-  digitalWrite(LED_VERDE, LOW);
-  digitalWrite(LED_AMARELO, LOW);
-  digitalWrite(LED_VERMELHO, LOW);
-
-  Serial.println("✅ LEDs OK!");
-}
-
-// ===== FUNÇÃO: TESTAR BUZZER =====
-void testarBuzzer() {
-  for (int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER, HIGH);
-    delay(100);
-    digitalWrite(BUZZER, LOW);
-    delay(100);
-  }
-  Serial.println("✅ Buzzer OK!");
-}
-
 // ===== SETUP COMUM =====
 // Chamado pelo .ino DEPOIS de initSensor(): void setup(){ initSensor(); coreSetup(); }
 // (ou, na prática, via macro PIEZOMETRO_MAIN() — ver mais abaixo.)
@@ -453,24 +351,12 @@ void coreSetup() {
   Serial.println("===========================================");
   Serial.println();
 
-  pinMode(LED_VERDE, OUTPUT);
-  pinMode(LED_AMARELO, OUTPUT);
-  pinMode(LED_VERMELHO, OUTPUT);
-  pinMode(BUZZER, OUTPUT);
-
-  Serial.println("Testando LEDs...");
-  testarLEDs();
-
-  Serial.println("Testando buzzer...");
-  testarBuzzer();
-
   Wire.begin(21, 22); // barramento I2C da tela (compartilhado com o BMP180, quando houver)
 
   Serial.print("Inicializando OLED... ");
   // Instrumento de SEGURANÇA: a tela é um componente SECUNDÁRIO — sua
   // falha não pode travar o setup e derrubar leitura/alertas/telemetria.
-  // Antes entrava em while(1) piscando o LED amarelo; agora só registra o
-  // problema e segue em modo degradado (sem tela).
+  // Só registra o problema e segue em modo degradado (sem tela).
   displayOk = tela->iniciar();
   if (!displayOk) {
     Serial.println("ERRO!");
@@ -491,7 +377,6 @@ void coreSetup() {
   Serial.println();
 
   determinarAlerta();
-  atualizarLEDs();
   mostrarDisplay();
 }
 
@@ -505,7 +390,6 @@ void coreLoop() {
     ultimaLeitura = agora;
     leituraAtual = lerSensor();
     determinarAlerta();
-    atualizarLEDs();
     mostrarSerial();
     mostrarDisplay();
   }
@@ -524,9 +408,6 @@ void coreLoop() {
     ultimoNtp = agora;
     sincronizarNTP();
   }
-
-  // Buzzer roda a cada passagem para não perder o timing dos beeps
-  atualizarBuzzer();
 }
 
 // ===== MACRO: SETUP()/LOOP() PADRÃO (modo sempre-ligado) =====

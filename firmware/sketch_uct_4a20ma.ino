@@ -1,8 +1,8 @@
 /*
  * ============================================================================
  * AQUASENSE — MONITORAMENTO ONLINE DO NÍVEL DE ÁGUA EM PIEZÔMETROS
- * ESP32 + UCT (transdutor piezométrico 4-20 mA + ADS1115) + OLED + LEDS +
- * BUZZER + SERVIDOR (JSON) + STORE&FORWARD — FIRMWARE DA UCT INDUSTRIAL
+ * ESP32 + UCT (transdutor piezométrico 4-20 mA + ADS1115) + OLED +
+ * SERVIDOR (JSON) + STORE&FORWARD — FIRMWARE DA UCT INDUSTRIAL
  * ============================================================================
  *
  * ⚠️ ESTE ARQUIVO É O ADAPTER DA UCT (Unidade de Controle e Telemetria)
@@ -41,7 +41,7 @@
  * ENVIO / STORE & FORWARD / ALERTAS / IDENTIFICAÇÃO: ver piezometro_core.h —
  * este .ino só implementa a parte específica do sensor (leitura do ADS1115 +
  * conversão corrente/tensão → metros); todo o resto (WiFi, NTP, buffer,
- * envio HTTP, LEDs, buzzer, OLED) é do núcleo comum, compartilhado com os
+ * envio HTTP, OLED) é do núcleo comum, compartilhado com os
  * outros dois firmwares. O JSON aqui só carrega "nivel_agua" (+ "ts" quando o
  * NTP sincronizou) — sem pressão/temperatura, pois este transdutor reporta
  * só o nível (a leitura de pressão bruta já é convertida em metros aqui
