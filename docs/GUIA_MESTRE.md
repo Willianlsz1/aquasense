@@ -10,12 +10,13 @@ que já foi comprovado do que é especificação ou plano.
 |---|---|---|
 | Protótipo V1 — bancada (seção 4.1.1) | Montado e validado em 12/09/2026 | `firmware/aquasense_hc_sr04/`, [validação](VALIDACAO_BANCADA_2026-09-12.md) |
 | Protótipo V2 — tubo de acrílico (seção 4.1.2) | Planejado; peças cotadas | [roteiro de ensaios](ENSAIOS_V2.md) |
-| UCT comercial (seções 4.2 a 4.5) | Especificação; não montada | `firmware/sketch_uct_4a20ma.ino`, `firmware/piezometro_deep_sleep.h` (referência, sem ensaio) |
+| UCT comercial (seções 4.2 a 4.5) | Especificação; não montada | `firmware/referencia_uct/` (referência, sem ensaio) |
 | Software e nuvem (seção 4.6) | Publicado e com testes locais | `cloudflare-worker/`, `index.html`, `relatorio.html`, `assets/` |
 | Manual, manutenção, mercado e finanças (seções 5 a 10) | Somente no texto do TCC | — |
 
-Os protótipos e a UCT compartilham o núcleo do firmware (`piezometro_core.h`),
-o servidor e o painel. Mudam o sensor, a comunicação, a energia e a proteção.
+Os protótipos e a UCT compartilham a lógica do firmware (fila, envio, faixas),
+o servidor e o painel. O protótipo usa um sketch único; a UCT, os fontes em
+`firmware/referencia_uct/`. Mudam o sensor, a comunicação, a energia e a proteção.
 
 ## Medição e escala do V1
 

@@ -18,7 +18,7 @@ const publicAndFirmwareFiles = [
   "docs/GUIA_MESTRE.md",
   "index.html",
   "firmware/aquasense_hc_sr04/aquasense_hc_sr04.ino",
-  "firmware/sketch_uct_4a20ma.ino",
+  "firmware/referencia_uct/sketch_uct_4a20ma.ino",
 ];
 
 const externalChannelIdentifiers = [

@@ -1,7 +1,7 @@
 node_modules/
 .worktrees/
 .env
-firmware/piezometro_config_local.h
+firmware/referencia_uct/piezometro_config_local.h
 
 # documentacao interna (mantida local, fora do repositorio publico)
 /CLAUDE.md

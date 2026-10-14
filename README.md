@@ -102,7 +102,7 @@ npm test
 | `index.html`, `relatorio.html`, `assets/` | Painel web e relatório PDF (GitHub Pages) |
 | `cloudflare-worker/` | API, motor de alertas, esquema e migrações do banco ([README](cloudflare-worker/README.md)) |
 | `firmware/` | Firmware do protótipo e da UCT ([mapa dos arquivos](firmware/README.md)) |
-| `tests/`, `tools/` | Testes automatizados e gerador do firmware de uma aba |
+| `tests/` | Testes automatizados |
 | `docs/` | Guia mestre, validação de bancada, ensaios do V2, critérios da interface e imagens |
 
 ## Manutenção
