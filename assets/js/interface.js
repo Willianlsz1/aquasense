@@ -2,11 +2,6 @@
 // Resumo da rede (frase e indicadores do topo), balão do gráfico de nível e
 // destaque do menu lateral. Só lê o estado existente; não altera dados nem alarmes.
 
-function saudacao(data = new Date()) {
-  const h = data.getHours();
-  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
-}
-
 // Botões de troca rápida de instrumento, com a condição de cada um.
 function atualizarSeletorPz(mapa, confirmado) {
   const seletor = document.getElementById("pz-seletor");
@@ -28,7 +23,6 @@ function atualizarSeletorPz(mapa, confirmado) {
 function atualizarResumoRede(mapa) {
   const frase = document.getElementById("resumo-rede");
   const titulo = document.getElementById("saudacao");
-  if (titulo) titulo.textContent = `${saudacao()}. Esta é a situação da rede.`;
   if (!frase) return;
   const definir = (id, valor, sub, classe = "") => {
     const v = document.getElementById(id), s = document.getElementById(id + "-sub");
@@ -39,8 +33,11 @@ function atualizarResumoRede(mapa) {
   const semResposta = typeof failCount !== "undefined" && failCount > 0 && !Object.keys(mapa || {}).length;
   atualizarSeletorPz(mapa || {}, !semResposta);
   if (semResposta) {
+    if (titulo) titulo.textContent = "Situação não confirmada";
     frase.textContent = "Não foi possível consultar a API. A situação atual dos instrumentos não está confirmada.";
-    ["kpi-alerta", "kpi-semsinal", "kpi-recepcao"].forEach(id => definir(id, "–", "não confirmado", "of"));
+    ["kpi-comunicando", "kpi-alerta", "kpi-semsinal", "kpi-recepcao"].forEach(id => definir(id, "–", "não confirmado", "of"));
+    if (typeof definirIconeResumo === "function") definirIconeResumo("of");
+    if (typeof atualizarContadorNav === "function") atualizarContadorNav(0, false);
     return;
   }
 
@@ -73,6 +70,16 @@ function atualizarResumoRede(mapa) {
   const prefixo = typeof fonte !== "undefined" && fonte.simulada ? "<b>Simulação:</b> " : "";
   frase.innerHTML = `${prefixo}<span class="n">1</span>${alerta}; ${sinal}.${recepcao}`;
 
+  // Título curto que responde "está tudo bem?" antes da frase detalhada.
+  let tituloTxt, tipo;
+  if (critico.length) { tituloTxt = critico.length === 1 ? `${critico[0]} em nível crítico` : `${critico.length} instrumentos em nível crítico`; tipo = "cr"; }
+  else if (atencao.length || semSinal.length) { tituloTxt = semSinal.length === total ? "Nenhum instrumento comunicando" : "A rede pede atenção"; tipo = semSinal.length === total ? "of" : "wr"; }
+  else { tituloTxt = "Rede sob controle"; tipo = "ok"; }
+  if (titulo) titulo.textContent = tituloTxt;
+  if (typeof definirIconeResumo === "function") definirIconeResumo(tipo);
+  if (typeof atualizarContadorNav === "function") atualizarContadorNav(emAlerta + semSinal.length, critico.length > 0);
+
+  definir("kpi-comunicando", String(total - semSinal.length), `de ${plural(total, "instrumento", "instrumentos")}`, semSinal.length ? "of" : "ok");
   definir("kpi-alerta", String(emAlerta), emAlerta ? [...critico, ...atencao].join(", ") : "nenhum", critico.length ? "cr" : emAlerta ? "wr" : "");
   definir("kpi-semsinal", String(semSinal.length), `de ${plural(total, "instrumento", "instrumentos")}`, semSinal.length ? "of" : "ok");
   definir("kpi-recepcao", ultima ? formatUltimaLeitura(ultima.ts) : "–",
@@ -104,21 +111,4 @@ function iniciarBalaoGrafico() {
   });
 }
 
-// Destaca no menu lateral a última seção cujo topo já passou do terço da tela.
-function iniciarMenuLateral() {
-  const links = [...document.querySelectorAll(".nav a[href^='#']")];
-  const secoes = links.map(a => document.querySelector(a.getAttribute("href"))).filter(Boolean);
-  if (!secoes.length) return;
-  const marcar = () => {
-    const limite = window.innerHeight / 3;
-    let atual = secoes[0];
-    secoes.forEach(sec => { if (sec.getBoundingClientRect().top <= limite) atual = sec; });
-    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) atual = secoes[secoes.length - 1];
-    links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + atual.id));
-  };
-  window.addEventListener("scroll", marcar, { passive: true });
-  marcar();
-}
-
 iniciarBalaoGrafico();
-iniciarMenuLateral();

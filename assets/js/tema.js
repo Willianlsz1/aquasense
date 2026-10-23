@@ -22,6 +22,9 @@
       try { localStorage.setItem(chave, tema); } catch { /* Preferência só nesta aba. */ }
       atualizar();
       if (typeof redrawCharts === "function") redrawCharts();
+      if (typeof drawSparkline === "function" && typeof sparks !== "undefined") {
+        ["n", "p", "t"].forEach(k => sparks[k]?.length && drawSparkline("spark-" + k, sparks[k], { n: "#8fa0bf", p: "#7c8196", t: "#7c8196" }[k]));
+      }
     }));
   });
 })();

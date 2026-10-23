@@ -39,8 +39,8 @@ function renderMainChart(canvasId, state, color, thresholds, bucketMs, maxData) 
   cv.style.width = W + "px"; cv.style.height = H + "px";
   const c = cv.getContext("2d");
   const escuro = document.documentElement?.dataset.tema === "escuro";
-  const texto = escuro ? "#8b95a1" : "#8d939c";
-  const fonte = "12px Geist, system-ui, sans-serif";
+  const texto = escuro ? "#7F92A3" : "#7890A4";
+  const fonte = "11.5px 'IBM Plex Mono', ui-monospace, monospace";
   const { labels, data, times } = state;
   if (!data.length) { c.clearRect(0, 0, W, H); cv._pontos = []; return; }
 
@@ -79,7 +79,7 @@ function renderMainChart(canvasId, state, color, thresholds, bucketMs, maxData) 
   for (let i = 0; i <= 4; i++) {
     const v = mn + (mx - mn) * (i / 4);
     const y = sy(v);
-    c.strokeStyle = escuro ? "rgba(255,255,255,.06)" : "rgba(20,20,30,.06)"; c.lineWidth = 1; c.setLineDash([]);
+    c.strokeStyle = escuro ? "rgba(44,72,88,.55)" : "rgba(11,37,69,.07)"; c.lineWidth = 1; c.setLineDash([]);
     c.beginPath(); c.moveTo(PAD.left, y); c.lineTo(PAD.left + cw, y); c.stroke();
     c.fillStyle = texto; c.font = fonte; c.textAlign = "right";
     c.fillText(v.toFixed(1), PAD.left - 4, y + 3);
@@ -141,7 +141,7 @@ function renderMainChart(canvasId, state, color, thresholds, bucketMs, maxData) 
   // Último ponto
   const lx = sx(data.length-1), ly = sy(data[data.length-1]);
   c.beginPath(); c.arc(lx, ly, 5.5, 0, Math.PI*2); c.fillStyle = color; c.fill();
-  c.beginPath(); c.arc(lx, ly, 2.2, 0, Math.PI*2); c.fillStyle = escuro ? "#101318" : "#ffffff"; c.fill();
+  c.beginPath(); c.arc(lx, ly, 2.2, 0, Math.PI*2); c.fillStyle = escuro ? "#131F29" : "#ffffff"; c.fill();
   c.fillStyle = texto; c.font = fonte; c.textAlign = "right";
   c.fillText(data[data.length-1].toFixed(2), lx - 10, ly - 9);
 
@@ -158,9 +158,9 @@ function redrawCharts() {
   const bucketMs = Number.isFinite(histPontos.bucketSeg) && histPontos.bucketSeg > 0
     ? histPontos.bucketSeg * 1000 : (PERIODOS[periodoSelecionado] || {}).bucketMs;
   const escuro = document.documentElement?.dataset.tema === "escuro";
-  renderMainChart("chart-n", charts.n, escuro ? "#3cc4d2" : "#0d7380", [
-    { v: CFG.thrCritico, col: escuro ? "#ff7272" : "#dc2f3f",  lbl: `${CFG.thrCritico} m crítico` },
-    { v: CFG.thrAtencao, col: escuro ? "#fbb040" : "#c2680c", lbl: `${CFG.thrAtencao} m atenção` },
+  renderMainChart("chart-n", charts.n, escuro ? "#36B7E0" : "#1565C0", [
+    { v: CFG.thrCritico, col: escuro ? "#EF5A5A" : "#C8283A", lbl: `${CFG.thrCritico} m crítico` },
+    { v: CFG.thrAtencao, col: escuro ? "#E3A53A" : "#B4650A", lbl: `${CFG.thrAtencao} m atenção` },
   ], bucketMs, charts.n.maxData);
   renderMainChart("chart-t", charts.t, "#7e8ba3", null, bucketMs);
 }

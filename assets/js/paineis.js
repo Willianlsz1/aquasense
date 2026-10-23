@@ -70,6 +70,8 @@ function setAlert(n) {
   document.getElementById("tbr").className = lv === "critico" ? "tb-seg tb-red on"    : "tb-seg tb-red";
   document.getElementById("ainfo").textContent = `Nível atual ${n.toFixed(2)} m · Monitoramento ativo`;
 
+  if (typeof atualizarTuboInstrumento === "function") atualizarTuboInstrumento(n, lv, true);
+
   if (lv !== lastLevel) {
     addAlertRow(lv, upperLbl, n);
     lastLevel = lv;
@@ -97,6 +99,11 @@ function setAlertSemSinal(ts) {
   document.getElementById("ainfo").textContent = temTs
     ? `Sem comunicação · última leitura ${ultimaLeitura}`
     : "Sem comunicação · nenhuma leitura recebida";
+  // O tubo mantém o último nível conhecido, em cinza; sem recepção alguma, fica vazio.
+  if (typeof atualizarTuboInstrumento === "function") {
+    const ultimoNivel = temTs && typeof pzLatest !== "undefined" ? pzLatest[pzSelecionado]?.nivel : null;
+    atualizarTuboInstrumento(ultimoNivel, "semsinal");
+  }
 }
 
 function addAlertRow(lv, lbl, nivel) {
@@ -227,36 +234,73 @@ function renderReadingsTable() {
 }
 
 // ── VISÃO GERAL DOS PIEZÔMETROS ───────────────────────────────────────────────
+// Cartões ordenados por prioridade (crítico, atenção, sem sinal, normal): o que pede
+// ação aparece primeiro. Cada cartão traz o tubo com a altura da água e as faixas.
+const PRIORIDADE = { critico: 0, atencao: 1, semsinal: 2, normal: 3 };
+const cartaoAnterior = {}; // por pz: { lv, ts, nivel } — destaca mudança de faixa e leitura nova
+
+// Situação de um instrumento a partir da última leitura: nunca "normal" sem dado recente.
+function situacaoPz(d) {
+  const nivel = d && Number.isFinite(d.nivel) ? d.nivel : null;
+  if (estadoComunicacao(d) === "stale" || nivel === null) return { lv: "semsinal", lbl: "Sem sinal", nivel };
+  return { ...classifyNivel(nivel), nivel };
+}
+
+// Tubo pequeno (54 × 132): a água entra pela posição anterior e anima até a atual.
+function tuboMiniSvg(id, nivel, nivelAnterior) {
+  const escala = Math.max(4, Math.ceil(CFG.thrCritico * 1.2));
+  const y = n => (126 - (clamp(n, 0, escala) / escala) * 118).toFixed(1);
+  const alvo = Number.isFinite(nivel) ? y(nivel) : 126;
+  const inicio = Number.isFinite(nivelAnterior) ? y(nivelAnterior) : 126;
+  const u = "tm-" + String(id).replace(/[^\w-]/g, "");
+  return `<svg class="tubo-mini" viewBox="0 0 54 132" aria-hidden="true"><defs>
+    <clipPath id="${u}"><rect x="17" y="7" width="20" height="120" rx="10"/></clipPath>
+    <linearGradient id="${u}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4FC3F7"/><stop offset="1" stop-color="#1565C0"/></linearGradient></defs>
+    <rect class="tubo-corpo" x="17" y="7" width="20" height="120" rx="10" stroke-width="1.5"/>
+    <g clip-path="url(#${u})"><g class="agua" data-y="${alvo}" style="transform:translateY(${inicio}px)">
+      <path class="onda agua-cor" d="M0 0 q5 -2.5 10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 V140 H0Z" fill="url(#${u}g)"/>
+    </g></g>
+    <line x1="11" x2="43" y1="${y(CFG.thrCritico)}" y2="${y(CFG.thrCritico)}" stroke="#EF5A5A" stroke-width="1.4" stroke-dasharray="3 2"/>
+    <line x1="11" x2="43" y1="${y(CFG.thrAtencao)}" y2="${y(CFG.thrAtencao)}" stroke="#E3A53A" stroke-width="1.4" stroke-dasharray="3 2"/>
+  </svg>`;
+}
+
 function atualizarVisaoGeral(mapa) {
   const grid = document.getElementById("pz-grid");
   if (!grid) return;
-  grid.innerHTML = PIEZOMETROS.map(pz => {
-    const d = mapa[pz.id];
-    const nivel = d && Number.isFinite(d.nivel) ? d.nivel : null;
-    const comm = estadoComunicacao(d);
-    const semSinal = comm === "stale";
-    const cls = !semSinal && nivel !== null ? classifyNivel(nivel) : { lv: "info", lbl: "···" };
+  const antes = typeof capturarCartoes === "function" ? capturarCartoes(grid) : null;
+  const ordem = PIEZOMETROS.map((pz, i) => ({ pz, i, d: mapa[pz.id], s: situacaoPz(mapa[pz.id]) }))
+    .sort((a, b) => PRIORIDADE[a.s.lv] - PRIORIDADE[b.s.lv] || a.i - b.i);
+
+  grid.innerHTML = ordem.map(({ pz, d, s }) => {
+    const semSinal = s.lv === "semsinal";
+    const nivel = s.nivel;
     const sel = pz.id === pzSelecionado ? " selected" : "";
+    const ultimaRecepcao = timestampUltimaRecepcao(d);
+    const anterior = cartaoAnterior[pz.id];
+    const mudou = anterior && anterior.lv !== s.lv ? " mudou" : "";
+    const leituraNova = !semSinal && anterior && Number.isFinite(ultimaRecepcao) && anterior.ts !== ultimaRecepcao;
+    cartaoAnterior[pz.id] = { lv: s.lv, ts: ultimaRecepcao, nivel };
     const valorHtml = nivel !== null
-      ? `${nivel.toFixed(2)}<span class="pz-card-unit">m</span>`
+      ? `<span class="pz-num">${nivel.toFixed(2)}</span><span class="pz-card-unit">m</span>`
       : "···";
+    const tubo = tuboMiniSvg(pz.id, nivel, anterior ? anterior.nivel : null);
 
     // P1 — leitura ausente/stale nunca aparece como normal: badge cinza "SEM SINAL" + cor+texto,
     // valor esmaecido e "última leitura há X min" (nunca vermelho nem verde — ver docs §2).
     if (semSinal) {
-      const ultimaRecepcao = timestampUltimaRecepcao(d);
       const lastSeen = Number.isFinite(ultimaRecepcao)
         ? `última leitura ${formatUltimaLeitura(ultimaRecepcao)}`
         : "nenhuma leitura recebida";
       return `
-        <div class="pz-card pz-sem-sinal${sel}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
-          <div class="pz-card-top">
-            <span class="pz-card-id">${textoHtml(pz.id)}</span>
-            <span class="tbadge tb-semsinal">SEM SINAL</span>
+        <div class="pz-card pz-sem-sinal${sel}${mudou}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
+          ${tubo}
+          <div class="pz-card-corpo">
+            <div class="pz-card-top"><span class="pz-card-id">${textoHtml(pz.id)}</span><span class="tbadge tb-semsinal">SEM SINAL</span></div>
+            <div class="pz-card-name">${textoHtml(pz.nome)}</div>
+            <div class="pz-card-value valor-esmaecido">${valorHtml}</div>
+            <div class="pz-card-pe"><span class="sinal" aria-hidden="true"><i></i><i></i><i></i></span><span class="pz-card-lastseen">${lastSeen}</span></div>
           </div>
-          <div class="pz-card-name">${textoHtml(pz.nome)}</div>
-          <div class="pz-card-value valor-esmaecido">${valorHtml}</div>
-          <div class="pz-bar"><span class="pz-card-lastseen">${lastSeen}</span></div>
         </div>`;
     }
 
@@ -266,36 +310,42 @@ function atualizarVisaoGeral(mapa) {
     const chipHtml = taxaRapida
       ? `<span class="chip-taxa-rapida" title="Variação rápida: investigar (limiar definido na configuração do projeto)">📈 variação rápida</span>`
       : "";
-
-    // P6 — badge NORMAL neutro (ISA-101: cor = anormalidade, ~90% da UI neutra)
-    const badgeCls = cls.lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${cls.lv}`;
-    // Barra proporcional ao nível, com o limite crítico perto do fim da escala.
-    const largura = nivel !== null ? clamp(nivel / (CFG.thrCritico * 1.15), 0.06, 1) * 100 : 6;
+    const badgeCls = s.lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${s.lv}`;
     return `
-      <div class="pz-card nivel-${cls.lv}${sel}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
-        <div class="pz-card-top">
-          <span class="pz-card-id">${textoHtml(pz.id)}</span>
-          <span class="${badgeCls}">${cls.lbl}</span>
+      <div class="pz-card nivel-${s.lv}${sel}${mudou}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
+        ${tubo}
+        <div class="pz-card-corpo">
+          <div class="pz-card-top"><span class="pz-card-id">${textoHtml(pz.id)}</span><span class="${badgeCls}">${s.lbl}</span></div>
+          <div class="pz-card-name">${textoHtml(pz.nome)}</div>
+          <div class="pz-card-value">${valorHtml}</div>
+          ${chipHtml}
+          <div class="pz-card-pe"><span class="sinal" aria-hidden="true"><i></i><i></i><i></i></span><span class="pz-card-lastseen">recebido ${formatUltimaLeitura(ultimaRecepcao)}</span></div>
         </div>
-        <div class="pz-card-name">${textoHtml(pz.nome)}</div>
-        <div class="pz-card-value">${valorHtml}</div>
-        <div class="pz-bar"><span style="width:${largura.toFixed(1)}%">${valorHtml}</span></div>
-        ${chipHtml}
+        <span class="recebe${leituraNova ? " pulso" : ""}" aria-hidden="true"></span>
       </div>`;
   }).join("");
   grid.querySelectorAll(".pz-card").forEach(card => {
-    card.addEventListener("click", () => selectPiezometro(card.dataset.pz));
+    const abrir = () => {
+      selectPiezometro(card.dataset.pz);
+      if (typeof irParaVista === "function") irParaVista("instrumento");
+    };
+    card.addEventListener("click", abrir);
     card.addEventListener("keydown", event => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        selectPiezometro(card.dataset.pz);
+        abrir();
       }
     });
   });
+  if (typeof animarCartoes === "function") animarCartoes(grid, antes);
   if (typeof atualizarResumoRede === "function") atualizarResumoRede(mapa);
 }
 
 // ── MAPA ──────────────────────────────────────────────────────────────────────
+// Aba própria: satélite ou mapa de ruas, marcador com a cor e o valor de cada
+// instrumento e lista lateral ordenada por prioridade.
+const camadasMapa = {};
+
 function initMap() {
   const mapEl = document.getElementById("pz-map");
   if (!mapEl) return;
@@ -306,20 +356,38 @@ function initMap() {
   try {
     const centerLat = PIEZOMETROS.reduce((s, p) => s + p.lat, 0) / PIEZOMETROS.length;
     const centerLng = PIEZOMETROS.reduce((s, p) => s + p.lng, 0) / PIEZOMETROS.length;
-    leafletMap = L.map(mapEl).setView([centerLat, centerLng], 14);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(leafletMap);
+    leafletMap = L.map(mapEl, { zoomControl: true }).setView([centerLat, centerLng], 15);
+    leafletMap.zoomControl.setPosition("topright");
+    camadasMapa.satelite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19, attribution: "Imagens &copy; Esri, Maxar, Earthstar Geographics",
+    });
+    camadasMapa.ruas = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: "&copy; OpenStreetMap contributors",
+    });
+    camadasMapa.satelite.addTo(leafletMap);
+    document.querySelectorAll(".mapa-camadas button").forEach(botao => botao.addEventListener("click", () => {
+      document.querySelectorAll(".mapa-camadas button").forEach(b => b.setAttribute("aria-pressed", String(b === botao)));
+      Object.values(camadasMapa).forEach(c => leafletMap.removeLayer(c));
+      camadasMapa[botao.dataset.camada].addTo(leafletMap);
+    }));
 
     PIEZOMETROS.forEach(pz => {
-      const marker = L.circleMarker([pz.lat, pz.lng], {
-        radius: 9, weight: 2, color: "#8a94ad", fillColor: "#8a94ad", fillOpacity: .85,
+      const marker = L.marker([pz.lat, pz.lng], {
+        icon: L.divIcon({ className: "", iconSize: [0, 0],
+          html: `<div class="mk"><span class="mk-anel"></span><span class="mk-dot"></span><span class="mk-rot">${textoHtml(pz.id)}<em></em></span></div>` }),
       }).addTo(leafletMap);
-      marker.bindPopup(`<b>${textoHtml(pz.nome)}</b>`);
+      marker.bindPopup("", { closeButton: false, offset: [0, -8] });
       marker.on("click", () => selectPiezometro(pz.id));
       pzMarkers[pz.id] = marker;
     });
+    // Botão "Abrir instrumento" do balão do mapa.
+    mapEl.addEventListener("click", event => {
+      const botao = event.target.closest("[data-abrir-pz]");
+      if (!botao) return;
+      selectPiezometro(botao.dataset.abrirPz);
+      if (typeof irParaVista === "function") irParaVista("instrumento");
+    });
+    atualizarMapa(pzLatest);
   } catch (e) {
     console.warn("Leaflet:", e.message);
     mapEl.innerHTML = '<div class="map-fallback">Mapa indisponível (sem conexão ao CDN)</div>';
@@ -327,20 +395,59 @@ function initMap() {
   }
 }
 
+// Enquadra todos os instrumentos, deixando livre o espaço da lista lateral.
+function enquadrarMapa() {
+  if (!leafletMap || !PIEZOMETROS.length) return;
+  const largo = window.innerWidth > 860;
+  leafletMap.fitBounds(L.latLngBounds(PIEZOMETROS.map(p => [p.lat, p.lng])), {
+    paddingTopLeft: [largo ? 340 : 30, 60], paddingBottomRight: [60, largo ? 40 : 260], maxZoom: 17,
+  });
+}
+
+function popupMapa(pz, s, d) {
+  const ts = timestampUltimaRecepcao(d);
+  const badge = s.lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${s.lv}`;
+  const quando = Number.isFinite(ts) ? `${s.lv === "semsinal" ? "Última leitura" : "Recebido"} ${formatUltimaLeitura(ts)}` : "Nenhuma leitura recebida";
+  return `<div class="pop"><span class="${badge}">${s.lbl}</span><h3>${textoHtml(pz.id)} · ${textoHtml(pz.nome)}</h3>
+    <div class="pv">${s.nivel !== null ? s.nivel.toFixed(2) + " m" : "···"}</div><p>${quando}</p>
+    <button type="button" data-abrir-pz="${textoHtml(pz.id)}">Abrir instrumento</button></div>`;
+}
+
 function atualizarMapa(mapa) {
+  const lista = document.getElementById("mapa-lista");
+  const ordem = PIEZOMETROS.map((pz, i) => ({ pz, i, d: mapa[pz.id], s: situacaoPz(mapa[pz.id]) }))
+    .sort((a, b) => PRIORIDADE[a.s.lv] - PRIORIDADE[b.s.lv] || a.i - b.i);
+  if (lista) {
+    lista.innerHTML = ordem.map(({ pz, d, s }) => {
+      const ts = timestampUltimaRecepcao(d);
+      return `<button type="button" class="ml-item st-${s.lv}${pz.id === pzSelecionado ? " sel" : ""}" data-pz="${textoHtml(pz.id)}">
+        <span class="pt"></span><span class="nm">${textoHtml(pz.id)} · ${textoHtml(pz.nome)}<small>${s.lbl} · ${Number.isFinite(ts) ? formatUltimaLeitura(ts) : "sem leituras"}</small></span>
+        <span class="vl">${s.nivel !== null ? s.nivel.toFixed(2) : "···"}</span></button>`;
+    }).join("");
+    lista.querySelectorAll(".ml-item").forEach(b => b.addEventListener("click", () => {
+      const pz = PIEZOMETROS.find(p => p.id === b.dataset.pz);
+      selectPiezometro(pz.id);
+      if (leafletMap) {
+        leafletMap.flyTo([pz.lat, pz.lng], 17, { duration: typeof reduzMovimento !== "undefined" && reduzMovimento ? 0 : .9 });
+        pzMarkers[pz.id]?.openPopup();
+      }
+    }));
+    const semSinal = ordem.filter(o => o.s.lv === "semsinal").length;
+    const resumo = document.getElementById("mapa-resumo");
+    if (resumo) resumo.textContent = `${PIEZOMETROS.length - semSinal} de ${PIEZOMETROS.length} comunicando · toque para localizar`;
+  }
   if (typeof L === "undefined" || !leafletMap) return;
-  PIEZOMETROS.forEach(pz => {
+  ordem.forEach(({ pz, d, s }) => {
     const marker = pzMarkers[pz.id];
     if (!marker) return;
-    const d = mapa[pz.id];
-    const nivel = d && Number.isFinite(d.nivel) ? d.nivel : null;
-    const semSinal = estadoComunicacao(d) === "stale";
-    const cls = !semSinal && nivel !== null ? classifyNivel(nivel) : { lv: "semsinal", lbl: "Sem sinal" };
-    const col = corPorStatus(semSinal ? "semsinal" : cls.lv);
-    marker.setStyle({ color: col, fillColor: col, radius: pz.id === pzSelecionado ? 11 : 9 });
-    marker.setPopupContent(
-      `<b>${textoHtml(pz.nome)}</b><br>Nível: ${!semSinal && nivel !== null ? nivel.toFixed(2) + " m" : "···"}<br>Status: ${cls.lbl}`
-    );
+    const el = marker.getElement && marker.getElement();
+    const mk = el && el.querySelector(".mk");
+    if (mk) {
+      mk.className = `mk st-${s.lv}${pz.id === pzSelecionado ? " sel" : ""}`;
+      mk.querySelector("em").textContent = s.nivel !== null ? s.nivel.toFixed(2) + " m" : "···";
+      el.style.zIndex = String(1000 - PRIORIDADE[s.lv] * 10);
+    }
+    marker.setPopupContent(popupMapa(pz, s, d));
   });
 }
 
@@ -355,6 +462,7 @@ function updatePzLabels() {
   if (rt) rt.textContent = pzSelecionado;
   const et = document.getElementById("events-title");
   if (et) et.textContent = `Sessão atual · todos os instrumentos`;
+  if (typeof atualizarTituloVista === "function") atualizarTituloVista();
 }
 
 // ── TAXA DE VARIAÇÃO (P3) ─────────────────────────────────────────────────────

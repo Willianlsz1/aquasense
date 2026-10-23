@@ -188,6 +188,7 @@ async function loadHistoryAndStats() {
   }
 
   redrawCharts();
+  if (typeof revelarGrafico === "function") revelarGrafico();
 }
 
 // ── APLICA DADOS DO PIEZÔMETRO SELECIONADO ───────────────────────────────────
@@ -368,7 +369,7 @@ function updateClock() {
   const hh = String(n.getHours()).padStart(2, "0");
   const mi = String(n.getMinutes()).padStart(2, "0");
   const ss = String(n.getSeconds()).padStart(2, "0");
-  document.getElementById("live-time").textContent = `Relógio local · ${dd} ${mm} ${n.getFullYear()} ${hh}:${mi}:${ss}`;
+  document.getElementById("live-time").textContent = `${dd} ${mm} · ${hh}:${mi}:${ss}`;
 }
 
 // ── COMO LER ESTE PAINEL (recolhível) ────────────────────────────────────────
