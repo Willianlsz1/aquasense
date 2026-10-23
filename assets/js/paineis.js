@@ -359,7 +359,9 @@ function initMap() {
     leafletMap = L.map(mapEl, { zoomControl: true }).setView([centerLat, centerLng], 15);
     leafletMap.zoomControl.setPosition("topright");
     camadasMapa.satelite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-      maxZoom: 19, attribution: "Imagens &copy; Esri, Maxar, Earthstar Geographics",
+      // Acima do zoom 17 a Esri não tem foto desta região e devolve o ladrilho
+      // "Map data not yet available"; amplia o zoom 17 em vez de pedir esse ladrilho.
+      maxZoom: 19, maxNativeZoom: 17, attribution: "Imagens &copy; Esri, Maxar, Earthstar Geographics",
     });
     camadasMapa.ruas = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19, attribution: "&copy; OpenStreetMap contributors",
@@ -447,7 +449,16 @@ function atualizarMapa(mapa) {
       mk.querySelector("em").textContent = s.nivel !== null ? s.nivel.toFixed(2) + " m" : "···";
       el.style.zIndex = String(1000 - PRIORIDADE[s.lv] * 10);
     }
-    marker.setPopupContent(popupMapa(pz, s, d));
+    // Atualiza o balão só quando o texto muda e sem autoPan: com o balão aberto, o
+    // autoPan a cada consulta (10 s) puxava o mapa de volta enquanto o usuário arrastava.
+    const html = popupMapa(pz, s, d);
+    const popup = marker.getPopup();
+    if (popup && popup.getContent() !== html) {
+      const autoPan = popup.options.autoPan;
+      popup.options.autoPan = false;
+      popup.setContent(html);
+      popup.options.autoPan = autoPan;
+    }
   });
 }
 
