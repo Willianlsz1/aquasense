@@ -222,7 +222,7 @@ function renderReadingsTable() {
   const tbody = document.getElementById("readings-tbody");
   if (!tbody) return;
   if (!readingsHistory.length) {
-    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--text-3);text-align:center;padding:16px">Aguardando dados...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--text-3);text-align:center;padding:16px">Nenhuma leitura no período.</td></tr>`;
     return;
   }
   tbody.innerHTML = readingsHistory.map(r => `
@@ -400,7 +400,7 @@ function enquadrarMapa() {
   if (!leafletMap || !PIEZOMETROS.length) return;
   const largo = window.innerWidth > 860;
   leafletMap.fitBounds(L.latLngBounds(PIEZOMETROS.map(p => [p.lat, p.lng])), {
-    paddingTopLeft: [largo ? 340 : 30, 60], paddingBottomRight: [60, largo ? 40 : 260], maxZoom: 17,
+    paddingTopLeft: [largo ? 340 : 30, 60], paddingBottomRight: [150, largo ? 40 : 260], maxZoom: 17,
   });
 }
 

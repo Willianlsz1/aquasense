@@ -102,9 +102,9 @@ const FonteSimulada = {
   // (10.2/11.5/9.0 aqui vs. 10/11.5/9 em loadHistoryAndStats); unificar elimina o
   // desalinhamento entre o "último valor" e o "histórico" mostrados na simulação.
   base: {
-    "PZ-01": { n: 10.2, p: 1013, t: 24 },
-    "PZ-02": { n: 11.5, p: 1013, t: 24 },
-    "PZ-03": { n: 9.0,  p: 1013, t: 24 },
+    "PZ-01": { n: 10.2 },
+    "PZ-02": { n: 11.5 },
+    "PZ-03": { n: 9.0 },
   },
 
   // Gera a leitura "ao vivo" de cada piezômetro (drift + ruído), avançando a base
@@ -128,14 +128,12 @@ const FonteSimulada = {
       const nAnterior = s.n;
       const d = drift[pz];
       if (d) s.n = clamp(s.n + (Math.random() - d.vies) * d.amp, d.min, d.max);
-      s.p = 1013.25 + (s.n - 10) * 10;  // coerente com a escala do firmware (10 hPa/m)
-      s.t = clamp(s.t + (Math.random() - 0.5) * 0.3, 15, 40);
-      // taxa_m_dia plausível: extrapola o drift do último passo do poll (CFG.poll ms) para m/dia,
-      // mesma interface de FonteApi — nunca ligada de fato a um "dia" real na simulação.
-      const deltaPoll = s.n - nAnterior;
-      const taxa = parseFloat(((deltaPoll / (CFG.poll / 1000)) * 86400).toFixed(3));
+      // taxa_m_dia: cada passo da simulação representa ~6 h de rede (4 passos/dia), para a
+      // taxa ficar na ordem de grandeza real (décimos de m/dia) e o chip de variação rápida
+      // aparecer só de vez em quando — extrapolar 10 s para um dia dava centenas de m/dia.
+      const taxa = parseFloat(((s.n - nAnterior) * 4).toFixed(3));
       todos[pz] = {
-        nivel: s.n, pressao: s.p, temperatura: s.t,
+        nivel: s.n, pressao: null, temperatura: null, // a UCT envia só o nível
         ts: Math.floor(Date.now() / 1000), recebidoEm: Math.floor(Date.now() / 1000),
         taxa_m_dia: taxa,
       };
@@ -173,7 +171,7 @@ const FonteSimulada = {
         // cada ~10s (INTERVALO_ENVIO do firmware) — só para preencher a coluna de auditoria.
         n_leituras: Math.max(1, Math.round(fb.stepMs / 10000)),
         pressao: null,
-        temperatura: parseFloat((22 + Math.random() * 8).toFixed(1)),
+        temperatura: null, // a UCT não mede temperatura (transdutor 4–20 mA já compensado)
       });
     }
     return { pontos, bucket_seg: fb.stepMs / 1000 };

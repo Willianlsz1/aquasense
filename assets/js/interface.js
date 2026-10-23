@@ -65,10 +65,10 @@ function atualizarResumoRede(mapa) {
     ? `<b>${semSinal.length} de ${total}</b> ${semSinal.length === 1 ? "está" : "estão"} <b>sem sinal</b>`
     : "<b>todos</b> estão comunicando";
   const recepcao = ultima
-    ? ` <span class="n">2</span>A última recepção foi do <b>${textoHtml(ultima.id)}</b>, <b>${formatUltimaLeitura(ultima.ts)}</b>.`
-    : ` <span class="n">2</span>Nenhuma leitura recebida até agora.`;
+    ? ` A última recepção foi do <b>${textoHtml(ultima.id)}</b>, <b>${formatUltimaLeitura(ultima.ts)}</b>.`
+    : ` Nenhuma leitura recebida até agora.`;
   const prefixo = typeof fonte !== "undefined" && fonte.simulada ? "<b>Simulação:</b> " : "";
-  frase.innerHTML = `${prefixo}<span class="n">1</span>${alerta}; ${sinal}.${recepcao}`;
+  frase.innerHTML = `${prefixo}${alerta}; ${sinal}.${recepcao}`;
 
   // Título curto que responde "está tudo bem?" antes da frase detalhada.
   let tituloTxt, tipo;

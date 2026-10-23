@@ -152,10 +152,10 @@ function montarTuboInstrumento() {
   const e = escalaTubo(), passo = e > 12 ? 3 : 2;
   let marcas = "";
   for (let m = 0; m <= e; m += passo) {
-    marcas += `<line x1="122" x2="128" y1="${yTubo(m)}" y2="${yTubo(m)}" style="stroke:var(--text-mute)"/><text class="tubo-texto" x="116" y="${yTubo(m) + 3.5}" text-anchor="end" font-size="9.5">${m}</text>`;
+    marcas += `<line x1="122" x2="128" y1="${yTubo(m)}" y2="${yTubo(m)}" style="stroke:var(--text-mute)"/><text class="tubo-escala" x="116" y="${yTubo(m) + 3.5}" text-anchor="end" font-size="9.5">${m}</text>`;
   }
   const cota = (n, cor, txt) => `<line x1="96" x2="184" y1="${yTubo(n)}" y2="${yTubo(n)}" stroke="${cor}" stroke-width="1.6" stroke-dasharray="5 4"/>
-    <text x="190" y="${yTubo(n) + 4}" fill="${cor}" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600">${txt}</text>`;
+    <text class="tubo-cota" x="190" y="${yTubo(n) + 4}" fill="${cor}" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600">${txt}</text>`;
   box.innerHTML = `<svg viewBox="0 0 280 500" id="tubo-svg" role="img" aria-label="Nível d'água no tubo do piezômetro">
     <defs>
       <clipPath id="tg-clip"><rect x="130" y="${topo - 10}" width="28" height="${fundo - topo + 10}" rx="6"/></clipPath>
