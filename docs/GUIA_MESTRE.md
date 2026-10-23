@@ -49,15 +49,18 @@ SEM SINAL. A taxa de variação usa o horário da medição.
 - Resumo no topo (frase e indicadores de alerta, sem sinal e última recepção),
   calculado das últimas leituras. Leitura antiga conta como SEM SINAL; falha da
   API aparece como "não confirmado", nunca como rede normal.
-- Instrumentos em barras proporcionais ao nível, com mapa ilustrativo e seleção
-  por teclado.
+- Tabela de instrumentos por prioridade: nível sobre a escala com os limites,
+  folga até a atenção, tendência de 24 h, taxa, recepção e disponibilidade.
+  Gráfico da rede, mapa ilustrativo e ocorrências recentes.
+- Instrumento: quadro de incidente em atenção/crítico, comunicação, cadastro
+  editável (salvo no navegador) e som do alarme crítico com opção de silenciar.
 - Leitura atual, origem do dado, última recepção e condição do ponto.
-- Gráficos de 24h, 7d e 30d com média, pico e lacunas visíveis.
-- Eventos do servidor (até 50 da rede) separados dos eventos da sessão.
+- Gráficos de 24h, 7d, 30d e 90d com média, pico e lacunas visíveis.
+- Eventos do servidor (até 50 da rede) como única lista de ocorrências.
 - Exportação CSV, Excel e relatório PDF (`relatorio.html`); o PDF fica bloqueado
   na simulação.
-- Simulação só por escolha manual, identificada na tela e nas exportações.
-  Falha da API mostra indisponibilidade; não ativa simulação.
+- Demonstração só no endereço `?demo`, identificada na tela e nas exportações.
+  O endereço normal não tem simulação; falha da API mostra indisponibilidade.
 - Tema claro e escuro, com a preferência salva.
 
 ## O que foi comprovado

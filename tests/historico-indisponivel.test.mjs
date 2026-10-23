@@ -97,7 +97,9 @@ test("resposta vazia e erro não preservam séries antigas, e recuperação reca
   });
 
   await app.loadHistoryAndStats();
-  assert.deepEqual(JSON.parse(JSON.stringify(app.estado().charts.t.data)), [22]);
+  // Temperatura não é medida pela UCT: o painel ignora o campo e mostra só o nível.
+  assert.deepEqual(JSON.parse(JSON.stringify(app.estado().charts.n.data)), [10.2]);
+  assert.deepEqual(JSON.parse(JSON.stringify(app.estado().charts.t.data)), []);
 
   await app.loadHistoryAndStats();
   assert.deepEqual(JSON.parse(JSON.stringify(app.estado().charts.n.data)), []);

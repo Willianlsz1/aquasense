@@ -140,7 +140,7 @@ export async function handleDados(url, env, cfg) {
   const rangeParam = url.searchParams.get("range") || "24h";
   const range = RANGES[rangeParam];
   if (!range) {
-    return json(cfg, 400, { error: "Parâmetro 'range' deve ser um de: 24h, 7d, 30d" });
+    return json(cfg, 400, { error: `Parâmetro 'range' deve ser um de: ${Object.keys(RANGES).join(", ")}` });
   }
 
   const desde = Math.floor(Date.now() / 1000) - range.janela;

@@ -97,83 +97,100 @@ const FonteApi = {
 const FonteSimulada = {
   simulada: true,
 
-  // Tabela ÚNICA de bases por piezômetro — usada tanto por ultimos() (drift ao vivo)
-  // quanto por historico() (série simulada). Antes existiam duas tabelas divergentes
-  // (10.2/11.5/9.0 aqui vs. 10/11.5/9 em loadHistoryAndStats); unificar elimina o
-  // desalinhamento entre o "último valor" e o "histórico" mostrados na simulação.
+  // Demonstração com roteiro (ver demo.js). Cada instrumento tem um nível de
+  // referência, um nível-alvo do passo atual do roteiro e o nível corrente, que
+  // anda até o alvo a cada consulta. Tempo acelerado: cada consulta representa
+  // ~15 min de rede, e o histórico das últimas horas é montado com essas leituras.
   base: {
     "PZ-01": { n: 10.2 },
-    "PZ-02": { n: 11.5 },
+    "PZ-02": { n: 10.8 },
     "PZ-03": { n: 9.0 },
   },
+  alvo: {},      // pz → nível-alvo do passo atual
+  offline: {},   // pz → recebidoEm congelado (instrumento sem enviar)
+  registro: {},  // pz → últimas leituras da demonstração [{ v, max }]
 
-  // Gera a leitura "ao vivo" de cada piezômetro (drift + ruído), avançando a base
-  // um passo a cada chamada — é o antigo simTick(), agora chamado pelo poll normal
-  // em vez de rodar num setInterval paralelo.
+  estadoDe(pz) {
+    if (!this.base[pz]) this.base[pz] = { n: 6 + (pz.charCodeAt(pz.length - 1) % 5) };
+    const s = this.base[pz];
+    if (!Number.isFinite(s.ref)) s.ref = s.n;
+    return s;
+  },
+
+  reiniciar() {
+    Object.values(this.base).forEach(s => { if (Number.isFinite(s.ref)) s.n = s.ref; });
+    this.alvo = {}; this.offline = {}; this.registro = {};
+  },
+
+  // Gera a leitura "ao vivo" de cada piezômetro, avançando um passo até o alvo.
   async ultimos() {
-    const b = this.base;
-    // Parâmetros de drift por piezômetro; o drift é aplicado DENTRO do loop, com
-    // nAnterior capturado ANTES — capturado depois, deltaPoll era sempre 0 e a
-    // taxa_m_dia simulada nunca saía de 0.000 (chip/alarme de variação rápida
-    // mortos justamente no modo demonstração).
-    const drift = {
-      "PZ-01": { vies: 0.48, amp: 0.25, min: 8.5,  max: 13.5 },
-      "PZ-02": { vies: 0.5,  amp: 0.3,  min: 10.5, max: 13.2 },
-      "PZ-03": { vies: 0.5,  amp: 0.15, min: 8.0,  max: 10.2 },
-    };
-
+    const ids = typeof PIEZOMETROS !== "undefined" && PIEZOMETROS.length ? PIEZOMETROS.map(p => p.id) : Object.keys(this.base);
+    const agora = Math.floor(Date.now() / 1000);
     const todos = {};
-    Object.keys(b).forEach(pz => {
-      const s = b[pz];
-      const nAnterior = s.n;
-      const d = drift[pz];
-      if (d) s.n = clamp(s.n + (Math.random() - d.vies) * d.amp, d.min, d.max);
-      // taxa_m_dia: cada passo da simulação representa ~6 h de rede (4 passos/dia), para a
-      // taxa ficar na ordem de grandeza real (décimos de m/dia) e o chip de variação rápida
-      // aparecer só de vez em quando — extrapolar 10 s para um dia dava centenas de m/dia.
-      const taxa = parseFloat(((s.n - nAnterior) * 4).toFixed(3));
+    ids.forEach(pz => {
+      const s = this.estadoDe(pz);
+      if (this.offline[pz]) {
+        todos[pz] = { nivel: s.n, pressao: null, temperatura: null, ts: this.offline[pz], recebidoEm: this.offline[pz], taxa_m_dia: null };
+        return;
+      }
+      const alvo = Number.isFinite(this.alvo[pz]) ? this.alvo[pz] : s.ref;
+      const passo = clamp(alvo - s.n, -0.42, 0.42);
+      s.n = Math.max(0, s.n + passo + (Math.random() - 0.5) * 0.05);
+      // Taxa coerente com o tempo acelerado (1 consulta ≈ 15 min → 96 por dia),
+      // limitada a um valor plausível; parado, fica perto de zero.
+      const taxa = Math.abs(alvo - s.n) > 0.08 ? clamp(passo * 6, -2.5, 2.5) : (Math.random() - 0.5) * 0.08;
+      const reg = this.registro[pz] || (this.registro[pz] = []);
+      reg.push({ v: s.n, max: s.n + Math.random() * 0.06 });
+      if (reg.length > 32) reg.shift();
       todos[pz] = {
         nivel: s.n, pressao: null, temperatura: null, // a UCT envia só o nível
-        ts: Math.floor(Date.now() / 1000), recebidoEm: Math.floor(Date.now() / 1000),
-        taxa_m_dia: taxa,
+        ts: agora, recebidoEm: agora, taxa_m_dia: parseFloat(taxa.toFixed(3)),
       };
     });
     return todos;
   },
 
-  // Gera uma série histórica simulada coerente com a base do piezômetro/período pedidos
-  // (mesma tabela `base` usada por ultimos() — ver comentário acima).
-  // Mesma interface de FonteApi.historico: { pontos, bucket_seg }. bucket_seg aqui é só o
-  // stepMs/1000 da tabela de fallback abaixo — espelha (não consulta) o RANGES do Worker
-  // (cloudflare-worker/src/config.js), já que a simulação não fala com o D1.
+  // Série histórica coerente com a demonstração: fundo estável em torno da
+  // referência (sempre igual para o mesmo instrumento e período) e, no fim, as
+  // leituras da própria demonstração, uma a cada 15 min de rede.
   async historico(pz, range) {
-    const baseLevel = (this.base[pz] && this.base[pz].n) || 10;
+    const s = this.estadoDe(pz);
     const fb = {
       "24h": { count: 48,  stepMs: 30 * 60 * 1000 },
       "7d":  { count: 84,  stepMs: 2  * 60 * 60 * 1000 },
-      "30d": { count: 120, stepMs: 6  * 60 * 60 * 1000 },
+      "30d": { count: 90,  stepMs: 8  * 60 * 60 * 1000 },
+      "90d": { count: 90,  stepMs: 24 * 60 * 60 * 1000 },
     }[range] || { count: 48, stepMs: 30 * 60 * 1000 };
+    let semente = [...(pz + range)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 2147483647, 7);
+    const rnd = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
     const now = Date.now();
+    const fimRecepcao = this.offline[pz] ? this.offline[pz] * 1000 : now;
     const pontos = [];
-    for (let i = fb.count; i >= 0; i--) {
+    let v = s.ref;
+    for (let i = fb.count - 1; i >= 0; i--) {
       const time = now - i * fb.stepMs;
-      const nivelAgua = parseFloat((baseLevel + (Math.random() - 0.5) * 1.6).toFixed(3));
-      // P5 — pico/mín simulados do intervalo (máx ≥ média ≥ mín), para exercitar as mesmas
-      // colunas de auditoria que a API real preenche via MAX/MIN/COUNT do D1.
-      const nivelMax = parseFloat((nivelAgua + Math.random() * 0.3).toFixed(3));
-      const nivelMin = parseFloat((nivelAgua - Math.random() * 0.3).toFixed(3));
-      pontos.push({
-        ts: Math.floor(time / 1000),
-        nivel_agua: nivelAgua,
-        nivel_max: nivelMax,
-        nivel_min: nivelMin,
-        // nº de leituras plausível dentro de um bucket de stepMs, num device que envia a
-        // cada ~10s (INTERVALO_ENVIO do firmware) — só para preencher a coluna de auditoria.
-        n_leituras: Math.max(1, Math.round(fb.stepMs / 10000)),
-        pressao: null,
-        temperatura: null, // a UCT não mede temperatura (transdutor 4–20 mA já compensado)
-      });
+      v += (rnd() - 0.5) * 0.18 + (s.ref - v) * 0.12;
+      if (time > fimRecepcao + fb.stepMs) continue; // sem sinal: o fim da série fica vazio
+      pontos.push({ ts: Math.floor(time / 1000), nivel_agua: v, nivel_max: v + rnd() * 0.12, nivel_min: v - rnd() * 0.12,
+        n_leituras: Math.round((fb.stepMs / 1000 / CFG.intervaloEnvioSeg) * (0.985 + rnd() * 0.015)) });
     }
+    // Leituras da demonstração no fim da série (15 min de rede cada).
+    const reg = this.registro[pz] || [];
+    if (reg.length) {
+      const passo = 15 * 60 * 1000, fim = Math.min(now, fimRecepcao);
+      const inicio = fim - (reg.length - 1) * passo;
+      const antes = pontos.filter(p => p.ts * 1000 < inicio - fb.stepMs / 2);
+      const recentes = range === "24h"
+        ? reg.map((r, i) => ({ ts: Math.floor((inicio + i * passo) / 1000), nivel_agua: r.v, nivel_max: r.max, nivel_min: r.v - 0.03, n_leituras: 90 }))
+        : [{ ts: Math.floor(fim / 1000), nivel_agua: reg[reg.length - 1].v, nivel_max: Math.max(...reg.map(r => r.max)), nivel_min: Math.min(...reg.map(r => r.v)),
+            n_leituras: Math.round(fb.stepMs / 1000 / CFG.intervaloEnvioSeg) }];
+      pontos.length = 0;
+      pontos.push(...antes, ...recentes);
+    }
+    pontos.forEach(p => {
+      ["nivel_agua", "nivel_max", "nivel_min"].forEach(k => { p[k] = parseFloat(p[k].toFixed(3)); });
+      p.pressao = null; p.temperatura = null; // a UCT não mede pressão atmosférica nem temperatura
+    });
     return { pontos, bucket_seg: fb.stepMs / 1000 };
   },
 };
@@ -192,10 +209,5 @@ function trocarFonte(novaFonte) {
   if (banner) banner.classList.toggle("on", fonte.simulada);
   const label = document.getElementById("fonte-label");
   if (label) label.textContent = fonte.simulada ? "Fonte: simulação" : "Fonte: monitoramento real";
-  const botao = document.getElementById("btn-simulacao");
-  if (botao) {
-    botao.textContent = fonte.simulada ? "Voltar ao monitoramento" : "Entrar em simulação";
-    botao.setAttribute("aria-pressed", String(fonte.simulada));
-  }
   if (typeof aoTrocarFonte === "function") aoTrocarFonte();
 }

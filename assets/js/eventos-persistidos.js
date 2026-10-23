@@ -110,6 +110,7 @@ function renderEventosPersistidos() {
     `A API retorna até ${EVENTOS_PERSISTIDOS_LIMITE_API} registros; não representa o histórico completo.` +
     (atualizacao ? ` Atualizado às ${atualizacao}.` : "") + complementoErro;
   if (botao) botao.disabled = !eventos.length;
+  if (typeof renderOcorrenciasRede === "function") renderOcorrenciasRede();
 }
 
 // Busca o histórico persistido. O token e a fonte capturada impedem que uma

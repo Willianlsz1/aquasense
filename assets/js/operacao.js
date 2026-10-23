@@ -6,17 +6,17 @@ function atualizarResumoOperacional(pzId, { apiIndisponivel = false } = {}) {
   const ts = timestampUltimaRecepcao(leitura);
   const recebido = Number.isFinite(ts)
     ? new Date(ts * 1000).toLocaleString("pt-BR") : "nenhuma recepção registrada";
-  const origem = fonte.simulada ? "SIMULAÇÃO · valores fictícios" : "Monitoramento real";
+  const origem = fonte.simulada ? "DEMONSTRAÇÃO · valores fictícios" : "Monitoramento real";
   const estado = apiIndisponivel ? "API indisponível · valores anteriores são referência"
     : estadoComunicacao(leitura) === "stale" ? "Sem leitura recente" : "Leitura recente";
   el.textContent = `${origem} · ${estado} · Recepção: ${recebido}`;
   if (apiIndisponivel) {
     setAlertSemSinal(ts);
-    document.getElementById("adesc").textContent = "Não foi possível consultar a API. A condição atual do instrumento não está confirmada.";
-    document.getElementById("badge-n").textContent = "Não confirmado";
-    document.getElementById("badge-n").className = "mbadge";
-    const badgePressao = document.getElementById("badge-p");
-    if (badgePressao) { badgePressao.textContent = "Não confirmado"; badgePressao.className = "mbadge"; }
-    document.getElementById("val-n").className = "cv-neutral";
+    const selo = document.getElementById("badge-n");
+    if (selo) { selo.textContent = "Não confirmado"; selo.className = "tbadge tb-semsinal"; }
+    const det = document.getElementById("val-n-det");
+    if (det) det.textContent = "API indisponível · condição atual não confirmada";
+    const valor = document.getElementById("val-n");
+    if (valor) valor.className = "cv-neutral";
   }
 }

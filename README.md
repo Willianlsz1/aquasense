@@ -55,7 +55,9 @@ Detalhes, evidências e limites: [guia mestre](docs/GUIA_MESTRE.md). Mercado: [v
 
 Abra o [painel publicado](https://willianlsz1.github.io/aquasense/). Sem leituras
 recentes, os pontos aparecem como **SEM SINAL**. Para ver o painel funcionando sem
-hardware, use **Iniciar simulação**: os dados são fictícios e a tela avisa isso.
+hardware, abra a [demonstração](https://willianlsz1.github.io/aquasense/?demo): um
+roteiro com dados fictícios (operação normal, chuva forte, nível crítico, perda de
+comunicação e normalização), sempre identificado na tela.
 
 ### 2. Montar o protótipo V1
 

@@ -236,7 +236,6 @@ test("falha de /ultimos não muda a fonte para simulação", async () => {
   assert.match(contagens.status.at(-1)[1], /Monitoramento real indisponível/);
   assert.equal(Object.keys(contexto.pzLatest).length, 0, "não reutiliza telemetria anterior no mapa ou seleção");
   assert.equal(elementos.get("val-n").textContent, "···");
-  assert.equal(elementos.get("val-p").textContent, "···");
   assert.equal(contagens.semSinal.length, 1);
 });
 

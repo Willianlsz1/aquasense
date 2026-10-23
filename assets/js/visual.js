@@ -1,6 +1,6 @@
 // ── VISUAL ────────────────────────────────────────────────────────────────────
 // Navegação em abas (Visão geral, Mapa, Instrumento, Alertas), tubo do piezômetro
-// desenhado em SVG, contagem animada de números e reordenação suave dos cartões.
+// desenhado em SVG e ícone do estado da rede.
 // Só apresentação: não lê a fonte de dados nem decide estados de alerta.
 
 const reduzMovimento = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -53,10 +53,14 @@ function aplicarVista() {
   if (v === "instrumento") {
     requestAnimationFrame(() => {
       if (typeof redrawCharts === "function") redrawCharts();
-      ["n", "p", "t"].forEach(k => {
-        if (typeof sparks !== "undefined" && sparks[k]?.length) drawSparkline("spark-" + k, sparks[k], { n: "#8fa0bf", p: "#7c8196", t: "#7c8196" }[k]);
-      });
       if (mudou) revelarGrafico();
+      if (typeof desenharMapaMini === "function") desenharMapaMini("ins");
+    });
+  }
+  if (v === "visao") {
+    requestAnimationFrame(() => {
+      if (typeof desenharGraficoRede === "function") desenharGraficoRede();
+      if (typeof desenharMapaMini === "function") desenharMapaMini("visao", { enquadrar: mudou });
     });
   }
 }
@@ -92,47 +96,6 @@ function definirIconeResumo(tipo) {
   if (!tipo) { ico.innerHTML = ""; return; }
   hero.classList.add("h-" + tipo);
   if (ico.dataset.tipo !== tipo) { ico.innerHTML = ICONES_ESTADO[tipo]; ico.dataset.tipo = tipo; }
-}
-
-// ── NÚMEROS ANIMADOS ──────────────────────────────────────────────────────────
-function contarNumero(el, de, para, casas = 2, dur = 700) {
-  if (!el || !Number.isFinite(de) || !Number.isFinite(para) || reduzMovimento || Math.abs(para - de) < 1e-9) return;
-  const t0 = performance.now();
-  cancelAnimationFrame(el._raf);
-  const passo = t => {
-    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 4);
-    el.textContent = (de + (para - de) * e).toFixed(casas);
-    if (p < 1) el._raf = requestAnimationFrame(passo);
-  };
-  el._raf = requestAnimationFrame(passo);
-}
-
-// Os cartões são remontados a cada consulta. Antes de remontar, guarda posição e
-// valor de cada um; depois anima a troca de ordem (FLIP), o número e a água do tubo.
-function capturarCartoes(grid) {
-  const mapa = new Map();
-  grid.querySelectorAll(".pz-card").forEach(c => {
-    const num = c.querySelector(".pz-num");
-    mapa.set(c.dataset.pz, { rect: c.getBoundingClientRect(), valor: num ? parseFloat(num.textContent) : NaN });
-  });
-  return mapa;
-}
-
-function animarCartoes(grid, antes) {
-  grid.querySelectorAll(".pz-card").forEach(c => {
-    const anterior = antes && antes.get(c.dataset.pz);
-    const agua = c.querySelector(".agua[data-y]");
-    if (agua) requestAnimationFrame(() => requestAnimationFrame(() => { agua.style.transform = `translateY(${agua.dataset.y}px)`; }));
-    if (!anterior) return;
-    const num = c.querySelector(".pz-num");
-    if (num) contarNumero(num, anterior.valor, parseFloat(num.textContent));
-    if (reduzMovimento || typeof c.animate !== "function") return;
-    const d = c.getBoundingClientRect();
-    const dx = anterior.rect.left - d.left, dy = anterior.rect.top - d.top;
-    if (anterior.rect.width && (dx || dy)) {
-      c.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 700, easing: "cubic-bezier(.22,1,.36,1)" });
-    }
-  });
 }
 
 // ── TUBO GRANDE (aba Instrumento) ─────────────────────────────────────────────

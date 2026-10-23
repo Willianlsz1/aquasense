@@ -23,52 +23,50 @@ function updateStats(key, arr) {
   dEl.className = "mstat-val " + (delta > 1 ? (key === "n" ? "down" : "up") : "");
 }
 
-// Atualiza os rótulos "Mín/Máx" dos cartões conforme o período selecionado
+// Atualiza os rótulos "Faixa" e "Mín/Máx" conforme o período selecionado
 function updatePeriodLabels() {
   const lbl = PERIODOS[periodoSelecionado].label;
+  document.querySelectorAll(".lbl-faixa").forEach(el => el.textContent = "Faixa " + lbl);
   document.querySelectorAll(".lbl-min").forEach(el => el.textContent = "Mín " + lbl);
   document.querySelectorAll(".lbl-max").forEach(el => el.textContent = "Máx " + lbl);
-  const tt = document.getElementById("temp-period-tag");
-  if (tt) tt.textContent = lbl;
 }
 
 // ── ALERTA ────────────────────────────────────────────────────────────────────
+// Folga até os limites, exibida nos indicadores do instrumento selecionado.
+function definirFolga(nivel) {
+  const definir = (id, limite) => {
+    const val = document.getElementById(id), det = document.getElementById(id + "-det");
+    const tile = document.getElementById(id === "n-folga-at" ? "tile-folga-at" : "tile-folga-cr");
+    if (det) det.textContent = `limite ${limite.toLocaleString("pt-BR")} m`;
+    if (!val) return;
+    if (!Number.isFinite(nivel)) { val.innerHTML = "—"; tile?.classList.remove("acima"); return; }
+    const folga = limite - nivel;
+    val.innerHTML = folga > 0
+      ? `${folga.toFixed(2)}<small>m</small>`
+      : `+${(-folga).toFixed(2)}<small>m acima</small>`;
+    tile?.classList.toggle("acima", folga <= 0);
+    tile?.classList.toggle("cr", folga <= 0 && id === "n-folga-cr");
+  };
+  definir("n-folga-at", CFG.thrAtencao);
+  definir("n-folga-cr", CFG.thrCritico);
+}
+
 // Lógica de piezômetro: nível d'água ALTO = perigo (saturação do maciço)
 function setAlert(n) {
-  // P4 — histerese na borda: mesma regra vale para o badge/faixa exibida (não pisca)
-  // e para a decisão de registrar uma nova linha de alarme/evento abaixo.
-  const { lv } = classifyComHisterese(n, lastLevel);
-  let desc, icon;
-  if (lv === "normal") {
-    desc = `Nível dentro da faixa esperada. Acompanhamento de rotina pelo painel.`;
-    // P6 — ícone neutro no estado normal (cor reservada a anormalidade, ISA-101)
-    icon = `<circle cx="8" cy="8" r="5.5" stroke="#7c8196" stroke-width="1.5"/><path d="M5.5 8l2 2 3.5-3.5" stroke="#7c8196" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
-  } else if (lv === "atencao") {
-    desc = `Nível entre ${CFG.thrAtencao} e ${CFG.thrCritico} m: observar de perto e intensificar o monitoramento`;
-    icon = `<path d="M8 2L14.5 13.5H1.5L8 2Z" stroke="#f0c040" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6.5V9.5" stroke="#f0c040" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.5" r=".75" fill="#f0c040"/>`;
-  } else {
-    desc = `Faixa crítica configurada: verificar a leitura e seguir o procedimento definido pelo responsável.`;
-    icon = `<circle cx="8" cy="8" r="5.5" stroke="#f04848" stroke-width="1.5"/><path d="M8 5v3.5" stroke="#f04848" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11" r=".75" fill="#f04848"/>`;
-  }
+  // P4 — histerese na borda: mesma regra vale para o selo exibido (não pisca)
+  // e para a decisão de registrar uma nova ocorrência abaixo.
+  const { lv, lbl } = classifyComHisterese(n, lastLevel);
   const upperLbl = { normal: "NORMAL", atencao: "ATENÇÃO", critico: "CRÍTICO" }[lv];
 
+  // P6/ISA-101: estado normal em tons neutros — cor saturada SÓ na anormalidade.
   const bn = document.getElementById("badge-n");
   const vn = document.getElementById("val-n");
-  // P6/ISA-101: estado normal em tons neutros — número branco, badge cinza;
-  // cor saturada aparece SÓ quando há anormalidade (atenção/crítico).
-  if (lv === "normal")  { bn.className = "mbadge";           bn.textContent = "Normal";  vn.className = "cv-neutral"; }
-  if (lv === "atencao") { bn.className = "mbadge mb-yellow"; bn.textContent = "Atenção"; vn.className = "cv-yellow"; }
-  if (lv === "critico") { bn.className = "mbadge mb-red";    bn.textContent = "Crítico"; vn.className = "cv-red"; }
-
-  document.getElementById("abox").className   = `alert-level-box alb-${lv}`;
-  document.getElementById("aicon").className  = `al-icon ali-${lv}`;
-  document.getElementById("asvg").innerHTML   = icon;
-  document.getElementById("astate").className = `al-state al-${lv}`;
-  document.getElementById("astate").textContent = upperLbl;
-  document.getElementById("adesc").textContent  = desc;
-  document.getElementById("tby").className = lv !== "normal"  ? "tb-seg tb-yellow on" : "tb-seg tb-yellow";
-  document.getElementById("tbr").className = lv === "critico" ? "tb-seg tb-red on"    : "tb-seg tb-red";
-  document.getElementById("ainfo").textContent = `Nível atual ${n.toFixed(2)} m · Monitoramento ativo`;
+  if (bn) { bn.className = lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${lv}`; bn.textContent = lbl; }
+  if (vn) vn.className = { normal: "cv-neutral", atencao: "cv-yellow", critico: "cv-red" }[lv];
+  const det = document.getElementById("val-n-det");
+  if (det) det.textContent = lv === "normal" ? "leitura atual · dentro da faixa normal"
+    : lv === "atencao" ? `leitura atual · acima de ${CFG.thrAtencao} m` : `leitura atual · acima de ${CFG.thrCritico} m`;
+  definirFolga(n);
 
   if (typeof atualizarTuboInstrumento === "function") atualizarTuboInstrumento(n, lv, true);
 
@@ -78,27 +76,20 @@ function setAlert(n) {
   }
 }
 
-// P1 — painel "Nível de Alerta" quando o pz selecionado está sem sinal: estado neutro
-// (nunca NORMAL/ATENÇÃO/CRÍTICO com dado ausente) e NÃO mexe em lastLevel — a transição
-// de nível não é avaliada com dado stale (retoma do zero quando a comunicação voltar).
+// P1 — instrumento selecionado sem sinal: estado neutro (nunca NORMAL/ATENÇÃO/CRÍTICO
+// com dado ausente) e NÃO mexe em lastLevel — a transição de nível não é avaliada
+// com dado stale (retoma do zero quando a comunicação voltar).
 function setAlertSemSinal(ts) {
   const temTs = Number.isFinite(ts);
-  const ultimaLeitura = temTs ? formatUltimaLeitura(ts) : null;
-  const icon = `<circle cx="8" cy="8" r="5.5" stroke="#8a90a3" stroke-width="1.5"/><path d="M5 8h6" stroke="#8a90a3" stroke-width="1.5" stroke-linecap="round"/>`;
-
-  document.getElementById("abox").className   = "alert-level-box alb-semsinal";
-  document.getElementById("aicon").className  = "al-icon ali-semsinal";
-  document.getElementById("asvg").innerHTML   = icon;
-  document.getElementById("astate").className = "al-state al-semsinal";
-  document.getElementById("astate").textContent = "SEM SINAL";
-  document.getElementById("adesc").textContent = temTs
-    ? `Instrumento sem reportar ${ultimaLeitura}. Alarme de nível suspenso (dado ausente não é avaliado como normal).`
-    : "Instrumento nunca reportou. Alarme de nível suspenso (dado ausente não é avaliado como normal).";
-  document.getElementById("tby").className = "tb-seg tb-yellow";
-  document.getElementById("tbr").className = "tb-seg tb-red";
-  document.getElementById("ainfo").textContent = temTs
-    ? `Sem comunicação · última leitura ${ultimaLeitura}`
-    : "Sem comunicação · nenhuma leitura recebida";
+  const bn = document.getElementById("badge-n");
+  if (bn) { bn.className = "tbadge tb-semsinal"; bn.textContent = "Sem sinal"; }
+  const vn = document.getElementById("val-n");
+  if (vn) vn.className = "cv-neutral";
+  const det = document.getElementById("val-n-det");
+  if (det) det.textContent = temTs
+    ? `última leitura conhecida · ${formatUltimaLeitura(ts)} · não confirmada`
+    : "nenhuma leitura recebida";
+  definirFolga(null);
   // O tubo mantém o último nível conhecido, em cinza; sem recepção alguma, fica vazio.
   if (typeof atualizarTuboInstrumento === "function") {
     const ultimoNivel = temTs && typeof pzLatest !== "undefined" ? pzLatest[pzSelecionado]?.nivel : null;
@@ -115,7 +106,7 @@ function addAlertRow(lv, lbl, nivel) {
   };
   const colors = { normal: "#8a94ad", atencao: "#f0c040", critico: "#f04848", info: "#4da8f0" };
   const msg = (msgs[lv] || lbl) + ` (${pzSelecionado})` + (fonte.simulada ? " (simulação)" : "");
-  pushHistorico({ lv, lbl, msg, nivel: Number.isFinite(nivel) ? nivel.toFixed(2) : "···", time: t, color: colors[lv] || colors.info });
+  pushHistorico({ lv, lbl, msg, pz: pzSelecionado, nivel: Number.isFinite(nivel) ? nivel.toFixed(2) : "···", time: t, color: colors[lv] || colors.info });
 }
 
 function addInfoRow(msg) {
@@ -234,10 +225,11 @@ function renderReadingsTable() {
 }
 
 // ── VISÃO GERAL DOS PIEZÔMETROS ───────────────────────────────────────────────
-// Cartões ordenados por prioridade (crítico, atenção, sem sinal, normal): o que pede
-// ação aparece primeiro. Cada cartão traz o tubo com a altura da água e as faixas.
+// Tabela ordenada por prioridade (crítico, atenção, sem sinal, normal): o que pede
+// ação aparece primeiro. Cada linha traz o nível sobre a escala com os limites, a
+// folga até a atenção, a tendência de 24 h, a taxa, a recepção e a disponibilidade.
 const PRIORIDADE = { critico: 0, atencao: 1, semsinal: 2, normal: 3 };
-const cartaoAnterior = {}; // por pz: { lv, ts, nivel } — destaca mudança de faixa e leitura nova
+const cartaoAnterior = {}; // por pz: { lv, ts } — destaca mudança de faixa e leitura nova
 
 // Situação de um instrumento a partir da última leitura: nunca "normal" sem dado recente.
 function situacaoPz(d) {
@@ -246,99 +238,84 @@ function situacaoPz(d) {
   return { ...classifyNivel(nivel), nivel };
 }
 
-// Tubo pequeno (54 × 132): a água entra pela posição anterior e anima até a atual.
-function tuboMiniSvg(id, nivel, nivelAnterior) {
-  const escala = Math.max(4, Math.ceil(CFG.thrCritico * 1.2));
-  const y = n => (126 - (clamp(n, 0, escala) / escala) * 118).toFixed(1);
-  const alvo = Number.isFinite(nivel) ? y(nivel) : 126;
-  const inicio = Number.isFinite(nivelAnterior) ? y(nivelAnterior) : 126;
-  const u = "tm-" + String(id).replace(/[^\w-]/g, "");
-  return `<svg class="tubo-mini" viewBox="0 0 54 132" aria-hidden="true"><defs>
-    <clipPath id="${u}"><rect x="17" y="7" width="20" height="120" rx="10"/></clipPath>
-    <linearGradient id="${u}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4FC3F7"/><stop offset="1" stop-color="#1565C0"/></linearGradient></defs>
-    <rect class="tubo-corpo" x="17" y="7" width="20" height="120" rx="10" stroke-width="1.5"/>
-    <g clip-path="url(#${u})"><g class="agua" data-y="${alvo}" style="transform:translateY(${inicio}px)">
-      <path class="onda agua-cor" d="M0 0 q5 -2.5 10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 V140 H0Z" fill="url(#${u}g)"/>
-    </g></g>
-    <line x1="11" x2="43" y1="${y(CFG.thrCritico)}" y2="${y(CFG.thrCritico)}" stroke="#EF5A5A" stroke-width="1.4" stroke-dasharray="3 2"/>
-    <line x1="11" x2="43" y1="${y(CFG.thrAtencao)}" y2="${y(CFG.thrAtencao)}" stroke="#E3A53A" stroke-width="1.4" stroke-dasharray="3 2"/>
-  </svg>`;
+function filtroVisaoGeral() {
+  const ativo = typeof document.querySelector === "function" ? document.querySelector("#filtro-pz [aria-pressed='true']") : null;
+  const busca = document.getElementById("busca-pz");
+  return { filtro: ativo ? ativo.dataset.f : "todos", busca: busca && typeof busca.value === "string" ? busca.value.trim().toLowerCase() : "" };
+}
+
+function linhaInstrumento(pz, d, s) {
+  const semSinal = s.lv === "semsinal";
+  const ultimaRecepcao = timestampUltimaRecepcao(d);
+  const anterior = cartaoAnterior[pz.id];
+  const mudou = anterior && anterior.lv !== s.lv ? " mudou" : "";
+  const leituraNova = !semSinal && anterior && Number.isFinite(ultimaRecepcao) && anterior.ts !== ultimaRecepcao;
+  cartaoAnterior[pz.id] = { lv: s.lv, ts: ultimaRecepcao };
+  const temRede = typeof historicoRede !== "undefined";
+  const hist = temRede ? historicoRede[pz.id] : undefined;
+  const ref24 = Array.isArray(hist) && hist.length ? hist[0].v : null;
+  const local = typeof cadastroDe === "function" ? cadastroDe(pz.id).local : "";
+  const selo = s.lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${s.lv}`;
+  const valor = s.nivel !== null ? `${s.nivel.toFixed(2)}<small>m</small>` : "···";
+  const indicador = typeof bulletSvg === "function" ? bulletSvg(s.nivel, s.lv, ref24) : "";
+
+  // P1 — leitura ausente/stale nunca aparece como normal: selo "SEM SINAL", valor
+  // esmaecido e "última leitura há X min" (nunca vermelho nem verde).
+  let folga;
+  if (semSinal) folga = `<span class="folga">—<small>leitura não confirmada</small></span>`;
+  else {
+    const fa = CFG.thrAtencao - s.nivel, fc = CFG.thrCritico - s.nivel;
+    if (fa > 0) folga = `<span class="folga">${fa.toFixed(2)} m<small>${fc.toFixed(2)} m até crítico</small></span>`;
+    else if (fc > 0) folga = `<span class="folga at">+${(-fa).toFixed(2)} m acima<small>${fc.toFixed(2)} m até crítico</small></span>`;
+    else folga = `<span class="folga cr">+${(-fc).toFixed(2)} m acima<small>do limite crítico</small></span>`;
+  }
+  // P3 — taxa só com comunicação recente; destaque quando |taxa| > limiar.
+  const taxa = !semSinal && d && Number.isFinite(d.taxa_m_dia) ? d.taxa_m_dia : null;
+  const taxaRapida = taxa !== null && Math.abs(taxa) > CFG.taxaMaxMDia;
+  const taxaHtml = taxa === null ? "—" : `${taxaRapida ? "↗ " : ""}${taxa >= 0 ? "+" : ""}${taxa.toFixed(2)}`;
+  const recepcao = semSinal
+    ? (Number.isFinite(ultimaRecepcao) ? `última leitura ${formatUltimaLeitura(ultimaRecepcao)}` : "nenhuma leitura recebida")
+    : `recebido ${formatUltimaLeitura(ultimaRecepcao)}`;
+  const disp = typeof disponibilidade24h === "function" ? disponibilidade24h(pz.id) : null;
+  const dispHtml = disp
+    ? `<span class="disp${disp.pct < 98 ? " baixa" : ""}"><span class="trilho"><i style="width:${disp.pct.toFixed(1)}%"></i></span>${disp.pct.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>`
+    : `<span class="disp">—</span>`;
+  return `
+    <tr class="lin-${s.lv}${pz.id === pzSelecionado ? " selecionado" : ""}${mudou}" data-pz="${textoHtml(pz.id)}" tabindex="0" aria-label="${textoHtml(pz.id)} ${textoHtml(pz.nome)}: ${s.lbl}">
+      <td><span class="${selo}">${s.lbl}</span></td>
+      <td><span class="idn"><span class="id">${textoHtml(pz.id)}</span><span class="nm">${textoHtml(pz.nome)}</span>${local ? `<span class="lc">${textoHtml(local)}</span>` : ""}</span></td>
+      <td><span class="nivel"><span class="v${semSinal ? " valor-esmaecido" : ""}">${valor}</span>${indicador}</span></td>
+      <td>${folga}</td>
+      <td class="spark">${typeof sparkSvg === "function" ? sparkSvg(hist, s.lv) : ""}</td>
+      <td class="d"><span class="taxa${taxaRapida ? " rapida" : ""}"${taxaRapida ? ' title="Variação rápida: investigar"' : ""}>${taxaHtml}</span>${taxa === null ? "" : "<small>m/dia</small>"}</td>
+      <td><span class="rec${semSinal ? " off" : ""}"><span class="sinal" aria-hidden="true"><i></i><i></i><i></i></span>${recepcao}</span>${leituraNova ? '<span class="recebe pulso" aria-hidden="true"></span>' : ""}</td>
+      <td>${dispHtml}</td>
+      <td class="seta" aria-hidden="true">›</td>
+    </tr>`;
 }
 
 function atualizarVisaoGeral(mapa) {
   const grid = document.getElementById("pz-grid");
   if (!grid) return;
-  const antes = typeof capturarCartoes === "function" ? capturarCartoes(grid) : null;
   const ordem = PIEZOMETROS.map((pz, i) => ({ pz, i, d: mapa[pz.id], s: situacaoPz(mapa[pz.id]) }))
     .sort((a, b) => PRIORIDADE[a.s.lv] - PRIORIDADE[b.s.lv] || a.i - b.i);
-
-  grid.innerHTML = ordem.map(({ pz, d, s }) => {
-    const semSinal = s.lv === "semsinal";
-    const nivel = s.nivel;
-    const sel = pz.id === pzSelecionado ? " selected" : "";
-    const ultimaRecepcao = timestampUltimaRecepcao(d);
-    const anterior = cartaoAnterior[pz.id];
-    const mudou = anterior && anterior.lv !== s.lv ? " mudou" : "";
-    const leituraNova = !semSinal && anterior && Number.isFinite(ultimaRecepcao) && anterior.ts !== ultimaRecepcao;
-    cartaoAnterior[pz.id] = { lv: s.lv, ts: ultimaRecepcao, nivel };
-    const valorHtml = nivel !== null
-      ? `<span class="pz-num">${nivel.toFixed(2)}</span><span class="pz-card-unit">m</span>`
-      : "···";
-    const tubo = tuboMiniSvg(pz.id, nivel, anterior ? anterior.nivel : null);
-
-    // P1 — leitura ausente/stale nunca aparece como normal: badge cinza "SEM SINAL" + cor+texto,
-    // valor esmaecido e "última leitura há X min" (nunca vermelho nem verde — ver docs §2).
-    if (semSinal) {
-      const lastSeen = Number.isFinite(ultimaRecepcao)
-        ? `última leitura ${formatUltimaLeitura(ultimaRecepcao)}`
-        : "nenhuma leitura recebida";
-      return `
-        <div class="pz-card pz-sem-sinal${sel}${mudou}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
-          ${tubo}
-          <div class="pz-card-corpo">
-            <div class="pz-card-top"><span class="pz-card-id">${textoHtml(pz.id)}</span><span class="tbadge tb-semsinal">SEM SINAL</span></div>
-            <div class="pz-card-name">${textoHtml(pz.nome)}</div>
-            <div class="pz-card-value valor-esmaecido">${valorHtml}</div>
-            <div class="pz-card-pe"><span class="sinal" aria-hidden="true"><i></i><i></i><i></i></span><span class="pz-card-lastseen">${lastSeen}</span></div>
-          </div>
-        </div>`;
-    }
-
-    // P3 — chip "variação rápida" quando |taxa| > limiar e o pz está comunicando normalmente
-    const taxa = d && Number.isFinite(d.taxa_m_dia) ? d.taxa_m_dia : null;
-    const taxaRapida = taxa !== null && Math.abs(taxa) > CFG.taxaMaxMDia;
-    const chipHtml = taxaRapida
-      ? `<span class="chip-taxa-rapida" title="Variação rápida: investigar (limiar definido na configuração do projeto)">📈 variação rápida</span>`
-      : "";
-    const badgeCls = s.lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${s.lv}`;
-    return `
-      <div class="pz-card nivel-${s.lv}${sel}${mudou}" data-pz="${textoHtml(pz.id)}" role="button" tabindex="0" aria-pressed="${Boolean(sel)}">
-        ${tubo}
-        <div class="pz-card-corpo">
-          <div class="pz-card-top"><span class="pz-card-id">${textoHtml(pz.id)}</span><span class="${badgeCls}">${s.lbl}</span></div>
-          <div class="pz-card-name">${textoHtml(pz.nome)}</div>
-          <div class="pz-card-value">${valorHtml}</div>
-          ${chipHtml}
-          <div class="pz-card-pe"><span class="sinal" aria-hidden="true"><i></i><i></i><i></i></span><span class="pz-card-lastseen">recebido ${formatUltimaLeitura(ultimaRecepcao)}</span></div>
-        </div>
-        <span class="recebe${leituraNova ? " pulso" : ""}" aria-hidden="true"></span>
-      </div>`;
-  }).join("");
-  grid.querySelectorAll(".pz-card").forEach(card => {
-    const abrir = () => {
-      selectPiezometro(card.dataset.pz);
-      if (typeof irParaVista === "function") irParaVista("instrumento");
-    };
-    card.addEventListener("click", abrir);
-    card.addEventListener("keydown", event => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        abrir();
-      }
-    });
+  const { filtro, busca } = filtroVisaoGeral();
+  const visiveis = ordem.filter(({ pz, s }) => {
+    if (filtro === "alerta" && s.lv !== "atencao" && s.lv !== "critico") return false;
+    if (filtro === "semsinal" && s.lv !== "semsinal") return false;
+    return !busca || `${pz.id} ${pz.nome}`.toLowerCase().includes(busca);
   });
-  if (typeof animarCartoes === "function") animarCartoes(grid, antes);
+  grid.innerHTML = visiveis.length
+    ? visiveis.map(({ pz, d, s }) => linhaInstrumento(pz, d, s)).join("")
+    : `<tr><td colspan="9" class="vazio">Nenhum instrumento neste filtro.</td></tr>`;
+
+  const emAlerta = ordem.filter(o => o.s.lv === "atencao" || o.s.lv === "critico").length;
+  const sub = document.getElementById("tab-sub");
+  if (sub) sub.textContent = `${PIEZOMETROS.length} cadastrados · ${emAlerta ? emAlerta + " em alerta" : "nenhum em alerta"}`;
+  const escala = document.getElementById("tab-escala");
+  if (escala && typeof escalaNivel === "function") escala.textContent = `(0–${escalaNivel()} m)`;
   if (typeof atualizarResumoRede === "function") atualizarResumoRede(mapa);
+  if (typeof aoAtualizarRede === "function") aoAtualizarRede(mapa);
 }
 
 // ── MAPA ──────────────────────────────────────────────────────────────────────
@@ -464,15 +441,14 @@ function atualizarMapa(mapa) {
 
 function updatePzLabels() {
   const pz = PIEZOMETROS.find(p => p.id === pzSelecionado);
-  const nome = pz ? pz.nome : "";
   const dl = document.getElementById("pz-detail-label");
-  if (dl) dl.textContent = `${pzSelecionado}${nome ? " · " + nome : ""}`;
-  const at = document.getElementById("alert-pz-tag");
-  if (at) at.textContent = pzSelecionado;
+  if (dl) dl.textContent = pz ? pz.nome : pzSelecionado;
+  const cod = document.getElementById("i-codigo");
+  if (cod) cod.textContent = pzSelecionado;
   const rt = document.getElementById("pz-tag-readings");
   if (rt) rt.textContent = pzSelecionado;
-  const et = document.getElementById("events-title");
-  if (et) et.textContent = `Sessão atual · todos os instrumentos`;
+  if (typeof atualizarSeletoresPz === "function") atualizarSeletoresPz();
+  if (typeof renderCartaoCadastro === "function") renderCartaoCadastro();
   if (typeof atualizarTituloVista === "function") atualizarTituloVista();
 }
 
@@ -483,15 +459,17 @@ function renderTaxa(taxa) {
   const el = document.getElementById("n-taxa");
   if (!el) return;
   if (!Number.isFinite(taxa)) {
-    el.textContent = "···";
-    el.className = "mstat-val";
+    el.textContent = "—";
+    el.className = "tile-val mstat-val";
     el.removeAttribute("title");
     return;
   }
   const sinal = taxa >= 0 ? "+" : "";
   const rapida = Math.abs(taxa) > CFG.taxaMaxMDia;
-  el.textContent = `${rapida ? "📈 " : ""}${sinal}${taxa.toFixed(2)} m/dia`;
-  el.className = "mstat-val" + (rapida ? " warn" : "");
+  el.innerHTML = `${rapida ? "↗ " : ""}${sinal}${taxa.toFixed(2)}<small>m/dia</small>`;
+  el.className = "tile-val mstat-val" + (rapida ? " warn" : "");
+  const det = document.getElementById("n-taxa-det");
+  if (det) det.textContent = rapida ? `acima de ${CFG.taxaMaxMDia} m/dia · investigar` : `limite ${CFG.taxaMaxMDia} m/dia`;
   if (rapida) el.title = "Variação rápida: investigar (limiar definido na configuração do projeto)";
   else el.removeAttribute("title");
 }

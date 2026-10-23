@@ -70,7 +70,7 @@ function atualizarLinkRelatorio() {
     : "Documento A4 pronto para salvar como PDF: resumo, gráfico, tabela e auditoria do período";
 }
 
-// Carrega histórico do piezômetro/período selecionados (nível + temperatura),
+// Carrega histórico de nível do piezômetro/período selecionados,
 // semeia stats, tabela de leituras e redesenha os gráficos.
 // Consome só `fonte.historico()` — não sabe (nem precisa saber) se é real ou simulada.
 function limparHistoricoCarregado() {
@@ -141,7 +141,6 @@ async function loadHistoryAndStats() {
   limparAvisoHistoricoIndisponivel();
 
   const hn = pontosParaCampo(pontos, "nivel_agua");
-  const ht = pontosParaCampo(pontos, "temperatura");
 
   if (!hn.length) {
     const mensagem = `Nenhuma leitura histórica disponível para ${pzSelecionado} (${PERIODOS[periodoSelecionado].label}).`;
@@ -178,31 +177,16 @@ async function loadHistoryAndStats() {
   });
   renderReadingsTable();
   addInfoRow(`Histórico de nível d'água carregado (${hn.length} pontos) — ${pzSelecionado}`);
-  if (ht.length) {
-    charts.t.labels = ht.map(h => h.label);
-    charts.t.data   = ht.map(h => h.value);
-    charts.t.times  = ht.map(h => h.time);
-    statsWin.t      = ht.map(h => h.value);
-    updateStats("t", statsWin.t);
-    addInfoRow(`Histórico de temperatura carregado (${ht.length} pontos) — ${pzSelecionado}`);
-  }
-
   redrawCharts();
-  if (typeof revelarGrafico === "function") revelarGrafico();
 }
 
 // ── APLICA DADOS DO PIEZÔMETRO SELECIONADO ───────────────────────────────────
-function applyData({ nivel, pressao, temperatura, taxa_m_dia, ts, recebidoEm }) {
-  // Honestidade do dado (achado do review de 17/07): grandeza ausente NUNCA vira
-  // número fabricado (antes: pressão ausente virava "1013" e temperatura "24",
-  // exibidos como se medidos — a bancada HC-SR04 não mede nenhuma das duas).
-  // Nível não-finito descarta a aplicação inteira; pressão/temperatura são
-  // opcionais e, ausentes, mostram "n/d" (não disponível) com badge "Sem sensor".
+function applyData({ nivel, taxa_m_dia, ts, recebidoEm }) {
+  // Honestidade do dado: só o nível d'água é medido pela UCT. Nível não-finito
+  // descarta a aplicação inteira (nunca vira número fabricado).
   if (!Number.isFinite(nivel)) return;
   const telemetria = avaliarTelemetriaAtual({ nivel, taxa_m_dia, ts, recebidoEm });
   const leituraStale = telemetria.status === "stale";
-  const temPressao = Number.isFinite(pressao);
-  const temTemp    = Number.isFinite(temperatura);
 
   // A API pode estar online enquanto o instrumento está sem sinal. Mantemos o
   // último valor conhecido visível, mas o painel deixa claro que ele não é uma
@@ -210,78 +194,30 @@ function applyData({ nivel, pressao, temperatura, taxa_m_dia, ts, recebidoEm }) 
   document.getElementById("pz-detail-label")?.classList.toggle("telemetria-stale", leituraStale);
   document.getElementById("metrics-row")?.classList.toggle("telemetria-stale", leituraStale);
 
-  // Card/gráfico de temperatura nascem OCULTOS (a bancada não instrumenta a
-  // grandeza — decisão do usuário: ocultar em vez de exibir "Sem sensor").
-  // São revelados na 1ª leitura que trouxer temperatura real (Wokwi/BMP hoje,
-  // BME280 no protótipo v2) e as linhas voltam ao layout de 3 cards/2 gráficos.
-  if (temTemp) {
-    document.getElementById("card-t")?.classList.remove("oculta-metrica");
-    document.getElementById("panel-chart-t")?.classList.remove("oculta-metrica");
-    document.getElementById("metrics-row")?.classList.remove("sem-temp");
-    document.getElementById("charts-row")?.classList.remove("sem-temp");
-  }
-
-  const flash = id => {
-    const el = document.getElementById(id);
-    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
-  };
-
-  document.getElementById("val-n").textContent = nivel.toFixed(2);
-  if (!leituraStale) flash("val-n");
-  // Poropressão: com sensor de pressão real (ex.: BMP no Wokwi) exibe a leitura
-  // bruta em hPa; sem ele (bancada ultrassônica), exibe a poropressão EQUIVALENTE
-  // calculada do nível MEDIDO (u = γw·h, 9,807 kPa por metro de coluna d'água,
-  // a grandeza que o piezômetro real mede). Rotulada "Calculada": derivação de
-  // medição real com rótulo explícito, nunca número inventado.
-  const pressaoExib = temPressao ? pressao : nivel * 9.807;
-  document.getElementById("val-p").textContent = pressaoExib.toFixed(1);
-  if (!leituraStale) flash("val-p");
-  const up = document.getElementById("unit-p");
-  if (up) up.textContent = temPressao ? "hPa" : "kPa";
-  document.getElementById("val-t").textContent = temTemp ? temperatura.toFixed(1) : "n/d";
-  if (temTemp && !leituraStale) flash("val-t");
+  const valor = document.getElementById("val-n");
+  valor.textContent = nivel.toFixed(2);
+  if (!leituraStale && valor.classList) { valor.classList.remove("flash"); void valor.offsetWidth; valor.classList.add("flash"); }
 
   // Taxa e todos os derivados operacionais exigem uma recepção recente. Não
   // anexar a mesma amostra stale às séries locais nem reavaliar seus alarmes.
   if (leituraStale) {
     renderTaxa(null);
-    const badgeNivel = document.getElementById("badge-n");
-    if (badgeNivel) { badgeNivel.className = "mbadge"; badgeNivel.textContent = "Sem sinal"; }
-    const badgePressao = document.getElementById("badge-p");
-    if (badgePressao) { badgePressao.className = "mbadge"; badgePressao.textContent = "Sem sinal"; }
     setAlertSemSinal(Number.isFinite(recebidoEm) ? recebidoEm : ts);
     return;
   }
 
-  // Sparklines (só com dado real — sparkline de valor fabricado é linha reta mentirosa)
   pushSpark("n", nivel);
-  pushSpark("p", pressaoExib);
-  if (temTemp)    pushSpark("t", temperatura);
 
-  // Charts
+  // Gráfico
   const lbl = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const iso = new Date().toISOString();
-  pushChart("n", lbl, nivel, iso);
-  if (temTemp) pushChart("t", lbl, temperatura, iso);
+  pushChart("n", lbl, nivel, new Date().toISOString());
   redrawCharts();
 
   // Stats (janela completa do período, não só os pontos visíveis no gráfico)
   pushStats("n", nivel);
   pushStats("nMax", nivel); // leitura ao vivo é instantânea: o valor também é o pico do instante
-  pushStats("p", pressaoExib); updateStats("p", statsWin.p);
-  if (temTemp)    { pushStats("t", temperatura); updateStats("t", statsWin.t); }
   updateStats("n", statsWin.n);
-  aplicarMaxNivelPico(); // P5 — MÁX 24H usa o pico do intervalo, não a média
-
-  // Badge dinâmico de temperatura (neutro quando a bancada não instrumenta a grandeza)
-  const bt = document.getElementById("badge-t");
-  if (!temTemp)                                    { bt.className = "mbadge";           bt.textContent = "Sem sensor"; }
-  else if (temperatura >= 0 && temperatura <= 50)  { bt.className = "mbadge mb-blue";   bt.textContent = "Normal"; }
-  else                                             { bt.className = "mbadge mb-yellow"; bt.textContent = "Verificar"; }
-
-  // Badge da pressão idem (o HTML traz "Bruta" fixo — só sobrescreve na ausência)
-  const bp = document.getElementById("badge-p");
-  if (bp) { bp.textContent = temPressao ? "Bruta" : "Calculada"; bp.className = temPressao ? "mbadge mb-blue" : "mbadge"; }
+  aplicarMaxNivelPico(); // P5 — MÁX usa o pico do intervalo, não a média
 
   // P3 — taxa de variação (display), somente da leitura atual elegível.
   renderTaxa(telemetria.taxaAtual);
@@ -297,20 +233,12 @@ function applyData({ nivel, pressao, temperatura, taxa_m_dia, ts, recebidoEm }) 
 }
 
 function limparMetricasAtuais() {
-  ["val-n", "val-p", "val-t"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.textContent = "···"; el.className = "cv-neutral"; }
-  });
-  ["badge-n", "badge-p", "badge-t"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.className = "mbadge"; el.textContent = id === "badge-t" ? "Sem sensor" : "Sem sinal"; }
-  });
+  const valor = document.getElementById("val-n");
+  if (valor) { valor.textContent = "···"; valor.className = "cv-neutral"; }
+  const selo = document.getElementById("badge-n");
+  if (selo) { selo.className = "tbadge tb-semsinal"; selo.textContent = "Sem sinal"; }
   document.getElementById("pz-detail-label")?.classList.add("telemetria-stale");
   document.getElementById("metrics-row")?.classList.add("telemetria-stale");
-  document.getElementById("card-t")?.classList.add("oculta-metrica");
-  document.getElementById("panel-chart-t")?.classList.add("oculta-metrica");
-  document.getElementById("metrics-row")?.classList.add("sem-temp");
-  document.getElementById("charts-row")?.classList.add("sem-temp");
   renderTaxa(null);
 }
 
@@ -330,6 +258,7 @@ function limparEstadoDaFonte() {
   eventos = [];
   lastLevel = null;
   lastTaxaRapidaState = false;
+  if (typeof limparSessaoRede === "function") limparSessaoRede();
   resetPzState();
   limparMetricasAtuais();
   setAlertSemSinal(null);
@@ -352,12 +281,13 @@ function carregarEventosDaFonte() {
 function aoTrocarFonte() {
   limparEstadoDaFonte();
   const mensagem = fonte.simulada
-    ? "Modo simulação escolhido manualmente · dados fictícios de demonstração"
+    ? "Demonstração · dados fictícios em tempo acelerado"
     : "Monitoramento real selecionado · aguardando dados do sistema";
   setStatus(fonte.simulada ? "sim" : "live", mensagem);
   atualizarResumoDaFonte(false);
   carregarEventosDaFonte();
   loadHistoryAndStats();
+  if (typeof carregarHistoricoRede === "function") carregarHistoricoRede({ forcar: true });
   solicitarPoll();
 }
 
@@ -402,7 +332,17 @@ function solicitarPoll() {
   return poll();
 }
 
-// Roda a cada CFG.poll (10s). A fonte simulada só é usada pelo botão explícito;
+// Histórico de 24 h da rede: no monitoramento real, recarregado a cada 30 min
+// (cada consulta lê o D1); na demonstração, a cada consulta, assim como o
+// histórico do instrumento aberto, para o gráfico acompanhar o roteiro.
+function aposConsulta() {
+  if (typeof carregarHistoricoRede !== "function") return;
+  if (!fonte.simulada) { carregarHistoricoRede(); return; }
+  carregarHistoricoRede({ forcar: true });
+  if (typeof vistaAtual !== "undefined" && vistaAtual === "instrumento") loadHistoryAndStats();
+}
+
+// Roda a cada CFG.poll (10s; 3 s na demonstração). A fonte simulada só é usada pelo botão explícito;
 // uma falha da API conserva a interface em monitoramento real e informa a falha.
 async function poll() {
   if (pollEmAndamento) { pollPendente = true; return; }
@@ -414,7 +354,7 @@ async function poll() {
     pzLatest = dadosTodos;
     failCount = 0;
     setStatus(fonte.simulada ? "sim" : "live", fonte.simulada
-      ? "Modo simulação ativo · dados fictícios de demonstração"
+      ? "Demonstração · dados fictícios em tempo acelerado"
       : `Sistema online · consulta às ${new Date().toLocaleTimeString("pt-BR")}`);
 
     checarTransicoesComunicacao(pzLatest);
@@ -425,6 +365,7 @@ async function poll() {
     else applyData(sel);
     atualizarResumoDaFonte(false);
     carregarEventosDaFonte();
+    aposConsulta();
   } catch (e) {
     if (fonteDaRequisicao !== fonte) return;
     failCount++;
@@ -451,13 +392,13 @@ async function poll() {
 
   // Antes de montar mapa/grid e iniciar o polling: tenta carregar config do servidor
   await loadConfig();
+  if (typeof aplicarCadastro === "function") aplicarCadastro();
 
   iniciarEventosPersistidos();
   carregarEventosDaFonte();
   initHowto();
   initPeriodPills();
-  const simBtn = document.getElementById("btn-simulacao");
-  if (simBtn) simBtn.addEventListener("click", () => trocarFonte(fonte.simulada ? FonteApi : FonteSimulada));
+  if (typeof iniciarSeletoresPz === "function") iniciarSeletoresPz();
   updatePeriodLabels();
   updatePzLabels();
   initMap();
@@ -477,8 +418,9 @@ async function poll() {
   atualizarMapa(pzLatest);
   atualizarLinkRelatorio();
 
-  // Carrega histórico do período/piezômetro selecionados
+  // Carrega histórico do período/piezômetro selecionados e as últimas 24 h da rede
   await loadHistoryAndStats();
+  if (typeof carregarHistoricoRede === "function") carregarHistoricoRede({ forcar: true });
 
   window.addEventListener("resize", () => {
     redrawCharts();

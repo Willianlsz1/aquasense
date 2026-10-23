@@ -20,7 +20,14 @@ const CFG = {
   // P4 — histerese (m) na detecção de borda entre faixas, evita repicar o badge/alarme
   // bem em cima do limiar; sobrescrita por /config `histerese_m`.
   histereseM: 0.2,
+  // Intervalo de envio da UCT (INTERVALO_ENVIO do firmware): base da disponibilidade
+  // (leituras recebidas ÷ esperadas em 24 h).
+  intervaloEnvioSeg: 10,
 };
+
+// Endereço de demonstração (index.html?demo): dados fictícios com roteiro, sempre
+// identificados. O endereço normal só mostra o monitoramento real.
+const MODO_DEMO = typeof location !== "undefined" && new URLSearchParams(location.search).has("demo");
 
 // Piezômetros monitorados (coordenadas ilustrativas — Complexo de Germano, Mariana/MG)
 const PIEZOMETROS = [
@@ -30,13 +37,14 @@ const PIEZOMETROS = [
 ];
 
 // Períodos disponíveis para os gráficos / stats / tabela / export
-// (a chave já é o valor aceito pelo parâmetro `range` da API — /dados?range=24h|7d|30d)
+// (a chave já é o valor aceito pelo parâmetro `range` da API — /dados?range=24h|7d|30d|90d)
 // `bucketMs` = espaçamento típico do range, usado só para detectar gap no gráfico (P1):
 // intervalo entre pontos consecutivos > 2×bucketMs vira um corte visível na linha.
 const PERIODOS = {
   "24h": { label: "24h",     bucketMs: 30 * 60 * 1000 },
   "7d":  { label: "7 dias",  bucketMs: 2  * 60 * 60 * 1000 },
   "30d": { label: "30 dias", bucketMs: 8  * 60 * 60 * 1000 },
+  "90d": { label: "90 dias", bucketMs: 24 * 60 * 60 * 1000 },
 };
 
 // ── API ───────────────────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ export const RANGES = {
   "24h": { janela: 24 * 3600, bucket: 1800 },
   "7d": { janela: 7 * 24 * 3600, bucket: 7200 },
   "30d": { janela: 30 * 24 * 3600, bucket: 28800 },
+  "90d": { janela: 90 * 24 * 3600, bucket: 86400 }, // dentro da retenção de 180 dias
 };
 
 // ── HELPERS DE CONFIG ─────────────────────────────────────────────────────────
@@ -38,8 +39,8 @@ export function getConfig(env) {
 
   // Retenção de dados brutos (dias) — leituras mais antigas que isso são
   // consolidadas em 1 linha/dia/piezômetro (leituras_diario) e apagadas da
-  // tabela `leituras`. Ver src/retencao.js. Default 180 dias — folga de 6x
-  // sobre o maior range servido pelo dashboard (30d).
+  // tabela `leituras`. Ver src/retencao.js. Default 180 dias — folga de 2x
+  // sobre o maior range servido pelo dashboard (90d).
   const RETENCAO_DIAS = parseInt(env.RETENCAO_DIAS || "180", 10);
 
   const NIVEL_ATENCAO = parseFloat(env.NIVEL_ATENCAO || "12");

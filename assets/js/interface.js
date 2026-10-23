@@ -2,20 +2,30 @@
 // Resumo da rede (frase e indicadores do topo), balão do gráfico de nível e
 // destaque do menu lateral. Só lê o estado existente; não altera dados nem alarmes.
 
-// Botões de troca rápida de instrumento, com a condição de cada um.
-function atualizarSeletorPz(mapa, confirmado) {
-  const seletor = document.getElementById("pz-seletor");
-  if (!seletor) return;
-  seletor.innerHTML = PIEZOMETROS.map(pz => {
-    const leitura = mapa[pz.id];
-    let st = "", txt = "condição não confirmada";
-    if (confirmado) {
-      if (estadoComunicacao(leitura) === "stale" || !Number.isFinite(leitura?.nivel)) { st = "semsinal"; txt = "sem sinal"; }
-      else { const c = classifyNivel(leitura.nivel); st = c.lv; txt = c.lbl.toLowerCase(); }
-    }
-    return `<button type="button" data-pz="${textoHtml(pz.id)}" aria-pressed="${pz.id === pzSelecionado}" title="${textoHtml(pz.nome)} · ${txt}"><i class="st-${st}"></i>${textoHtml(pz.id)}</button>`;
+// Listas de troca de instrumento (aba Instrumento e aba Alertas), com a condição de cada um.
+function atualizarSeletoresPz() {
+  const mapa = typeof pzLatest !== "undefined" ? pzLatest : {};
+  const confirmado = !(typeof failCount !== "undefined" && failCount > 0 && !Object.keys(mapa).length);
+  const opcoes = PIEZOMETROS.map(pz => {
+    let txt = "condição não confirmada";
+    if (confirmado) txt = situacaoPz(mapa[pz.id]).lbl.toLowerCase();
+    return `<option value="${textoHtml(pz.id)}"${pz.id === pzSelecionado ? " selected" : ""}>${textoHtml(pz.id)} · ${textoHtml(pz.nome)} — ${txt}</option>`;
   }).join("");
-  seletor.querySelectorAll("button").forEach(b => b.addEventListener("click", () => selectPiezometro(b.dataset.pz)));
+  ["pz-seletor", "pz-seletor-alertas"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.innerHTML !== opcoes) el.innerHTML = opcoes;
+    if (el) el.value = pzSelecionado;
+  });
+}
+
+function iniciarSeletoresPz() {
+  ["pz-seletor", "pz-seletor-alertas"].forEach(id => document.getElementById(id)?.addEventListener("change", e => selectPiezometro(e.target.value)));
+  const passo = d => {
+    const i = PIEZOMETROS.findIndex(p => p.id === pzSelecionado);
+    selectPiezometro(PIEZOMETROS[(i + d + PIEZOMETROS.length) % PIEZOMETROS.length].id);
+  };
+  document.getElementById("pz-ant")?.addEventListener("click", () => passo(-1));
+  document.getElementById("pz-prox")?.addEventListener("click", () => passo(1));
 }
 
 // Frase e indicadores calculados das últimas leituras. Leitura antiga conta como
@@ -31,11 +41,11 @@ function atualizarResumoRede(mapa) {
   };
 
   const semResposta = typeof failCount !== "undefined" && failCount > 0 && !Object.keys(mapa || {}).length;
-  atualizarSeletorPz(mapa || {}, !semResposta);
+  atualizarSeletoresPz();
   if (semResposta) {
     if (titulo) titulo.textContent = "Situação não confirmada";
     frase.textContent = "Não foi possível consultar a API. A situação atual dos instrumentos não está confirmada.";
-    ["kpi-comunicando", "kpi-alerta", "kpi-semsinal", "kpi-recepcao"].forEach(id => definir(id, "–", "não confirmado", "of"));
+    ["kpi-comunicando", "kpi-alerta", "kpi-semsinal", "kpi-disp", "kpi-recepcao"].forEach(id => definir(id, "–", "não confirmado", "of"));
     if (typeof definirIconeResumo === "function") definirIconeResumo("of");
     if (typeof atualizarContadorNav === "function") atualizarContadorNav(0, false);
     return;
@@ -67,8 +77,10 @@ function atualizarResumoRede(mapa) {
   const recepcao = ultima
     ? ` A última recepção foi do <b>${textoHtml(ultima.id)}</b>, <b>${formatUltimaLeitura(ultima.ts)}</b>.`
     : ` Nenhuma leitura recebida até agora.`;
-  const prefixo = typeof fonte !== "undefined" && fonte.simulada ? "<b>Simulação:</b> " : "";
-  frase.innerHTML = `${prefixo}${alerta}; ${sinal}.${recepcao}`;
+  const prefixo = typeof fonte !== "undefined" && fonte.simulada ? "<b>Demonstração:</b> " : "";
+  const foco = critico[0] || atencao[0];
+  const incidente = foco ? ` <a class="link-incidente" href="#instrumento" data-abrir-pz="${textoHtml(foco)}">Ver ${textoHtml(foco)} →</a>` : "";
+  frase.innerHTML = `${prefixo}${alerta}; ${sinal}.${recepcao}${incidente}`;
 
   // Título curto que responde "está tudo bem?" antes da frase detalhada.
   let tituloTxt, tipo;
@@ -82,6 +94,13 @@ function atualizarResumoRede(mapa) {
   definir("kpi-comunicando", String(total - semSinal.length), `de ${plural(total, "instrumento", "instrumentos")}`, semSinal.length ? "of" : "ok");
   definir("kpi-alerta", String(emAlerta), emAlerta ? [...critico, ...atencao].join(", ") : "nenhum", critico.length ? "cr" : emAlerta ? "wr" : "");
   definir("kpi-semsinal", String(semSinal.length), `de ${plural(total, "instrumento", "instrumentos")}`, semSinal.length ? "of" : "ok");
+  const disps = typeof disponibilidade24h === "function" ? PIEZOMETROS.map(pz => disponibilidade24h(pz.id)).filter(Boolean) : [];
+  if (disps.length) {
+    const pct = Math.min(100, disps.reduce((s, d) => s + d.recebidas, 0) / disps.reduce((s, d) => s + d.esperadas, 0) * 100);
+    definir("kpi-disp", pct.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%", "das leituras esperadas", pct < 98 ? "wr" : "");
+  } else {
+    definir("kpi-disp", "–", "sem histórico de 24 h", "");
+  }
   definir("kpi-recepcao", ultima ? formatUltimaLeitura(ultima.ts) : "–",
     ultima ? `${ultima.id} · ${new Date(ultima.ts * 1000).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : "sem leituras");
 }
@@ -112,3 +131,9 @@ function iniciarBalaoGrafico() {
 }
 
 iniciarBalaoGrafico();
+document.addEventListener("click", e => {
+  const link = e.target.closest(".link-incidente[data-abrir-pz]");
+  if (!link) return;
+  e.preventDefault();
+  if (typeof abrirInstrumento === "function") abrirInstrumento(link.dataset.abrirPz);
+});

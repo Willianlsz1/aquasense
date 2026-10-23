@@ -25,8 +25,11 @@ Não se adotam percentuais de cor ou taxas de alarme como exigências universais
 
 ## Comportamentos verificáveis
 
-1. A abertura inicia a fonte real. Erro de API não aciona simulação.
-2. Simulação depende do botão e permanece identificada. PDF real fica bloqueado nesse modo.
+1. O endereço normal só usa a fonte real e não oferece simulação. Erro de API não
+   aciona simulação.
+2. A demonstração existe apenas em `index.html?demo` (decisão de 23/10/2026: separar
+   demonstração de operação). Fica identificada na faixa, no status e nas
+   exportações; o PDF real fica bloqueado nesse modo.
 3. Trocar a fonte limpa leituras e séries anteriores. Falha de consulta deixa a condição
    atual sem confirmação e identifica valores anteriores como referência.
 4. As posições do mapa são ilustrativas. Decisão da equipe (25/09/2026): o painel
@@ -39,6 +42,17 @@ Não se adotam percentuais de cor ou taxas de alarme como exigências universais
    exportação integral de amostras brutas.
 8. O gráfico posiciona dados no tempo, interrompe a linha nas lacunas e não preenche
    essas lacunas com área colorida. Períodos longos incluem data nos rótulos.
+9. A visão geral é uma tabela ordenada por prioridade. O nível aparece sobre uma
+   escala com faixas neutras e limites marcados; a cor só aparece fora do normal.
+10. Ocorrências: no monitoramento real, só os registros do servidor; na demonstração,
+    as transições da sessão. Não há lista paralela de "eventos da sessão".
+11. Instrumento em atenção ou crítico abre um quadro de incidente (desde quando, pico,
+    tendência, vizinhos e o que fazer). Não há reconhecimento de alarme com registro:
+    isso exige login e gravação no servidor.
+12. Crítico toca um som no navegador a cada 20 s, com opção de silenciar. Não substitui
+    aviso fora da tela (e-mail, mensagem), que o projeto não implementa.
+13. Nome e cadastro do instrumento são editáveis e ficam salvos no navegador. O código
+    enviado pela UCT não muda. Limites seguem iguais para todos os instrumentos.
 
 ## Limitações
 

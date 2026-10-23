@@ -56,40 +56,71 @@
     <div class="top-sp"></div>
     <div class="statusbar"><span class="sdot s-err" id="sdot"></span><span id="stext" role="status">Conectando à API...</span></div>
     <span class="pilula" title="Relógio deste computador (não é a hora da leitura)"><span id="live-time">--:--:--</span></span>
-    <button id="btn-simulacao" class="btn-export" type="button" aria-pressed="false">Iniciar simulação</button>
+    <button id="btn-som" class="btn-icone" type="button" aria-pressed="true" title="Som do alarme crítico ligado">
+      <svg class="som-on" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5h3l4-3.5v12l-4-3.5h-3z"/><path d="M13.5 7a4 4 0 0 1 0 6M15.8 4.8a7 7 0 0 1 0 10.4"/></svg>
+      <svg class="som-off" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5h3l4-3.5v12l-4-3.5h-3z"/><path d="m13.5 8 4 4m0-4-4 4"/></svg>
+    </button>
   </header>
 
-  <div class="sim-banner" id="sim-banner">SIMULAÇÃO ATIVA · Dados fictícios. Não são leituras dos instrumentos.</div>
+  <div class="sim-banner" id="sim-banner">DEMONSTRAÇÃO · Dados fictícios em tempo acelerado. Não são leituras dos instrumentos.</div>
+  <div class="demo-barra" id="demo-barra" hidden></div>
 
   <div class="conteudo" id="conteudo">
 
   <!-- ── VISÃO GERAL ───────────────────────────────────────────────────── -->
   <section class="vista" id="v-visao" data-vista="visao" aria-labelledby="saudacao">
-    <div class="hero" id="visao-geral">
-      <div class="hero-ico" id="hero-ico" aria-hidden="true"></div>
-      <div>
-        <h2 id="saudacao">Situação da rede de piezômetros</h2>
-        <p id="resumo-rede" role="status">Aguardando a primeira consulta.</p>
+    <div class="faixa" id="visao-geral">
+      <div class="estado" id="estado-rede">
+        <div class="estado-ico" id="hero-ico" aria-hidden="true"></div>
+        <div class="estado-txt">
+          <h2 id="saudacao">Situação da rede de piezômetros</h2>
+          <p id="resumo-rede" role="status">Aguardando a primeira consulta.</p>
+        </div>
       </div>
+      <div class="kpi"><span class="kpi-lbl">Comunicando</span><span class="kpi-val"><b id="kpi-comunicando">–</b><span class="kpi-sub" id="kpi-comunicando-sub">aguardando</span></span></div>
+      <div class="kpi"><span class="kpi-lbl">Em alerta</span><span class="kpi-val"><b id="kpi-alerta">–</b><span class="kpi-sub" id="kpi-alerta-sub">aguardando</span></span></div>
+      <div class="kpi"><span class="kpi-lbl">Sem sinal</span><span class="kpi-val"><b id="kpi-semsinal">–</b><span class="kpi-sub" id="kpi-semsinal-sub">aguardando</span></span></div>
+      <div class="kpi" title="Leituras recebidas nas últimas 24 h em relação às esperadas (uma a cada 10 s por instrumento)"><span class="kpi-lbl">Disponibilidade 24 h</span><span class="kpi-val"><b id="kpi-disp">–</b><span class="kpi-sub" id="kpi-disp-sub">aguardando</span></span></div>
+      <div class="kpi"><span class="kpi-lbl">Última recepção</span><span class="kpi-val"><b id="kpi-recepcao">–</b><span class="kpi-sub" id="kpi-recepcao-sub">aguardando</span></span></div>
     </div>
-    <section class="grid g-kpi" aria-label="Indicadores da rede">
-      <div class="kpi"><div class="kpi-lbl">Comunicando</div><div class="kpi-val"><b id="kpi-comunicando">–</b><span class="kpi-sub" id="kpi-comunicando-sub">aguardando</span></div></div>
-      <div class="kpi"><div class="kpi-lbl">Em alerta</div><div class="kpi-val"><b id="kpi-alerta">–</b><span class="kpi-sub" id="kpi-alerta-sub">aguardando</span></div></div>
-      <div class="kpi"><div class="kpi-lbl">Sem sinal</div><div class="kpi-val"><b id="kpi-semsinal">–</b><span class="kpi-sub" id="kpi-semsinal-sub">aguardando</span></div></div>
-      <div class="kpi"><div class="kpi-lbl">Última recepção</div><div class="kpi-val"><b id="kpi-recepcao">–</b><span class="kpi-sub" id="kpi-recepcao-sub">aguardando</span></div></div>
-    </section>
 
-    <div class="sec"><h2>Instrumentos</h2><span>os que pedem ação aparecem primeiro</span><a href="#mapa">Ver no mapa →</a></div>
-    <div class="pz-grid" id="pz-grid"></div>
-
-    <div class="meta">
-      <button class="howto-toggle" id="howto-toggle" type="button"><svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><path d="M7.2 7a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4M9 12.6v.1" stroke-linecap="round"/></svg>Como ler este painel</button>
-    </div>
-    <div class="howto-content" id="howto-content">
-      <div class="howto-item"><b>Nível:</b> coluna d'água em metros, conforme a calibração de cada instrumento. O tubo desenhado mostra essa altura.</div>
-      <div class="howto-item"><b>Faixas:</b> classificam a leitura pelos limites de atenção e crítico definidos pela geotecnia (linhas tracejadas).</div>
-      <div class="howto-item"><b>Gráficos:</b> mostram como o nível variou ao longo do tempo; trechos sem leitura ficam interrompidos.</div>
-      <div class="howto-item"><b>Alertas:</b> quando o nível cruza um limite, o painel registra o evento por escrito e destaca visualmente a faixa. Sem leitura recente, o estado exibido é <b>SEM SINAL</b>.</div>
+    <div class="grade-visao">
+      <div class="coluna">
+        <section class="painel" aria-labelledby="tit-instrumentos">
+          <div class="p-cab">
+            <h2 id="tit-instrumentos">Instrumentos</h2><span class="p-sub" id="tab-sub"></span>
+            <div class="p-acoes">
+              <label class="busca"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m17 17-3.6-3.6"/></svg><input id="busca-pz" type="search" placeholder="Buscar por nome ou código" aria-label="Buscar instrumento"></label>
+              <div class="seg" id="filtro-pz" role="group" aria-label="Filtrar instrumentos"><button type="button" data-f="todos" aria-pressed="true">Todos</button><button type="button" data-f="alerta" aria-pressed="false">Em alerta</button><button type="button" data-f="semsinal" aria-pressed="false">Sem sinal</button></div>
+            </div>
+          </div>
+          <div class="tab-wrap">
+            <table class="tab-inst">
+              <thead><tr><th>Estado</th><th>Instrumento</th><th>Nível d'água <span id="tab-escala"></span></th><th>Folga até atenção</th><th>Últimas 24 h</th><th class="d">Taxa</th><th>Última recepção</th><th>Disponib. 24 h</th><th aria-hidden="true"></th></tr></thead>
+              <tbody id="pz-grid"></tbody>
+            </table>
+          </div>
+          <div class="tab-pe">
+            <span class="leg"><i class="b1"></i>faixa normal</span><span class="leg"><i class="b2"></i>atenção</span><span class="leg"><i class="b3"></i>crítico</span><span class="leg"><i class="ref"></i>nível de 24 h atrás</span>
+            <span class="tab-pe-dir">A cor só aparece quando algo pede ação · clique na linha para abrir o instrumento</span>
+          </div>
+        </section>
+        <section class="painel" aria-labelledby="tit-rede">
+          <div class="p-cab"><h2 id="tit-rede">Nível d'água da rede</h2><span class="p-sub">últimas 24 h · passe o mouse sobre um instrumento para destacá-lo</span>
+            <div class="p-acoes legenda-lin"><span><i class="tr at"></i>atenção</span><span><i class="tr cr"></i>crítico</span></div></div>
+          <div class="graf-rede" id="g-rede"><canvas id="chart-rede"></canvas><div class="graf-dica" aria-hidden="true"></div></div>
+        </section>
+      </div>
+      <div class="coluna">
+        <section class="painel" aria-labelledby="tit-loc">
+          <div class="p-cab"><h2 id="tit-loc">Localização</h2><span class="p-sub">posições ilustrativas</span><div class="p-acoes"><a class="link" href="#mapa">Abrir mapa →</a></div></div>
+          <div class="mapa-mini" id="mapa-visao"></div>
+        </section>
+        <section class="painel" aria-labelledby="tit-oc">
+          <div class="p-cab"><h2 id="tit-oc">Ocorrências recentes</h2><div class="p-acoes"><a class="link" href="#alertas">Ver todas →</a></div></div>
+          <div class="ocorrencias" id="ocorr-rede"><div class="vazio">Aguardando a primeira consulta.</div></div>
+        </section>
+      </div>
     </div>
   </section>
 
@@ -112,156 +143,125 @@
 
   <!-- ── INSTRUMENTO ───────────────────────────────────────────────────── -->
   <section class="vista" id="v-instrumento" data-vista="instrumento">
-    <div class="detalhe" id="instrumento-cabecalho">
-      <div>
-        <h2 class="pz-detail-label" id="pz-detail-label">PZ-01 · Dique Norte</h2>
+    <div class="ins-cab" id="instrumento-cabecalho">
+      <div class="ins-id-bloco">
+        <a class="voltar" href="#visao">← Visão geral</a>
+        <div class="ins-tit">
+          <span class="ins-codigo" id="i-codigo">PZ-01</span>
+          <h2 class="pz-detail-label" id="pz-detail-label">Dique Norte</h2>
+          <button class="btn-icone pequeno" id="btn-editar-cadastro" type="button" title="Editar nome e cadastro do instrumento"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 16.5h3.2l9-9-3.2-3.2-9 9z"/><path d="m11.2 5.6 3.2 3.2"/></svg></button>
+          <span class="tbadge" id="badge-n">···</span>
+        </div>
         <div class="reading-context" id="reading-context" role="status">Aguardando a primeira consulta.</div>
       </div>
-      <div class="pz-seletor" id="pz-seletor" role="group" aria-label="Instrumento"></div>
-    </div>
-
-    <div class="inst">
-      <div class="panel tubo-painel">
-        <div id="tubo-instrumento"></div>
-        <p class="panel-sub">Altura da coluna d'água no tubo (m). As linhas tracejadas são os limites configurados.</p>
-      </div>
-
-      <div class="inst-dir">
-        <div class="metrics-row sem-temp" id="metrics-row">
-          <div class="mcard">
-            <div class="mcard-top"><span class="mcard-label">Nível d'água</span><span class="mbadge" id="badge-n">···</span></div>
-            <div class="mcard-value cv-neutral"><span id="val-n">···</span><span class="mcard-unit">m</span></div>
-            <div class="sparkline-wrap"><canvas id="spark-n"></canvas></div>
-            <div class="mcard-stats mcard-stats-4">
-              <div class="mstat"><span class="mstat-lbl lbl-min">Mín 24h</span><span class="mstat-val" id="n-min">···</span></div>
-              <div class="mstat"><span class="mstat-lbl lbl-max">Máx 24h</span><span class="mstat-val" id="n-max">···</span></div>
-              <div class="mstat"><span class="mstat-lbl">Variação</span><span class="mstat-val" id="n-delta">···</span></div>
-              <div class="mstat"><span class="mstat-lbl">Taxa</span><span class="mstat-val" id="n-taxa">···</span></div>
-            </div>
-          </div>
-          <div class="mcard">
-            <div class="mcard-top"><span class="mcard-label">Pressão</span><span class="mbadge mb-blue" id="badge-p">···</span></div>
-            <div class="mcard-value cv-neutral"><span id="val-p">···</span><span class="mcard-unit" id="unit-p">kPa</span></div>
-            <div class="sparkline-wrap"><canvas id="spark-p"></canvas></div>
-            <div class="mcard-stats">
-              <div class="mstat"><span class="mstat-lbl">Mín sessão</span><span class="mstat-val" id="p-min">···</span></div>
-              <div class="mstat"><span class="mstat-lbl">Máx sessão</span><span class="mstat-val" id="p-max">···</span></div>
-              <div class="mstat"><span class="mstat-lbl">Variação</span><span class="mstat-val" id="p-delta">···</span></div>
-            </div>
-          </div>
-          <!-- Temperatura: oculta até um sensor real enviar a grandeza (ver applyData) -->
-          <div class="mcard oculta-metrica" id="card-t">
-            <div class="mcard-top"><span class="mcard-label">Temperatura</span><span class="mbadge mb-blue" id="badge-t">···</span></div>
-            <div class="mcard-value cv-neutral"><span id="val-t">···</span><span class="mcard-unit">°C</span></div>
-            <div class="sparkline-wrap"><canvas id="spark-t"></canvas></div>
-            <div class="mcard-stats">
-              <div class="mstat"><span class="mstat-lbl lbl-min">Mín 24h</span><span class="mstat-val" id="t-min">···</span></div>
-              <div class="mstat"><span class="mstat-lbl lbl-max">Máx 24h</span><span class="mstat-val" id="t-max">···</span></div>
-              <div class="mstat"><span class="mstat-lbl">Variação</span><span class="mstat-val" id="t-delta">···</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="charts-row sem-temp" id="charts-row">
-          <div class="panel">
-            <div class="panel-hdr">
-              <span class="panel-title">Histórico do nível d'água</span>
-              <div class="panel-hdr-actions">
-                <button class="btn-export" id="btn-export" type="button" title="Exporta os intervalos disponíveis no gráfico, com identificação da fonte">CSV</button>
-                <button class="btn-export" id="btn-export-xls" type="button" title="Planilha Excel formatada: título, cores por status e resumo do período">Excel</button>
-                <a class="btn-export btn-escuro" id="btn-relatorio" href="relatorio.html" target="_blank" title="Documento A4 pronto para salvar como PDF: resumo, gráfico, tabela e auditoria do período">Relatório PDF</a>
-              </div>
-            </div>
-            <div class="panel-hdr">
-              <div class="period-pills" role="group" aria-label="Período">
-                <button class="period-pill active" data-range="24h" type="button">24 horas</button>
-                <button class="period-pill" data-range="7d" type="button">7 dias</button>
-                <button class="period-pill" data-range="30d" type="button">30 dias</button>
-              </div>
-              <div class="chart-legend-inline">
-                <span class="cl-item"><span class="cl-swatch"></span>média / leitura</span>
-                <span class="cl-item"><span class="cl-swatch cl-max"></span>máx. do intervalo</span>
-                <span class="cl-item"><span class="cl-swatch cl-at"></span>atenção</span>
-                <span class="cl-item"><span class="cl-swatch cl-cr"></span>crítico</span>
-              </div>
-            </div>
-            <div class="chart-area" id="chart-area-n"><canvas id="chart-n"></canvas><div class="chart-tip" id="chart-tip" aria-hidden="true"></div></div>
-            <p class="panel-sub">Série por intervalos: média e máximo. Exportações seguem os dados disponíveis, não o conjunto bruto de amostras.</p>
-          </div>
-          <div class="panel oculta-metrica" id="panel-chart-t">
-            <div class="panel-hdr"><span class="panel-title">Histórico de temperatura</span><span class="panel-tag" id="temp-period-tag">24h</span></div>
-            <div class="chart-area"><canvas id="chart-t"></canvas></div>
-          </div>
-        </div>
+      <div class="troca-pz">
+        <button class="btn-icone" type="button" id="pz-ant" title="Instrumento anterior">‹</button>
+        <select id="pz-seletor" aria-label="Instrumento"></select>
+        <button class="btn-icone" type="button" id="pz-prox" title="Próximo instrumento">›</button>
       </div>
     </div>
 
-    <div class="grid g-2 inst-baixo">
-      <div class="panel soft">
-        <div class="panel-hdr"><span class="panel-title">Condição atual</span><span class="panel-tag" id="alert-pz-tag">PZ-01</span></div>
-        <div class="alert-level-box alb-normal" id="abox">
-          <div class="al-icon ali-normal" id="aicon"><svg id="asvg" viewBox="0 0 16 16" fill="none"></svg></div>
-          <div>
-            <div class="al-state al-normal" id="astate">AGUARDANDO</div>
-            <div class="al-desc" id="adesc">Conectando ao sensor...</div>
-          </div>
-        </div>
-        <div class="threshold-bar">
-          <div class="tb-track" aria-hidden="true">
-            <div class="tb-seg tb-green"></div>
-            <div class="tb-seg tb-yellow" id="tby"></div>
-            <div class="tb-seg tb-red" id="tbr"></div>
-          </div>
-          <div class="tb-labels"><span>Normal</span><span>Atenção</span><span>Crítico</span></div>
-        </div>
-        <div class="al-info" id="ainfo">Aguardando confirmação da fonte.</div>
+    <div class="incidente" id="incidente" hidden></div>
+
+    <div class="grade-ins">
+      <div class="coluna col-tubo">
+        <section class="painel" aria-label="Poço de observação">
+          <div class="p-cab"><h2>Poço de observação</h2></div>
+          <div class="tubo-painel"><div id="tubo-instrumento"></div>
+            <p class="p-nota">Coluna d'água no tubo (m) · tracejados = limites configurados</p></div>
+        </section>
       </div>
-      <div class="panel" id="leituras">
-        <div class="panel-hdr"><span class="panel-title">Leituras disponíveis</span><span class="panel-tag" id="pz-tag-readings">PZ-01</span></div>
-        <div class="alert-table-wrap">
-          <table>
-            <thead><tr><th>Hora</th><th>Nível d'água</th><th>Status</th></tr></thead>
-            <tbody id="readings-tbody"><tr><td colspan="3" style="color:var(--text-3);text-align:center;padding:16px">Aguardando dados...</td></tr></tbody>
-          </table>
+
+      <div class="coluna col-centro">
+        <div class="painel tiles" id="metrics-row">
+          <div class="tile tile-nivel"><span class="tile-lbl">Nível d'água</span><span class="tile-val"><span id="val-n" class="cv-neutral">···</span><small>m</small></span><span class="tile-det" id="val-n-det">aguardando leitura</span></div>
+          <div class="tile" id="tile-folga-at"><span class="tile-lbl">Folga até atenção</span><span class="tile-val" id="n-folga-at">···</span><span class="tile-det" id="n-folga-at-det">limite —</span></div>
+          <div class="tile" id="tile-folga-cr"><span class="tile-lbl">Folga até crítico</span><span class="tile-val" id="n-folga-cr">···</span><span class="tile-det" id="n-folga-cr-det">limite —</span></div>
+          <div class="tile"><span class="tile-lbl">Taxa de variação</span><span class="tile-val mstat-val" id="n-taxa">···</span><span class="tile-det" id="n-taxa-det">janela de 1 h no servidor</span></div>
+          <div class="tile"><span class="tile-lbl lbl-faixa">Faixa 24h</span><span class="tile-val"><span id="n-min">···</span><span class="sep">–</span><span id="n-max">···</span><small>m</small></span><span class="tile-det">variação <span id="n-delta">···</span> m no período</span></div>
         </div>
+
+        <section class="painel" id="charts-row" aria-labelledby="tit-hist">
+          <div class="p-cab">
+            <h2 id="tit-hist">Histórico do nível d'água</h2>
+            <div class="period-pills" role="group" aria-label="Período">
+              <button class="period-pill active" data-range="24h" type="button">24 h</button>
+              <button class="period-pill" data-range="7d" type="button">7 dias</button>
+              <button class="period-pill" data-range="30d" type="button">30 dias</button>
+              <button class="period-pill" data-range="90d" type="button">90 dias</button>
+            </div>
+            <div class="p-acoes">
+              <span class="chart-legend-inline"><span class="cl-item"><span class="cl-swatch"></span>média</span><span class="cl-item"><span class="cl-swatch cl-max"></span>máx. do intervalo</span></span>
+              <button class="btn-export" id="btn-export" type="button" title="Exporta os intervalos disponíveis no gráfico, com identificação da fonte">CSV</button>
+              <button class="btn-export" id="btn-export-xls" type="button" title="Planilha Excel formatada: título, cores por status e resumo do período">Excel</button>
+              <a class="btn-export btn-escuro" id="btn-relatorio" href="relatorio.html" target="_blank" title="Documento A4 pronto para salvar como PDF: resumo, gráfico, tabela e auditoria do período">Relatório PDF</a>
+            </div>
+          </div>
+          <div class="chart-area" id="chart-area-n"><canvas id="chart-n"></canvas><div class="chart-tip" id="chart-tip" aria-hidden="true"></div></div>
+          <p class="p-nota">Série por intervalos: média e máximo. Exportações seguem os dados disponíveis, não o conjunto bruto de amostras.</p>
+        </section>
+
+        <div class="duas">
+          <section class="painel" id="leituras" aria-labelledby="tit-leit">
+            <div class="p-cab"><h2 id="tit-leit">Leituras disponíveis</h2><span class="p-sub" id="pz-tag-readings">PZ-01</span></div>
+            <div class="alert-table-wrap"><table class="tab-leit"><thead><tr><th>Hora</th><th>Nível d'água</th><th>Status</th></tr></thead>
+              <tbody id="readings-tbody"><tr><td colspan="3" class="vazio">Aguardando dados...</td></tr></tbody></table></div>
+          </section>
+          <section class="painel" aria-labelledby="tit-oc-ins">
+            <div class="p-cab"><h2 id="tit-oc-ins">Ocorrências deste instrumento</h2></div>
+            <div class="ocorrencias" id="ocorr-ins"><div class="vazio">Aguardando a primeira consulta.</div></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="coluna col-lado">
+        <section class="painel cartao" id="cartao-com" aria-label="Comunicação"></section>
+        <section class="painel cartao" id="cartao-cad" aria-label="Cadastro do instrumento"></section>
+        <section class="painel" aria-label="Localização do instrumento">
+          <div class="p-cab"><h2>Localização</h2></div>
+          <div class="mapa-mini baixo" id="mapa-ins"></div>
+        </section>
       </div>
     </div>
   </section>
 
   <!-- ── ALERTAS E EVENTOS ─────────────────────────────────────────────── -->
   <section class="vista" id="v-alertas" data-vista="alertas">
-    <section class="panel" id="registros" aria-labelledby="persistent-title">
-      <div class="panel-hdr"><h2 class="panel-title" id="persistent-title">Histórico registrado no servidor</h2><button class="btn-export" id="btn-export-alertas" type="button">Exportar alertas · CSV</button></div>
-      <p class="panel-sub">Instrumento selecionado · consulta aos últimos 50 registros da rede. Independente do período do gráfico; não constitui histórico completo de auditoria.</p>
-      <p class="panel-sub" id="servidor-eventos-status" role="status">Aguardando consulta.</p>
-      <div class="alert-table-wrap"><table><thead><tr><th>Data / hora</th><th>Instrumento</th><th>Tipo</th><th>Evento</th><th>Ação</th></tr></thead><tbody id="servidor-eventos-tbody"></tbody></table></div>
+    <section class="painel" id="registros" aria-labelledby="persistent-title">
+      <div class="p-cab"><h2 id="persistent-title">Histórico registrado no servidor</h2>
+        <div class="p-acoes"><select id="pz-seletor-alertas" aria-label="Instrumento"></select><button class="btn-export" id="btn-export-alertas" type="button">Exportar alertas · CSV</button></div></div>
+      <p class="p-nota pad">Instrumento selecionado · consulta aos últimos 50 registros da rede. Não constitui histórico completo de auditoria.</p>
+      <p class="p-nota pad" id="servidor-eventos-status" role="status">Aguardando consulta.</p>
+      <div class="alert-table-wrap alto"><table><thead><tr><th>Data / hora</th><th>Instrumento</th><th>Tipo</th><th>Evento</th><th>Ação</th></tr></thead><tbody id="servidor-eventos-tbody"></tbody></table></div>
     </section>
-
-    <!-- Alarmes exigem ação; eventos são informativos (ISA-18.2) -->
-    <div class="panel" style="margin-top:14px">
-      <div class="panel-hdr"><span class="panel-title" id="events-title">Alarmes &amp; Eventos</span></div>
-      <div class="ev-subpanel">
-        <div class="ev-subpanel-hdr"><span class="ev-subpanel-title">Ocorrências observadas nesta sessão</span><span class="panel-tag" id="alarm-count">0 alarmes</span></div>
-        <div class="alert-table-wrap ev-table-wrap-sm">
-          <table>
-            <thead><tr><th class="td-dot"></th><th>Alarme</th><th>Nível</th><th>Ação</th><th>Hora</th></tr></thead>
-            <tbody id="alarm-tbody"><tr><td colspan="5" style="color:var(--text-3);text-align:center;padding:16px">Nenhuma ocorrência nesta sessão</td></tr></tbody>
-          </table>
-        </div>
-        <div class="ev-subpanel-hdr"><span class="ev-subpanel-title">Eventos</span><span class="panel-tag" id="ev-count">0 eventos</span></div>
-        <div class="alert-table-wrap ev-table-wrap-sm">
-          <table>
-            <thead><tr><th class="td-dot"></th><th>Evento</th><th>Nível</th><th>Status</th><th>Hora</th></tr></thead>
-            <tbody id="ev-tbody"><tr><td colspan="5" style="color:var(--text-3);text-align:center;padding:16px">Aguardando dados...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
   </section>
 
   </div>
 </main>
 </div>
+
+<!-- Cadastro do instrumento: o código não muda (é o que a UCT envia). -->
+<div class="modal-fundo" id="modal-cadastro" hidden>
+  <form class="modal" id="form-cadastro" aria-labelledby="modal-tit">
+    <div class="p-cab"><h2 id="modal-tit">Editar cadastro · <span id="m-codigo"></span></h2></div>
+    <div class="modal-corpo">
+      <label>Nome do instrumento<input id="m-nome" maxlength="40" required></label>
+      <label>Local / descrição<input id="m-local" maxlength="80" placeholder="ex.: Berma 3, ombreira esquerda"></label>
+      <div class="dupla">
+        <label>Sensor<input id="m-sensor" maxlength="40"></label>
+        <label>Profundidade do tubo (m)<input id="m-prof" type="number" step="0.1" min="0"></label>
+      </div>
+      <div class="dupla">
+        <label>Instalado em<input id="m-inst" type="date"></label>
+        <label>Responsável<input id="m-resp" maxlength="40"></label>
+      </div>
+      <label>Observações<textarea id="m-obs" rows="2" maxlength="200"></textarea></label>
+      <p class="aviso">O código <b id="m-codigo2"></b> não muda: é ele que a UCT envia ao servidor. Por enquanto, o cadastro fica salvo neste navegador.</p>
+    </div>
+    <div class="modal-pe"><button type="button" class="btn-export" id="m-cancelar">Cancelar</button><button type="submit" class="btn-export btn-escuro">Salvar</button></div>
+  </form>
+</div>
+<div class="toast" id="toast" role="status"></div>
 
 <nav class="nav-movel" aria-label="Seções do painel">
   <a href="#visao" data-vista="visao"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="2.5" width="6" height="6" rx="1.5"/><rect x="11.5" y="2.5" width="6" height="6" rx="1.5"/><rect x="2.5" y="11.5" width="6" height="6" rx="1.5"/><rect x="11.5" y="11.5" width="6" height="6" rx="1.5"/></svg>Geral<span class="nav-cont" data-cont-alerta></span></a>
@@ -277,11 +277,14 @@
 <script src="assets/js/graficos.js"></script>
 <script src="assets/js/visual.js"></script>
 <script src="assets/js/paineis.js"></script>
+<script src="assets/js/rede.js"></script>
+<script src="assets/js/cadastro.js"></script>
 <script src="assets/js/exportar_xls.js"></script>
 <script src="assets/js/exportar.js"></script>
 <script src="assets/js/eventos-persistidos.js"></script>
 <script src="assets/js/operacao.js"></script>
 <script src="assets/js/interface.js"></script>
+<script src="assets/js/demo.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>
