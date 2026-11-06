@@ -3,6 +3,8 @@
 Monitoramento remoto de piezômetros em barragens de mineração.
 Trabalho de Conclusão do Curso Técnico em Automação Industrial — SENAI, Belo Horizonte, 2026.
 Equipe: Isadora Muniz, Matheus Martins e Willian Lopes. Orientador: Prof. Jairo.
+No TCC, o AquaSense é o produto da WIM Tecnologia em Monitoramento, empresa fictícia
+formada pela equipe.
 
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
 [![Painel publicado](https://img.shields.io/badge/painel-GitHub%20Pages-0f766e)](https://willianlsz1.github.io/aquasense/)
@@ -16,8 +18,9 @@ Equipe: Isadora Muniz, Matheus Martins e Willian Lopes. Orientador: Prof. Jairo.
 ## Problema
 
 A leitura de piezômetros ainda é, em grande parte, manual: um técnico vai até cada
-instrumento e mede o nível d'água. O processo custa caro, expõe a equipe a áreas de
-risco e deixa intervalos sem informação entre as campanhas.
+instrumento e mede o nível d'água. No desafio que originou o projeto, esse trabalho
+custa da ordem de R$ 600 mil por ano. Além do custo, expõe a equipe a áreas de risco
+e deixa intervalos sem informação entre as campanhas.
 
 ## Solução
 
@@ -32,14 +35,27 @@ Um painel web mostra os pontos, gráficos, eventos e relatórios.
 Sensor → ESP32 → HTTPS /ingest → Cloudflare Worker → D1 (leituras) + KV (alertas) → painel web
 ```
 
+## Resultado estimado para o cliente
+
+| Indicador | Operação completa: 100 pontos (referência) | Piloto: 20 pontos |
+|---|---|---|
+| Custo atual de leitura | R$ 603.200/ano | R$ 120.640/ano |
+| Economia líquida | R$ 425.600/ano (71%) | R$ 85.120/ano |
+| Investimento inicial | R$ 750.000 | R$ 150.000 |
+| Payback simples | Cerca de 21 meses | Cerca de 21 meses |
+
+As idas a campo para leitura caem de 104 para 12 por ano (88,5% a menos). Os valores
+são estimativas do TCC, não resultado medido em campo: só o custo de R$ 600 mil vem
+do desafio, e os 100 pontos são premissa a confirmar com o cliente.
+
 ## Situação atual
 
 | Etapa | Situação |
 |---|---|
 | Protótipo V1 — ESP32 + HC-SR04 + TFT ST7789 em bancada, Wi-Fi | Validado em 12/09/2026 ([registro](docs/VALIDACAO_BANCADA_2026-09-12.md)); em 27/09/2026, display TFT, queda de rede, perda de sinal e HTTPS com certificado validado ([ensaios](docs/ENSAIOS_V2.md), [firmware](docs/REGISTRO_FIRMWARE.md)) |
-| Protótipo V2 — mesmo sistema num tubo de acrílico com água | Em montagem; exatidão, repetibilidade e faixas com água pendentes ([roteiro de ensaios](docs/ENSAIOS_V2.md)) |
+| Protótipo V2 — mesmo sistema num tubo de acrílico com água | Montado, conforme o TCC v6.7; falta calibrar o sensor. Exatidão, repetibilidade e faixas com água pendentes ([roteiro de ensaios](docs/ENSAIOS_V2.md)) |
 | UCT comercial — sonda 4–20 mA, ADS1115, 4G, energia solar | Especificada no TCC; não montada |
-| Servidor e painel | [Publicados](https://willianlsz1.github.io/aquasense/); 49 testes locais aprovados |
+| Servidor e painel | [Publicados](https://willianlsz1.github.io/aquasense/), com o painel v2 desde 23/10/2026; 47 testes locais aprovados em 06/11/2026 |
 
 O V1 usa uma escala didática: a distância do sensor vira nível equivalente
 (`max(0, 40 - distancia_cm) * 0,5`). Não é uma coluna real de vários metros nem
@@ -119,7 +135,8 @@ npm test
   `firmware`, `dashboard`, `worker`, `docs`. Exemplo:
   `fix(dashboard): mostra SEM SINAL quando a API está indisponível`.
 
-O texto completo do TCC e os documentos internos da equipe ficam fora do repositório.
+O texto completo do TCC, o vídeo pitch, os slides e os documentos internos da equipe
+ficam fora do repositório.
 
 ## Licença
 

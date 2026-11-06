@@ -1,7 +1,7 @@
 # Guia mestre do AquaSense
 
-O documento mestre é o texto do TCC **AquaSense_TCC_v5** (PDF, mantido fora do
-repositório). Este guia liga as seções do TCC aos arquivos do código e separa o
+O documento mestre é o texto do TCC **AquaSense_TCC_v6.7_ABNT** (21/10/2026, mantido
+fora do repositório). Este guia liga as seções do TCC aos arquivos do código e separa o
 que já foi comprovado do que é especificação ou plano.
 
 ## O que o TCC apresenta
@@ -9,14 +9,26 @@ que já foi comprovado do que é especificação ou plano.
 | Parte do TCC | Situação | Onde está no repositório |
 |---|---|---|
 | Protótipo V1 — bancada (seção 4.1.1) | Montado e validado em 12/09/2026 | `firmware/aquasense_hc_sr04/`, [validação](VALIDACAO_BANCADA_2026-09-12.md) |
-| Protótipo V2 — tubo de acrílico (seção 4.1.2) | Planejado; peças cotadas | [roteiro de ensaios](ENSAIOS_V2.md) |
+| Protótipo V2 — tubo de acrílico (seção 4.1.2) | Montado, conforme o TCC; falta calibrar o sensor para iniciar os ensaios com água | [roteiro de ensaios](ENSAIOS_V2.md) |
 | UCT comercial (seções 4.2 a 4.5) | Especificação; não montada | `firmware/referencia_uct/` (referência, sem ensaio) |
 | Software e nuvem (seção 4.6) | Publicado e com testes locais | `cloudflare-worker/`, `index.html`, `relatorio.html`, `assets/` |
-| Manual, manutenção, mercado e finanças (seções 5 a 10) | Somente no texto do TCC | — |
+| Empresa e identidade visual (capítulo 2 e Apêndice E) | WIM é empresa fictícia da equipe; marca aplicada ao painel | `index.html` |
+| Manual, manutenção e finanças (capítulos 5 a 7, 9 e 10) | Somente no texto do TCC | — |
+| Mercado (capítulo 8 e Apêndice D) | Fontes conferidas; questionário não aplicado | [validação de mercado](VALIDACAO_MERCADO.md) |
 
 Os protótipos e a UCT compartilham a lógica do firmware (fila, envio, faixas),
 o servidor e o painel. O protótipo usa um sketch único; a UCT, os fontes em
 `firmware/referencia_uct/`. Mudam o sensor, a comunicação, a energia e a proteção.
+
+## Cenário financeiro do TCC
+
+O cenário de referência é a operação completa de cerca de 100 pontos (premissa P2,
+seção 9.3): investimento de R$ 750.000, economia líquida de R$ 425.600 por ano (71% do
+custo atual) e payback de cerca de 21 meses. A implantação pode começar por um piloto
+de 20 pontos: R$ 150.000, R$ 85.120 por ano e o mesmo payback (seção 9.3.2).
+
+Só o custo da ordem de R$ 600 mil por ano vem do desafio. O número de pontos, o preço e
+a composição do custo são estimativas dos autores, e nada disso foi medido em campo.
 
 ## Medição e escala do V1
 
@@ -73,7 +85,7 @@ SEM SINAL. A taxa de variação usa o horário da medição.
 | Queda de rede (12 min) e perda de sinal (18 min) | 27/09/2026 | Bancada; ~50 s perdidos no instante da queda. [Ensaios](ENSAIOS_V2.md). |
 | HTTPS com certificado do servidor validado | 27/09/2026 | Depende de NTP e das raízes gravadas no firmware. |
 | Painel e Worker publicados | 13/09/2026 | Publicado não significa disponível hoje. A cota diária do D1 já bloqueou consultas. |
-| Testes automatizados | 25/09/2026 | 49/49 aprovados localmente (`npm test`). O TCC v5 cita 31/31, contagem de 12/09. |
+| Testes automatizados | 06/11/2026 | 47/47 aprovados localmente (`npm test`). O TCC v6.7 cita 49: dois testes saíram em 14/10/2026 com o gerador do sketch único. |
 
 ## Limites conhecidos
 

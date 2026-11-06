@@ -1,7 +1,7 @@
 # Validação de mercado
 
 Resumo da validação de mercado do AquaSense, alinhado à Seção 8.4 e ao Apêndice D
-do TCC (v6.4, 27/09/2026).
+do TCC (v6.7, 21/10/2026).
 
 **Regra:** número de mercado só com fonte citável. Onde o dado não existe em fonte
 pública, está escrito o método e a fonte a consultar — nunca uma estimativa.
