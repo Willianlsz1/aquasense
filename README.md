@@ -3,6 +3,11 @@
 Monitoramento remoto de piezômetros em barragens de mineração.
 Trabalho de Conclusão do Curso Técnico em Automação Industrial — SENAI, Belo Horizonte, 2026.
 Equipe: Isadora Muniz, Matheus Martins e Willian Lopes. Orientador: Prof. Jairo.
+
+## Meu papel
+
+TCC formalmente em trio, por exigência do curso. O desenvolvimento técnico completo é meu: firmware do protótipo, API e motor de alertas no Worker, esquema e migrações do D1, painel web, relatório em PDF, roteiro e execução dos ensaios de bancada, documentação. Isadora Muniz e Matheus Martins constam como equipe junto ao SENAI.
+
 No TCC, o AquaSense é o produto da WIM Tecnologia em Monitoramento, empresa fictícia
 formada pela equipe.
 
