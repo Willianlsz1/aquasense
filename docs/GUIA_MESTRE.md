@@ -1,6 +1,6 @@
 # Guia mestre do AquaSense
 
-O documento mestre é o texto do TCC **AquaSense_TCC_v6.7_ABNT** (21/10/2026, mantido
+O documento mestre é o texto do TCC **AquaSense_TCC_v6.8_ABNT** (12/11/2026, mantido
 fora do repositório). Este guia liga as seções do TCC aos arquivos do código e separa o
 que já foi comprovado do que é especificação ou plano.
 
@@ -85,7 +85,7 @@ SEM SINAL. A taxa de variação usa o horário da medição.
 | Queda de rede (12 min) e perda de sinal (18 min) | 27/09/2026 | Bancada; ~50 s perdidos no instante da queda. [Ensaios](ENSAIOS_V2.md). |
 | HTTPS com certificado do servidor validado | 27/09/2026 | Depende de NTP e das raízes gravadas no firmware. |
 | Painel e Worker publicados | 13/09/2026 | Publicado não significa disponível hoje. A cota diária do D1 já bloqueou consultas. |
-| Testes automatizados | 06/11/2026 | 47/47 aprovados localmente (`npm test`). O TCC v6.7 cita 49: dois testes saíram em 14/10/2026 com o gerador do sketch único. |
+| Testes automatizados | 11/11/2026 | 47/47 aprovados localmente (`npm test`), mesmo número citado no TCC v6.8. |
 
 ## Limites conhecidos
 

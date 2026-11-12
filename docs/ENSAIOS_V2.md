@@ -1,8 +1,8 @@
 # Ensaios do protótipo V2
 
-Roteiro da Tabela 6 do TCC v6.7. O V2 usa o mesmo ESP32, HC-SR04 e firmware do V1,
+Roteiro da Tabela 6 do TCC v6.8. O V2 usa o mesmo ESP32, HC-SR04 e firmware do V1,
 montados num tubo de acrílico transparente de 30 cm com régua graduada.
-**Situação: V2 montado, conforme o TCC v6.7; falta calibrar o sensor. Ensaios 3 e 4 realizados em bancada (27/09/2026), sem o tubo; demais pendentes.** Preencher as tabelas somente com valores
+**Situação: V2 montado, conforme o TCC v6.8; falta calibrar o sensor. Ensaios 3 e 4 realizados em bancada (27/09/2026), sem o tubo; demais pendentes.** Preencher as tabelas somente com valores
 observados, com data e versão do firmware.
 
 Registro de cada sessão: data, responsáveis, commit do firmware, instrumento
