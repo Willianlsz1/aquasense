@@ -91,7 +91,7 @@ function desenharGrafico(pontos) {
     c.strokeStyle = "#e4e8ef"; c.lineWidth = 1; c.setLineDash([]);
     c.beginPath(); c.moveTo(PAD.left, y); c.lineTo(PAD.left + cw, y); c.stroke();
     c.fillStyle = "#7a8399";
-    c.fillText(v.toFixed(1), PAD.left - 8, y + 4);
+    c.fillText(fmtBR(v, 1), PAD.left - 8, y + 4);
   }
 
   // Limiares tracejados (atenção/crítico) com rótulo

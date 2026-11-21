@@ -79,7 +79,7 @@ function aplicarMaxNivelPico() {
   const el = document.getElementById("n-max");
   if (!el) return;
   const fonteMax = statsWin.nMax.length ? statsWin.nMax : statsWin.n;
-  if (fonteMax.length) el.textContent = Math.max(...fonteMax).toFixed(2);
+  if (fonteMax.length) el.textContent = fmtBR(Math.max(...fonteMax));
 }
 
 function pushSpark(key, val) {

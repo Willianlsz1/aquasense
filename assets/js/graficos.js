@@ -82,7 +82,7 @@ function renderMainChart(canvasId, state, color, thresholds, bucketMs, maxData) 
     c.strokeStyle = escuro ? "rgba(44,72,88,.55)" : "rgba(11,37,69,.07)"; c.lineWidth = 1; c.setLineDash([]);
     c.beginPath(); c.moveTo(PAD.left, y); c.lineTo(PAD.left + cw, y); c.stroke();
     c.fillStyle = texto; c.font = fonte; c.textAlign = "right";
-    c.fillText(v.toFixed(1), PAD.left - 4, y + 3);
+    c.fillText(fmtBR(v, 1), PAD.left - 4, y + 3);
   }
 
   // Thresholds
@@ -143,7 +143,7 @@ function renderMainChart(canvasId, state, color, thresholds, bucketMs, maxData) 
   c.beginPath(); c.arc(lx, ly, 5.5, 0, Math.PI*2); c.fillStyle = color; c.fill();
   c.beginPath(); c.arc(lx, ly, 2.2, 0, Math.PI*2); c.fillStyle = escuro ? "#131F29" : "#ffffff"; c.fill();
   c.fillStyle = texto; c.font = fonte; c.textAlign = "right";
-  c.fillText(data[data.length-1].toFixed(2), lx - 10, ly - 9);
+  c.fillText(fmtBR(data[data.length-1]), lx - 10, ly - 9);
 
   // Posições desenhadas, para o balão de leitura ao passar o mouse (interface.js).
   cv._pontos = data.map((v, i) => ({

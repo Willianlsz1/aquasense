@@ -6,6 +6,9 @@
 const clamp = (v, mn, mx) => Math.max(mn, Math.min(mx, v));
 
 // Classifica um nível d'água (m) nas 3 faixas do desafio SAGA
+// Números no formato brasileiro (15,58) em toda a interface.
+const fmtBR = (v, casas = 2) => Number(v).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+
 function classifyNivel(n) {
   if (n < CFG.thrAtencao) return { lv: "normal",  lbl: "Normal" };
   if (n < CFG.thrCritico) return { lv: "atencao", lbl: "Atenção" };

@@ -56,7 +56,6 @@ function disponibilidade24h(pzId) {
 }
 
 function escalaNivel() { return Math.max(4, Math.ceil(CFG.thrCritico * 1.2)); }
-const fmtBR = (v, casas = 2) => Number(v).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 
 // ── INDICADORES DA TABELA ─────────────────────────────────────────────────────
 // Bullet graph (Stephen Few) como indicador analógico do ISA-101: faixas neutras de
@@ -230,7 +229,7 @@ function criarMapaMini(id) {
 }
 
 function marcadorMini(pz, s, comValor, destaque) {
-  const valor = comValor && s.nivel !== null && s.lv !== "semsinal" ? `<em>${s.nivel.toFixed(1)} m</em>` : "";
+  const valor = comValor && s.nivel !== null && s.lv !== "semsinal" ? `<em>${fmtBR(s.nivel, 1)} m</em>` : "";
   return `<div class="mk mk-mini st-${s.lv}${destaque ? " sel" : ""}"><span class="mk-anel"></span><span class="mk-dot"></span><span class="mk-rot">${textoHtml(pz.id)}${valor}</span></div>`;
 }
 

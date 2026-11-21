@@ -172,7 +172,7 @@ function atualizarTuboInstrumento(nivel, estado, novaLeitura = false) {
   const marca = document.getElementById("tg-marca");
   marca.style.transform = `translateY(${y}px)`;
   marca.style.opacity = temNivel ? "1" : "0";
-  document.getElementById("tg-txt").textContent = temNivel ? `${nivel.toFixed(2)} m` : "–";
+  document.getElementById("tg-txt").textContent = temNivel ? `${fmtBR(nivel)} m` : "–";
   svg.classList.toggle("sem-sinal", estado === "semsinal");
   // Sem sinal é falha de comunicação, não alarme de nível: LED cinza (vermelho só no crítico).
   document.getElementById("tg-led").setAttribute("fill", estado === "semsinal" ? "#8A9AA8" : "#35C67E");

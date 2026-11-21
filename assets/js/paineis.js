@@ -14,11 +14,11 @@ function updateStats(key, arr) {
   stats[key].min = Math.min(...arr);
   stats[key].max = Math.max(...arr);
   const delta = stats[key].max - stats[key].min;
-  const fmt = v => v !== null ? v.toFixed(2) : "···";
+  const fmt = v => v !== null ? fmtBR(v) : "···";
   document.getElementById(key + "-min").textContent = fmt(stats[key].min);
   document.getElementById(key + "-max").textContent = fmt(stats[key].max);
   const dEl = document.getElementById(key + "-delta");
-  dEl.textContent = (delta >= 0 ? "+" : "") + delta.toFixed(2);
+  dEl.textContent = (delta >= 0 ? "+" : "") + fmtBR(delta);
   // Para o nível d'água, variação grande é sinal de risco (vermelho)
   dEl.className = "mstat-val " + (delta > 1 ? (key === "n" ? "down" : "up") : "");
 }
@@ -42,8 +42,8 @@ function definirFolga(nivel) {
     if (!Number.isFinite(nivel)) { val.innerHTML = "—"; tile?.classList.remove("acima"); return; }
     const folga = limite - nivel;
     val.innerHTML = folga > 0
-      ? `${folga.toFixed(2)}<small>m</small>`
-      : `+${(-folga).toFixed(2)}<small>m acima</small>`;
+      ? `${fmtBR(folga)}<small>m</small>`
+      : `+${fmtBR(-folga)}<small>m acima</small>`;
     tile?.classList.toggle("acima", folga <= 0);
     tile?.classList.toggle("cr", folga <= 0 && id === "n-folga-cr");
   };
@@ -106,7 +106,7 @@ function addAlertRow(lv, lbl, nivel) {
   };
   const colors = { normal: "#8a94ad", atencao: "#f0c040", critico: "#f04848", info: "#4da8f0" };
   const msg = (msgs[lv] || lbl) + ` (${pzSelecionado})` + (fonte.simulada ? " (simulação)" : "");
-  pushHistorico({ lv, lbl, msg, pz: pzSelecionado, nivel: Number.isFinite(nivel) ? nivel.toFixed(2) : "···", time: t, color: colors[lv] || colors.info });
+  pushHistorico({ lv, lbl, msg, pz: pzSelecionado, nivel: Number.isFinite(nivel) ? fmtBR(nivel) : "···", time: t, color: colors[lv] || colors.info });
 }
 
 function addInfoRow(msg) {
@@ -119,7 +119,7 @@ function addInfoRow(msg) {
 function addTaxaRow(taxa) {
   const t = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const sinal = taxa >= 0 ? "+" : "";
-  const msg = `📈 Variação rápida do nível d'água (${sinal}${taxa.toFixed(2)} m/dia) · ${pzSelecionado}`;
+  const msg = `📈 Variação rápida do nível d'água (${sinal}${fmtBR(taxa)} m/dia) · ${pzSelecionado}`;
   pushHistorico({ lv: "taxa", lbl: "TAXA", msg, nivel: "···", time: t, color: corPorStatus("atencao") });
 }
 
@@ -219,7 +219,7 @@ function renderReadingsTable() {
   tbody.innerHTML = readingsHistory.map(r => `
     <tr>
       <td class="td-time">${r.time}</td>
-      <td class="td-val">${r.nivel.toFixed(2)} m</td>
+      <td class="td-val">${fmtBR(r.nivel)} m</td>
       <td class="td-badge"><span class="tbadge tb-${r.lv}">${r.lbl}</span></td>
     </tr>`).join("");
 }
@@ -258,7 +258,7 @@ function linhaInstrumento(pz, d, s, naoConfirmado = false) {
   const ref24 = Array.isArray(hist) && hist.length ? hist[0].v : null;
   const local = typeof cadastroDe === "function" ? cadastroDe(pz.id).local : "";
   const selo = s.lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${s.lv}`;
-  const valor = s.nivel !== null ? `${s.nivel.toFixed(2)}<small>m</small>` : "···";
+  const valor = s.nivel !== null ? `${fmtBR(s.nivel)}<small>m</small>` : "···";
   const indicador = typeof bulletSvg === "function" ? bulletSvg(s.nivel, s.lv, ref24) : "";
 
   // P1 — leitura ausente/stale nunca aparece como normal: selo "SEM SINAL", valor
@@ -267,15 +267,15 @@ function linhaInstrumento(pz, d, s, naoConfirmado = false) {
   if (semSinal) folga = `<span class="folga">—<small>leitura não confirmada</small></span>`;
   else {
     const fa = CFG.thrAtencao - s.nivel, fc = CFG.thrCritico - s.nivel;
-    if (fa > 0) folga = `<span class="folga">${fa.toFixed(2)} m<small>${fc.toFixed(2)} m até crítico</small></span>`;
-    else if (fc > 0) folga = `<span class="folga at">+${(-fa).toFixed(2)} m acima<small>${fc.toFixed(2)} m até crítico</small></span>`;
-    else folga = `<span class="folga cr">+${(-fc).toFixed(2)} m acima<small>do limite crítico</small></span>`;
+    if (fa > 0) folga = `<span class="folga">${fmtBR(fa)} m<small>${fmtBR(fc)} m até crítico</small></span>`;
+    else if (fc > 0) folga = `<span class="folga at">+${fmtBR(-fa)} m acima<small>${fmtBR(fc)} m até crítico</small></span>`;
+    else folga = `<span class="folga cr">+${fmtBR(-fc)} m acima<small>do limite crítico</small></span>`;
   }
   // P3 — taxa só com comunicação recente; destaque quando |taxa| > limiar.
   const taxa = !semSinal && d && Number.isFinite(d.taxa_m_dia) ? d.taxa_m_dia : null;
   const taxaRapida = taxa !== null && Math.abs(taxa) > CFG.taxaMaxMDia;
   // A taxa e a disponibilidade ficam na aba do instrumento; aqui só aparece a variação rápida.
-  if (taxaRapida) folga = folga.replace("</span>", `<em class="taxa-rapida" title="Variação rápida: investigar">↗ ${taxa >= 0 ? "+" : ""}${taxa.toFixed(2)} m/dia</em></span>`);
+  if (taxaRapida) folga = folga.replace("</span>", `<em class="taxa-rapida" title="Variação rápida: investigar">↗ ${taxa >= 0 ? "+" : ""}${fmtBR(taxa)} m/dia</em></span>`);
   const recepcao = naoConfirmado ? "servidor sem resposta"
     : semSinal
       ? (Number.isFinite(ultimaRecepcao) ? `última leitura ${formatUltimaLeitura(ultimaRecepcao)}` : "nenhuma leitura recebida")
@@ -388,7 +388,7 @@ function popupMapa(pz, s, d) {
   const badge = s.lv === "normal" ? "tbadge tb-normal-neutro" : `tbadge tb-${s.lv}`;
   const quando = Number.isFinite(ts) ? `${s.lv === "semsinal" ? "Última leitura" : "Recebido"} ${formatUltimaLeitura(ts)}` : "Nenhuma leitura recebida";
   return `<div class="pop"><span class="${badge}">${s.lbl}</span><h3>${textoHtml(pz.id)} · ${textoHtml(pz.nome)}</h3>
-    <div class="pv">${s.nivel !== null ? s.nivel.toFixed(2) + " m" : "···"}</div><p>${quando}</p>
+    <div class="pv">${s.nivel !== null ? fmtBR(s.nivel) + " m" : "···"}</div><p>${quando}</p>
     <button type="button" data-abrir-pz="${textoHtml(pz.id)}">Abrir instrumento</button></div>`;
 }
 
@@ -401,7 +401,7 @@ function atualizarMapa(mapa) {
       const ts = timestampUltimaRecepcao(d);
       return `<button type="button" class="ml-item st-${s.lv}${pz.id === pzSelecionado ? " sel" : ""}" data-pz="${textoHtml(pz.id)}">
         <span class="pt"></span><span class="nm">${textoHtml(pz.id)} · ${textoHtml(pz.nome)}<small>${s.lbl} · ${Number.isFinite(ts) ? formatUltimaLeitura(ts) : "sem leituras"}</small></span>
-        <span class="vl">${s.nivel !== null ? s.nivel.toFixed(2) : "···"}</span></button>`;
+        <span class="vl">${s.nivel !== null ? fmtBR(s.nivel) : "···"}</span></button>`;
     }).join("");
     lista.querySelectorAll(".ml-item").forEach(b => b.addEventListener("click", () => {
       const pz = PIEZOMETROS.find(p => p.id === b.dataset.pz);
@@ -423,7 +423,7 @@ function atualizarMapa(mapa) {
     const mk = el && el.querySelector(".mk");
     if (mk) {
       mk.className = `mk st-${s.lv}${pz.id === pzSelecionado ? " sel" : ""}`;
-      mk.querySelector("em").textContent = s.nivel !== null ? s.nivel.toFixed(2) + " m" : "···";
+      mk.querySelector("em").textContent = s.nivel !== null ? fmtBR(s.nivel) + " m" : "···";
       el.style.zIndex = String(1000 - PRIORIDADE[s.lv] * 10);
     }
     // Atualiza o balão só quando o texto muda e sem autoPan: com o balão aberto, o
@@ -466,10 +466,10 @@ function renderTaxa(taxa) {
   }
   const sinal = taxa >= 0 ? "+" : "";
   const rapida = Math.abs(taxa) > CFG.taxaMaxMDia;
-  el.innerHTML = `${rapida ? "↗ " : ""}${sinal}${taxa.toFixed(2)}<small>m/dia</small>`;
+  el.innerHTML = `${rapida ? "↗ " : ""}${sinal}${fmtBR(taxa)}<small>m/dia</small>`;
   el.className = "tile-val mstat-val" + (rapida ? " warn" : "");
   const det = document.getElementById("n-taxa-det");
-  if (det) det.textContent = rapida ? `acima de ${CFG.taxaMaxMDia} m/dia · investigar` : `limite ${CFG.taxaMaxMDia} m/dia`;
+  if (det) det.textContent = rapida ? `acima de ${fmtBR(CFG.taxaMaxMDia, 1)} m/dia · investigar` : `limite ${fmtBR(CFG.taxaMaxMDia, 1)} m/dia`;
   if (rapida) el.title = "Variação rápida: investigar (limiar definido na configuração do projeto)";
   else el.removeAttribute("title");
 }

@@ -171,8 +171,8 @@ function iniciarBalaoGrafico() {
     const x = evento.clientX - area.getBoundingClientRect().left;
     const p = pontos.reduce((a, b) => Math.abs(b.x - x) < Math.abs(a.x - x) ? b : a);
     const pico = Number.isFinite(p.max) ? p.max : p.valor;
-    const linhas = [["Nível", `${p.valor.toFixed(2)} m`]];
-    if (pico !== p.valor) linhas.push(["Máx. do intervalo", `${pico.toFixed(2)} m`]);
+    const linhas = [["Nível", `${fmtBR(p.valor)} m`]];
+    if (pico !== p.valor) linhas.push(["Máx. do intervalo", `${fmtBR(pico)} m`]);
     linhas.push(["Faixa", classifyNivel(pico).lbl]);
     balao.innerHTML = `<b>${textoHtml(p.rotulo)}</b>` +
       linhas.map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join("");

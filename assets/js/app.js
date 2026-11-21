@@ -196,7 +196,7 @@ function applyData({ nivel, taxa_m_dia, ts, recebidoEm }) {
   document.getElementById("metrics-row")?.classList.toggle("telemetria-stale", leituraStale);
 
   const valor = document.getElementById("val-n");
-  valor.textContent = nivel.toFixed(2);
+  valor.textContent = fmtBR(nivel);
   if (!leituraStale && valor.classList) { valor.classList.remove("flash"); void valor.offsetWidth; valor.classList.add("flash"); }
 
   // Taxa e todos os derivados operacionais exigem uma recepção recente. Não
