@@ -11,7 +11,7 @@ que já foi comprovado do que é especificação ou plano.
 | Protótipo V1 — bancada (seção 4.1.1) | Montado e validado em 12/09/2026 | `firmware/aquasense_hc_sr04/`, [validação](VALIDACAO_BANCADA_2026-09-12.md) |
 | Protótipo V2 — tubo de acrílico (seção 4.1.2) | Montado, conforme o TCC; falta calibrar o sensor para iniciar os ensaios com água | [roteiro de ensaios](ENSAIOS_V2.md) |
 | UCT comercial (seções 4.2 a 4.5) | Especificação; não montada | `firmware/referencia_uct/` (referência, sem ensaio) |
-| Software e nuvem (seção 4.6) | Publicado e com testes locais | `cloudflare-worker/`, `index.html`, `relatorio.html`, `assets/` |
+| Software e nuvem (seção 4.6) | Publicado e com testes locais | `cloudflare-worker/`, `painel/` (código do painel; publicado na raiz) |
 | Empresa e identidade visual (capítulo 2 e Apêndice E) | WIM é empresa fictícia da equipe; marca aplicada ao painel | `index.html` |
 | Manual, manutenção e finanças (capítulos 5 a 7, 9 e 10) | Somente no texto do TCC | — |
 | Mercado (capítulo 8 e Apêndice D) | Fontes conferidas; questionário não aplicado | [validação de mercado](VALIDACAO_MERCADO.md) |

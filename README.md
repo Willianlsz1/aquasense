@@ -122,11 +122,28 @@ npm test
 
 | Pasta / arquivo | Conteúdo |
 |---|---|
-| `index.html`, `relatorio.html`, `assets/` | Painel web e relatório PDF (GitHub Pages) |
+| `painel/` | Código do painel web e do relatório PDF (React) ([como publicar](#painel-web)) |
+| `index.html`, `relatorio.html`, `app/` | Painel gerado por `painel/` e publicado pelo GitHub Pages (não editar à mão) |
 | `cloudflare-worker/` | API, motor de alertas, esquema e migrações do banco ([README](cloudflare-worker/README.md)) |
 | `firmware/` | Firmware do protótipo e da UCT ([mapa dos arquivos](firmware/README.md)) |
 | `tests/` | Testes automatizados |
 | `docs/` | Guia mestre, validação de bancada, ensaios do V2, critérios da interface e imagens |
+
+## Painel web
+
+O código fica em `painel/` (React + Vite). O GitHub Pages publica a raiz do
+repositório sem etapa de build, então o painel gerado é versionado na raiz.
+
+```bash
+cd painel
+npm install        # só na primeira vez
+npm run dev        # prévia em http://localhost:5180/?demo
+npm run build      # gera e copia index.html, relatorio.html e app/ para a raiz
+```
+
+Depois de alterar `painel/`, rode `npm run build` e inclua `index.html`,
+`relatorio.html` e `app/` no mesmo commit. Localmente, use `?demo`: a API só
+aceita a origem do GitHub Pages.
 
 ## Manutenção
 

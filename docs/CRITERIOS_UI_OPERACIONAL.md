@@ -2,8 +2,8 @@
 
 ## Escopo
 
-Aplicação no painel principal (`index.html`). Preserva mapa, gráficos, histórico e
-exportações. O sistema é um protótipo didático; esta revisão não certifica conformidade
+Aplicação no painel principal (`index.html`, gerado a partir de `painel/` em React
+desde 21/11/2026). Preserva mapa, gráficos, histórico e exportações. O sistema é um protótipo didático; esta revisão não certifica conformidade
 com normas nem transforma a leitura de um instrumento em avaliação de segurança.
 
 ## Referências e decisões
@@ -35,15 +35,18 @@ Não se adotam percentuais de cor ou taxas de alarme como exigências universais
 4. As posições do mapa são ilustrativas. Decisão da equipe (25/09/2026): o painel
    usa linguagem de produto, sem avisos de "didático"; a indicação de SIMULAÇÃO,
    SEM SINAL e "não confirmado" permanece obrigatória.
-5. O histórico do servidor consulta `/alerts`: até 50 registros da rede, filtrados
-   pelo instrumento selecionado. Não equivale a arquivo completo ou imutável de auditoria.
+5. O histórico do servidor consulta `/alerts`: até 50 registros da rede, com filtro
+   opcional por instrumento. Não equivale a arquivo completo ou imutável de auditoria.
 6. CSV de alertas identifica origem, filtro, horário local/UTC e eventual cache.
 7. CSV/Excel de leituras usam os intervalos disponíveis; não são anunciados como
    exportação integral de amostras brutas.
 8. O gráfico posiciona dados no tempo, interrompe a linha nas lacunas e não preenche
    essas lacunas com área colorida. Períodos longos incluem data nos rótulos.
-9. A visão geral é uma tabela ordenada por prioridade. O nível aparece sobre uma
-   escala com faixas neutras e limites marcados; a cor só aparece fora do normal.
+9. A visão geral traz um destaque com o que exige ação, a contagem por estado, a
+   comunicação e cartões ordenados por prioridade. O nível aparece sobre uma escala
+   com limites marcados; a cor só aparece fora do normal e o vermelho só no crítico.
+   Estado também é codificado por forma: octógono (crítico), triângulo (atenção),
+   anel tracejado (sem sinal) e anel (normal).
 10. Ocorrências: no monitoramento real, só os registros do servidor; na demonstração,
     as transições da sessão. Não há lista paralela de "eventos da sessão".
 11. Instrumento em atenção ou crítico abre um quadro de incidente (desde quando, pico,
@@ -53,6 +56,9 @@ Não se adotam percentuais de cor ou taxas de alarme como exigências universais
     aviso fora da tela (e-mail, mensagem), que o projeto não implementa.
 13. Nome e cadastro do instrumento são editáveis e ficam salvos no navegador. O código
     enviado pela UCT não muda. Limites seguem iguais para todos os instrumentos.
+14. A tela do instrumento mostra a chegada ao próximo limite como estimativa pela taxa
+    atual (distância ÷ taxa), identificada como estimativa e nunca como previsão
+    garantida. Sem leitura recente ou sem subida, não há estimativa.
 
 ## Limitações
 
