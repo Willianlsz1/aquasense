@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* Tokens do conceito v4. Cor saturada só para estados anormais (ISA-101). */
+:root {
+  --fundo: #EEF3F8; --card: #FFFFFF; --card-2: #F4F7FB; --linha: #E3EAF2;
+  --texto: #0B2545; --texto-2: #4A6380; --texto-3: #8197AE;
+  --marca: #1E88E5; --marca-2: #29B6F6; --marca-soft: #E5F2FD;
+  --cr: #D3303F; --cr-soft: #FDECEE; --wr: #C47D0E; --wr-soft: #FDF3E2;
+  --of: #7C8EA0; --of-soft: #EEF2F6; --ok: #1F9D63;
+  --neutro: #9DB0C3; --serie-1: #5E7FA0; --serie-2: #8FA6BC; --serie-3: #46637F;
+  --solo-1: #C9B193; --solo-2: #9C7F5E;
+  --sombra: 0 1px 2px rgba(16,42,80,.04), 0 8px 24px rgba(16,42,80,.06);
+  color-scheme: light;
+}
+[data-tema="escuro"] {
+  --fundo: #0B1219; --card: #121C26; --card-2: #17232F; --linha: #1F2E3B;
+  --texto: #E8EEF4; --texto-2: #A9BACA; --texto-3: #71869A;
+  --marca: #3AA8F0; --marca-2: #4FC3F7; --marca-soft: rgba(58,168,240,.13);
+  --cr: #F0565C; --cr-soft: rgba(240,86,92,.14); --wr: #EBA83A; --wr-soft: rgba(235,168,58,.13);
+  --of: #8B9BAA; --of-soft: rgba(139,155,170,.12); --ok: #3CC985;
+  --neutro: #50667A; --serie-1: #7FA3C4; --serie-2: #5F7A93; --serie-3: #A8BED2;
+  --solo-1: #5A4733; --solo-2: #3B2E21;
+  --sombra: 0 1px 2px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-fundo: var(--fundo); --color-card: var(--card); --color-card-2: var(--card-2);
+  --color-linha: var(--linha); --color-texto: var(--texto); --color-texto-2: var(--texto-2);
+  --color-texto-3: var(--texto-3); --color-marca: var(--marca); --color-marca-soft: var(--marca-soft);
+  --color-cr: var(--cr); --color-cr-soft: var(--cr-soft); --color-wr: var(--wr); --color-wr-soft: var(--wr-soft);
+  --color-of: var(--of); --color-of-soft: var(--of-soft); --color-ok: var(--ok);
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --shadow-card: var(--sombra);
+}
+
+html, body, #root { min-height: 100%; }
+body { margin: 0; background: var(--fundo); color: var(--texto); font-family: var(--font-sans); font-size: 14px; -webkit-font-smoothing: antialiased; }
+.num { font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.card { background: var(--card); border-radius: 18px; box-shadow: var(--sombra); }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .5; }
+:focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; }
+.titulo-card { font-size: 14.5px; font-weight: 600; }
+.sub-card { font-size: 12.5px; color: var(--texto-3); }
+
+/* Medidor e tubo sem sinal: hachurado cinza = último valor conhecido, não confirmado */
+.hachura { background: repeating-linear-gradient(135deg, var(--of) 0 3px, transparent 3px 7px); opacity: .55; }
+
+/* Marcadores do mapa: forma + cor + texto */
+.mkr { display: flex; align-items: center; gap: 6px; background: var(--card); color: var(--texto); border-radius: 999px;
+  padding: 3px 10px 3px 5px; font: 600 12px/1 var(--font-sans); box-shadow: 0 2px 8px rgba(0,0,0,.3); white-space: nowrap;
+  width: max-content; transform: translate(-12px, -50%); cursor: pointer; }
+.mkr svg { flex: none; }
+.mkr span { font-weight: 400; color: var(--texto-3); }
+.mkr.k-critico { background: var(--cr); color: #fff; }
+.mkr.k-critico span { color: rgba(255,255,255,.85); }
+.mkr.k-atencao { outline: 2px solid var(--wr); }
+.mkr.sel { outline: 2px solid var(--marca); }
+.mkr.apagado { opacity: .55; }
+.leaflet-container { background: var(--card-2); font-family: var(--font-sans); }
+.leaflet-div-icon { background: none; border: 0; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--card); color: var(--texto); }
+
+/* Recharts */
+.recharts-cartesian-axis-tick-value { fill: var(--texto-3); font-size: 12px; }
+.recharts-surface:focus { outline: none; }
+
+/* Onda do tubo */
+@keyframes onda { from { transform: translateX(0); } to { transform: translateX(-20px); } }
+.onda { animation: onda 2.4s linear infinite; }
+@keyframes emitir { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+.emitindo path { animation: emitir 1.2s ease-out; }
+@keyframes pulsar { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.pulsar { animation: pulsar 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .onda, .pulsar, .emitindo path { animation: none; } }
+
+/* Impressão do relatório */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  @page { size: A4; margin: 12mm; }
+}

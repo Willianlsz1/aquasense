@@ -1,94 +1,26 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Relatório AquaSense</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/relatorio.css">
-</head>
-<body>
-
-<!-- Barra de controles: some por completo na impressão (classe no-print, ver relatorio.css) -->
-<div class="controls no-print">
-  <div class="controls-group">
-    <label for="sel-pz">Piezômetro</label>
-    <select id="sel-pz"></select>
-    <label for="sel-range">Período</label>
-    <select id="sel-range">
-      <option value="24h">24h</option>
-      <option value="7d">7 dias</option>
-      <option value="30d">30 dias</option>
-    </select>
-  </div>
-  <button id="btn-imprimir" class="btn-print" type="button">🖨️ Salvar como PDF</button>
-</div>
-
-<!-- "Folha" A4 — tudo aqui dentro é o que vai para o PDF -->
-<main class="doc" id="doc">
-  <header class="doc-header">
-    <div class="doc-brand">
-      <span class="doc-logo">AQUASENSE</span>
-      <span class="doc-subtitle">Relatório de Monitoramento · Piezômetro <span id="hdr-pz">PZ-01</span></span>
-    </div>
-    <div class="doc-meta">
-      <div id="hdr-periodo">Período: --</div>
-      <div id="hdr-gerado">Gerado em: --</div>
-    </div>
-  </header>
-
-  <div class="doc-erro" id="doc-erro" hidden></div>
-
-  <div class="doc-body" id="doc-body">
-
-    <section class="resumo">
-      <h2 class="sec-title">Resumo do período</h2>
-      <div class="resumo-grid" id="resumo-grid"></div>
-    </section>
-
-    <section class="grafico-sec">
-      <h2 class="sec-title">Histórico de nível d'água</h2>
-      <div class="grafico-legenda">
-        <span class="lg-item"><i class="lg-swatch lg-media"></i>média</span>
-        <span class="lg-item"><i class="lg-swatch lg-max"></i>máx do intervalo</span>
-        <span class="lg-item"><i class="lg-swatch lg-atencao"></i>limiar atenção</span>
-        <span class="lg-item"><i class="lg-swatch lg-critico"></i>limiar crítico</span>
-      </div>
-      <div class="grafico-area"><canvas id="chart-relatorio"></canvas></div>
-    </section>
-
-    <section class="tabela-sec">
-      <h2 class="sec-title">Intervalos agregados</h2>
-      <div class="tabela-wrap">
-        <table id="tabela-intervalos">
-          <thead>
-            <tr>
-              <th>Data/Hora</th>
-              <th>Média (m)</th>
-              <th>Mín (m)</th>
-              <th>Máx (m)</th>
-              <th>Leituras</th>
-              <th>Status (pelo pico)</th>
-            </tr>
-          </thead>
-          <tbody id="tbody-intervalos"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="auditoria-sec">
-      <h2 class="sec-title">Auditoria</h2>
-      <dl class="auditoria-grid" id="auditoria-grid"></dl>
-    </section>
-
-  </div>
-
-  <footer class="doc-footer">AquaSense · SENAI Belo Horizonte HORTO · Desafio INTEGRA MG</footer>
-</main>
-
-<script src="assets/js/config.js"></script>
-<script src="assets/js/util.js"></script>
-<script src="assets/js/relatorio.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function () {
+        var t = "claro";
+        try {
+          var s = localStorage.getItem("aquasense-tema");
+          t = s === "escuro" || s === "claro" ? s : matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro";
+        } catch (e) {}
+        document.documentElement.dataset.tema = t;
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <title>Relatório AquaSense</title>
+    <script type="module" crossorigin src="./app/relatorio-wM6x-i0R.js"></script>
+    <link rel="modulepreload" crossorigin href="./app/LineChart-gUa5dQtL.js">
+    <link rel="stylesheet" crossorigin href="./app/LineChart-CXm8xvSl.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>
