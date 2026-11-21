@@ -28,7 +28,7 @@ export function TelaInstrumento({ e }: { e: EstadoPainel }) {
   const cad = painel.cadastro(pz.id);
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3" data-gravacao="cabecalho-instrumento">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
             <h2 className="text-[20px] font-semibold tracking-tight">{pz.id} <span className="font-normal text-texto-2">· {pz.nome}</span></h2>
@@ -53,7 +53,7 @@ export function TelaInstrumento({ e }: { e: EstadoPainel }) {
       {!nc && <Incidente e={e} />}
 
       <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[280px_minmax(0,1fr)_300px]">
-        <Cartao titulo="Poço de observação" sub="coluna d'água no tubo · tracejados = limites">
+        <Cartao gravacao="tubo" titulo="Poço de observação" sub="coluna d'água no tubo · tracejados = limites">
           <Tubo nivel={nc ? null : s.nivel} estado={nc ? "semsinal" : s.lv} recepcao={s.recepcao} />
         </Cartao>
 
@@ -62,7 +62,7 @@ export function TelaInstrumento({ e }: { e: EstadoPainel }) {
           <Historico e={e} />
           <div className="grid gap-5 xl:grid-cols-2">
             <Leituras e={e} />
-            <Cartao titulo="Ocorrências deste instrumento">
+            <Cartao gravacao="ocorrencias-instrumento" titulo="Ocorrências deste instrumento">
               <ListaOcorrencias lista={ocorrencias(e).filter(o => o.pz === pz.id).slice(0, 10)} comNome={false} nomes={nomes(e)}
                 vazio={e.simulada ? "Nenhuma mudança de estado nesta demonstração." : e.servidor.erro ? "Registros do servidor indisponíveis." : "Nenhum registro deste instrumento."} />
             </Cartao>
@@ -71,7 +71,7 @@ export function TelaInstrumento({ e }: { e: EstadoPainel }) {
 
         <div className="grid content-start gap-5 md:grid-cols-2 lg:col-span-2 xl:grid-cols-3 2xl:col-span-1 2xl:grid-cols-1">
           <CartaoComunicacao e={e} />
-          <Cartao titulo="Cadastro" acoes={<button type="button" onClick={() => setEditando(true)} className="text-[13px] font-medium text-marca hover:underline">Editar</button>}>
+          <Cartao gravacao="cadastro" titulo="Cadastro" acoes={<button type="button" onClick={() => setEditando(true)} className="text-[13px] font-medium text-marca hover:underline">Editar</button>}>
             <dl className="space-y-2 text-[13px]">
               <Linha k="Código" v={<span className="num">{pz.id}</span>} />
               <Linha k="Nome" v={pz.nome} />
@@ -85,7 +85,7 @@ export function TelaInstrumento({ e }: { e: EstadoPainel }) {
             </dl>
             <p className="mt-3 text-[12px] text-texto-3">Cadastro salvo neste navegador. Coordenadas ilustrativas.</p>
           </Cartao>
-          <Cartao titulo="Localização" corpo="p-0 pt-3">
+          <Cartao gravacao="mapa-instrumento" titulo="Localização" corpo="p-0 pt-3">
             <div className="overflow-hidden rounded-b-[18px]">
               <MapaInstrumentos itens={porPrioridade(e)} modo="ins" sel={pz.id} altura={200} agora={e.agora} />
             </div>
@@ -114,7 +114,7 @@ function Incidente({ e }: { e: EstadoPainel }) {
   const vizinhos = porPrioridade(e).filter(x => x.pz.id !== pz.id);
   const tocando = cr && e.som.ativo && e.som.ligado && !e.som.silenciado;
   return (
-    <section role="alert" className="card overflow-hidden" style={{ outline: `2px solid ${cr ? "var(--cr)" : "var(--wr)"}` }}>
+    <section role="alert" data-gravacao="incidente" className="card overflow-hidden" style={{ outline: `2px solid ${cr ? "var(--cr)" : "var(--wr)"}` }}>
       <div className={`flex flex-wrap items-center gap-3 px-5 py-3.5 ${cr ? "bg-cr text-white" : "bg-wr-soft"}`}>
         <Forma estado={s.lv} size={18} cor={cr ? "#fff" : undefined} />
         <div><h3 className="text-[16px] font-semibold">{pz.id} {cr ? "em nível crítico" : "em atenção"}</h3><p className={`text-[12.5px] ${cr ? "opacity-90" : "text-texto-2"}`}>{desde}</p></div>
@@ -175,7 +175,7 @@ function Indicadores({ e }: { e: EstadoPainel }) {
   const pv = previsao(nc ? { lv: "semsinal", nivel: null, taxa: null } : s);
   const cor = (t?: string) => t === "cr" ? "var(--cr)" : t === "wr" ? "var(--wr)" : undefined;
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3" data-gravacao="indicadores">
       <Tile r="Nível d'água" v={nc ? "–" : s.nivel !== null ? `${fmtBR(s.nivel)} m` : "–"} muted={sem}
         det={nc ? "não confirmado" : sem ? (s.nivel !== null ? "última conhecida · não confirmada" : "nenhuma leitura") : `recebido ${formatUltima(s.recepcao, e.agora)}`}
         cor={!sem && s.lv === "critico" ? "var(--cr)" : undefined} destaque />
@@ -185,14 +185,14 @@ function Indicadores({ e }: { e: EstadoPainel }) {
         det={sem ? "sem leitura recente" : taxaRapida(s.taxa) ? "variação rápida: investigar" : "janela de 1 h no servidor"} cor={!sem && taxaRapida(s.taxa) ? "var(--wr)" : undefined} />
       <Tile r={`Faixa · ${per}`} v={pts.length ? `${fmtBR(Math.min(...mins))}–${fmtBR(Math.max(...maxs))} m` : "–"}
         det={pts.length ? `variação de ${fmtBR(Math.max(...maxs) - Math.min(...mins))} m no período` : "sem histórico"} />
-      <Tile r={pv.titulo} v={pv.valor} det={pv.det} cor={cor(pv.tom)} selo={pv.estimativa ? "estimativa pela taxa atual" : undefined} />
+      <Tile gravacao="previsao" r={pv.titulo} v={pv.valor} det={pv.det} cor={cor(pv.tom)} selo={pv.estimativa ? "estimativa pela taxa atual" : undefined} />
     </div>
   );
 }
 
-function Tile({ r, v, det, cor, muted, destaque, selo }: { r: string; v: string; det: string; cor?: string; muted?: boolean; destaque?: boolean; selo?: string }) {
+function Tile({ r, v, det, cor, muted, destaque, selo, gravacao }: { r: string; v: string; det: string; cor?: string; muted?: boolean; destaque?: boolean; selo?: string; gravacao?: string }) {
   return (
-    <div className="card min-w-0 p-4" style={destaque ? { background: "linear-gradient(180deg, var(--marca-soft), var(--card) 75%)" } : undefined}>
+    <div className="card min-w-0 p-4" data-gravacao={gravacao} style={destaque ? { background: "linear-gradient(180deg, var(--marca-soft), var(--card) 75%)" } : undefined}>
       <div className="text-[12px] font-medium text-texto-3">{r}</div>
       <div className={`num mt-1 font-semibold leading-tight ${destaque ? "text-[26px]" : "text-[19px]"}`} style={{ color: cor ?? (muted ? "var(--texto-3)" : undefined) }}>{v}</div>
       <div className="mt-1 text-[12px] leading-snug text-texto-2">{det}</div>
@@ -209,12 +209,12 @@ function Historico({ e }: { e: EstadoPainel }) {
   const longo = e.periodo !== "24h";
   const relatorio = `relatorio.html?pz=${encodeURIComponent(e.pzSel)}&range=${encodeURIComponent(e.periodo)}`;
   return (
-    <Cartao titulo="Histórico do nível d'água" sub="linha cheia = média do intervalo · tracejada = máximo do intervalo"
+    <Cartao gravacao="historico" titulo="Histórico do nível d'água" sub="linha cheia = média do intervalo · tracejada = máximo do intervalo"
       acoes={<>
         <Segmentado rotulo="Período" valor={e.periodo} aoMudar={p => painel.selecionarPeriodo(p)} opcoes={Object.entries(PERIODOS).map(([v, p]) => ({ v, t: p.label }))} />
-        <Botao disabled={!ok} onClick={() => exportarCsv(h.pontos, e.pzSel, e.periodo, h.bucketSeg, e.simulada)} title="Intervalos do gráfico, com identificação da fonte"><Download size={14} /> CSV</Botao>
-        <Botao disabled={!ok} onClick={() => exportarXls(h.pontos, e.pzSel, e.periodo, h.bucketSeg, e.simulada)} title="Planilha com status pelo pico e resumo do período"><FileSpreadsheet size={14} /> Excel</Botao>
-        <Botao escuro href={relatorio} disabled={e.simulada} title={e.simulada ? "O relatório usa só dados reais: indisponível na demonstração" : "Documento A4 para salvar como PDF"}><FileText size={14} /> Relatório PDF</Botao>
+        <Botao gravacao="exportar-csv" disabled={!ok} onClick={() => exportarCsv(h.pontos, e.pzSel, e.periodo, h.bucketSeg, e.simulada)} title="Intervalos do gráfico, com identificação da fonte"><Download size={14} /> CSV</Botao>
+        <Botao gravacao="exportar-excel" disabled={!ok} onClick={() => exportarXls(h.pontos, e.pzSel, e.periodo, h.bucketSeg, e.simulada)} title="Planilha com status pelo pico e resumo do período"><FileSpreadsheet size={14} /> Excel</Botao>
+        <Botao gravacao="relatorio-pdf" escuro href={relatorio} disabled={e.simulada} title={e.simulada ? "O relatório usa só dados reais: indisponível na demonstração" : "Documento A4 para salvar como PDF"}><FileText size={14} /> Relatório PDF</Botao>
       </>}>
       {ok ? <GraficoInstrumento pontos={h.pontos} bucketMs={PERIODOS[e.periodo].bucketMs} longo={longo} estado={s.lv} />
         : <div className="grid h-[280px] place-items-center text-[13px] text-texto-3">{h.estado === "carregando" ? "Carregando histórico…" : h.msg}</div>}
@@ -228,7 +228,7 @@ function Leituras({ e }: { e: EstadoPainel }) {
   const linhas = h.estado === "ok" ? h.pontos.slice(-12).reverse() : [];
   const longo = e.periodo !== "24h";
   return (
-    <Cartao titulo="Leituras disponíveis" sub={`últimos intervalos · ${PERIODOS[e.periodo].label} · status pelo pico`} corpo="px-5 pb-4 pt-2">
+    <Cartao gravacao="leituras" titulo="Leituras disponíveis" sub={`últimos intervalos · ${PERIODOS[e.periodo].label} · status pelo pico`} corpo="px-5 pb-4 pt-2">
       {linhas.length ? (
         <div className="max-h-[320px] overflow-auto">
           <table className="w-full text-[13px]">
@@ -264,7 +264,7 @@ function CartaoComunicacao({ e }: { e: EstadoPainel }) {
   const ultimaFalha = !ok && fin(ts) ? `em andamento · ${formatUltima(ts, e.agora)}` : falhas.length ? diaHora(falhas[0].t) : "nenhuma registrada";
   const esperadas = Math.round(86400 / CFG.intervaloEnvioSeg);
   return (
-    <Cartao titulo="Comunicação" acoes={nc ? <Selo estado="semsinal" texto="Não confirmado" /> : <Selo estado={ok ? "normal" : "semsinal"} texto={ok ? "Online" : "Sem sinal"} />}>
+    <Cartao gravacao="comunicacao" titulo="Comunicação" acoes={nc ? <Selo estado="semsinal" texto="Não confirmado" /> : <Selo estado={ok ? "normal" : "semsinal"} texto={ok ? "Online" : "Sem sinal"} />}>
       <div className="text-[22px] font-semibold" style={{ color: ok ? undefined : "var(--texto-3)" }}>{nc ? "–" : fin(ts) ? formatUltima(ts, e.agora) : "nunca"}</div>
       <div className="text-[12.5px] text-texto-3">{nc ? "servidor sem resposta" : fin(ts) ? `última recepção · ${new Date(ts * 1000).toLocaleString("pt-BR")}` : "nenhuma leitura recebida"}</div>
       <dl className="mt-4 space-y-2 text-[13px]">

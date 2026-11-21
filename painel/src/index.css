@@ -46,6 +46,10 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .titulo-card { font-size: 14.5px; font-weight: 600; }
 .sub-card { font-size: 12.5px; color: var(--texto-3); }
 
+/* Gravação do pitch (?demo&gravacao): sem cursor nem barras de rolagem */
+.gravacao, .gravacao * { cursor: none !important; scrollbar-width: none; }
+.gravacao ::-webkit-scrollbar { display: none; }
+
 /* Medidor e tubo sem sinal: hachurado cinza = último valor conhecido, não confirmado */
 .hachura { background: repeating-linear-gradient(135deg, var(--of) 0 3px, transparent 3px 7px); opacity: .55; }
 

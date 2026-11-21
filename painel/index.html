@@ -7,7 +7,7 @@
       (function () {
         var t = "claro";
         try {
-          var s = localStorage.getItem("aquasense-tema");
+          var s = new URLSearchParams(location.search).get("tema") || localStorage.getItem("aquasense-tema");
           t = s === "escuro" || s === "claro" ? s : matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro";
         } catch (e) {}
         document.documentElement.dataset.tema = t;

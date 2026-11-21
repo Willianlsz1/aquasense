@@ -4,6 +4,7 @@ import { CFG } from "./nucleo/config";
 import { naoConfirmado, painel, porPrioridade, ROTEIRO_DEMO, usePainel, VISTAS, type EstadoPainel, type Vista } from "./nucleo/painel";
 import { fmtBR } from "./nucleo/util";
 import { Forma, Logo } from "./componentes/base";
+import { MODO_GRAVACAO } from "./nucleo/gravacao";
 import { VisaoGeral } from "./telas/VisaoGeral";
 import { TelaMapa } from "./telas/Mapa";
 import { TelaInstrumento } from "./telas/Instrumento";
@@ -38,7 +39,7 @@ export default function App() {
             {(Object.keys(VISTAS) as Vista[]).map(v => {
               const I = ICONE[v], ativo = e.vista === v;
               return (
-                <a key={v} href={`#${v}`} aria-current={ativo ? "page" : undefined}
+                <a key={v} href={`#${v}`} aria-current={ativo ? "page" : undefined} data-gravacao={v === "visao" ? "nav-visao voltar" : `nav-${v}`}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-colors ${ativo ? "bg-marca-soft font-semibold text-marca" : "text-texto-2 hover:bg-card-2"}`}>
                   <I size={18} strokeWidth={1.8} /><span className="flex-1">{VISTAS[v]}</span>
                   {v === "visao" && emAlerta > 0 && <span className="num rounded-full bg-cr px-1.5 text-[11.5px] font-semibold text-white" aria-label={`${emAlerta} em alerta`}>{emAlerta}</span>}
@@ -66,7 +67,7 @@ export default function App() {
 
       <main className="min-w-0 flex-1 space-y-5 px-4 pb-24 pt-4 sm:px-7 sm:pt-6 lg:pb-8 max-w-[1520px]">
         <Topo e={e} alternarTema={alternar} tema={tema} />
-        {e.simulada && <BarraDemo e={e} />}
+        {e.simulada && !MODO_GRAVACAO && <BarraDemo e={e} />}
         {e.vista !== "visao" && <FaixaAlarme e={e} />}
         {!e.pronto ? <p className="py-16 text-center text-texto-3">Carregando configuração…</p>
           : e.vista === "visao" ? <VisaoGeral e={e} />
@@ -96,7 +97,7 @@ export default function App() {
 function Relogio() {
   const [t, setT] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setT(new Date()), 1000); return () => clearInterval(id); }, []);
-  return <span className="num">{t.toLocaleTimeString("pt-BR")}</span>;
+  return <span className="num" data-gravacao="relogio">{t.toLocaleTimeString("pt-BR")}</span>;
 }
 
 function Topo({ e, alternarTema, tema }: { e: EstadoPainel; alternarTema: () => void; tema: string }) {
@@ -110,11 +111,11 @@ function Topo({ e, alternarTema, tema }: { e: EstadoPainel; alternarTema: () => 
         <p className="text-[13px] text-texto-3">{hoje.charAt(0).toUpperCase() + hoje.slice(1)} · <Relogio /></p>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <span role="status" className="hidden items-center gap-2 rounded-full bg-card px-3 py-1.5 text-[12.5px] text-texto-2 shadow-card sm:inline-flex">
+        <span role="status" data-gravacao="status" className="hidden items-center gap-2 rounded-full bg-card px-3 py-1.5 text-[12.5px] text-texto-2 shadow-card sm:inline-flex">
           <span className={`h-2 w-2 rounded-full ${e.status.tipo === "live" ? "pulsar" : ""}`} style={{ background: cor }} />{e.status.msg}
         </span>
         <button type="button" onClick={() => painel.alternarSom()} title={e.som.ligado ? "Som do alarme ligado: clique para desligar" : "Som do alarme desligado: clique para ligar"}
-          aria-pressed={e.som.ligado} className="relative grid h-10 w-10 place-items-center rounded-xl bg-card text-texto-2 shadow-card">
+          aria-pressed={e.som.ligado} data-gravacao="som" className="relative grid h-10 w-10 place-items-center rounded-xl bg-card text-texto-2 shadow-card">
           {e.som.ligado ? <Volume2 size={18} /> : <VolumeX size={18} />}
           {e.som.ativo && !e.som.silenciado && e.som.ligado && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-cr ring-2 ring-card" />}
         </button>
@@ -151,7 +152,7 @@ function BarraDemo({ e }: { e: EstadoPainel }) {
 function FaixaAlarme({ e }: { e: EstadoPainel }) {
   if (naoConfirmado(e))
     return (
-      <div role="status" className="flex items-center gap-2.5 rounded-xl bg-of-soft px-4 py-2.5 text-[13px] font-medium text-texto">
+      <div role="status" data-gravacao="faixa-alarme" className="flex items-center gap-2.5 rounded-xl bg-of-soft px-4 py-2.5 text-[13px] font-medium text-texto">
         <Forma estado="semsinal" /> Estado dos instrumentos não confirmado: o servidor não respondeu.
       </div>
     );
@@ -161,7 +162,7 @@ function FaixaAlarme({ e }: { e: EstadoPainel }) {
   const cr = lista.filter(x => x.s.lv === "critico");
   const forte = cr.length > 0;
   return (
-    <div role="alert" className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl px-4 py-2.5 text-[13px] ${forte ? "bg-cr text-white" : "bg-wr-soft text-texto"}`}>
+    <div role="alert" data-gravacao="faixa-alarme" className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl px-4 py-2.5 text-[13px] ${forte ? "bg-cr text-white" : "bg-wr-soft text-texto"}`}>
       <Forma estado={forte ? "critico" : "atencao"} cor={forte ? "#fff" : undefined} />
       <span className="font-semibold">{forte ? "Alarme ativo" : "Atenção"}</span>
       {lista.map(x => (

@@ -145,6 +145,11 @@ Depois de alterar `painel/`, rode `npm run build` e inclua `index.html`,
 `relatorio.html` e `app/` no mesmo commit. Localmente, use `?demo`: a API só
 aceita a origem do GitHub Pages.
 
+Para gravar o vídeo ou o deck, `?demo&gravacao` usa só a simulação, com relógio e
+sorteio fixos (`&relogio=2026-10-24T03:11:40-03:00&escala=0.15&tema=escuro`),
+esconde a barra da demo e expõe `window.aquasenseGravacao` (ver
+`painel/src/nucleo/api-gravacao.ts`). Os alvos de câmera têm `data-gravacao`.
+
 ## Manutenção
 
 - Credenciais ficam na cópia local do firmware; nunca no Git.

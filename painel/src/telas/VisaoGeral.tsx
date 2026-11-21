@@ -21,27 +21,27 @@ export function VisaoGeral({ e }: { e: EstadoPainel }) {
   const oc = ocorrencias(e).slice(0, 8);
   return (
     <div className="space-y-5">
-      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-[1.35fr_1fr_0.85fr]">
-        <Destaque e={e} itens={itens} />
+      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-[1.35fr_1fr_0.85fr]" data-gravacao="kpis">
+        <div className="grid" data-gravacao="estado-rede"><Destaque e={e} itens={itens} /></div>
         <PorEstado e={e} itens={itens} />
         <Comunicacao e={e} itens={itens} />
       </div>
       <Instrumentos e={e} itens={itens} aoRealcar={setRealce} />
       <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
-        <Cartao titulo="Onde estão" sub="posições ilustrativas · imagem de satélite Esri" corpo="p-0 pt-3"
+        <Cartao gravacao="mapa" titulo="Onde estão" sub="posições ilustrativas · imagem de satélite Esri" corpo="p-0 pt-3"
           acoes={<a className="text-[13px] font-medium text-marca hover:underline" href="#mapa">Abrir mapa →</a>}>
           <div className="overflow-hidden rounded-b-[18px]">
             <MapaInstrumentos itens={itens} modo="visao" altura={320} agora={e.agora} realce={realce} />
           </div>
         </Cartao>
-        <Cartao titulo={e.simulada ? "Ocorrências desta demonstração" : "Últimos registros do servidor"}
+        <Cartao gravacao="ocorrencias" titulo={e.simulada ? "Ocorrências desta demonstração" : "Últimos registros do servidor"}
           sub={e.simulada ? "mudanças de estado desde que a página abriu" : "eventos gravados pelo servidor"}
           acoes={<a className="text-[13px] font-medium text-marca hover:underline" href="#alertas">Ver todos →</a>}>
           <ListaOcorrencias lista={oc} nomes={nomes(e)}
             vazio={e.simulada ? "Nenhuma mudança de estado até agora." : e.servidor.erro ? "Registros do servidor indisponíveis no momento." : e.servidor.atualizadoEm ? "Nenhum registro no servidor." : "Consultando o servidor…"} />
         </Cartao>
       </div>
-      <Cartao titulo="Nível da água · últimas 24 h" sub="só o instrumento em alarme ganha cor · clique no nome para esconder ou mostrar">
+      <Cartao gravacao="grafico-rede" titulo="Nível da água · últimas 24 h" sub="só o instrumento em alarme ganha cor · clique no nome para esconder ou mostrar">
         <GraficoRede series={series} agora={e.agora} realce={realce} />
         {series.some(s => s.lv === "semsinal") && <p className="mt-2 text-[12px] text-texto-3">Linha tracejada: instrumento sem sinal. O painel não completa o trecho sem dado.</p>}
       </Cartao>
@@ -128,7 +128,7 @@ function PorEstado({ e, itens }: { e: EstadoPainel; itens: Item[] }) {
   const ordem: Situacao[] = ["critico", "atencao", "semsinal", "normal"];
   const nc = naoConfirmado(e);
   return (
-    <Cartao titulo="Instrumentos por estado">
+    <Cartao gravacao="por-estado" titulo="Instrumentos por estado">
       <div className="flex h-2.5 overflow-hidden rounded-full bg-card-2">
         {!nc && ordem.map(lv => {
           const n = itens.filter(x => x.s.lv === lv).length;
@@ -161,7 +161,7 @@ function Comunicacao({ e, itens }: { e: EstadoPainel; itens: Item[] }) {
   const ok = itens.filter(x => x.s.lv !== "semsinal").length;
   const ultima = Math.max(...itens.map(x => x.s.recepcao ?? -Infinity));
   return (
-    <Cartao titulo="Comunicação" sub="disponibilidade nas últimas 24 h">
+    <Cartao gravacao="comunicacao-rede" titulo="Comunicação" sub="disponibilidade nas últimas 24 h">
       <div className="flex items-center gap-4">
         <div className="relative flex-none">
           <Anel pct={pct} cor={pct !== null && pct < 90 ? "var(--of)" : "var(--marca)"} />
@@ -186,7 +186,7 @@ function Instrumentos({ e, itens, aoRealcar }: { e: EstadoPainel; itens: Item[];
   const lista = itens.filter(x => (filtro === "todos" || (filtro === "alerta" ? x.s.lv === "critico" || x.s.lv === "atencao" : x.s.lv === "semsinal"))
     && (!q || `${x.pz.id} ${x.pz.nome}`.toLowerCase().includes(q)));
   return (
-    <section>
+    <section data-gravacao="tabela instrumentos">
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <h2 className="text-[15px] font-semibold">Piezômetros <span className="font-normal text-texto-3">· ordenados por gravidade</span></h2>
         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -223,7 +223,7 @@ function CartaoPz({ e, pz, s, aoRealcar }: { e: EstadoPainel; pz: Pz; s: Estado;
       : <span className="font-semibold text-cr">{fmtBR(-fc)} m acima do limite crítico</span>;
   }
   return (
-    <article tabIndex={0} role="button" aria-label={`Abrir ${pz.id} ${pz.nome}`}
+    <article tabIndex={0} role="button" aria-label={`Abrir ${pz.id} ${pz.nome}`} data-gravacao={`linha-${pz.id} cartao-${pz.id}`}
       onClick={() => painel.abrirInstrumento(pz.id)} onKeyDown={ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); painel.abrirInstrumento(pz.id); } }}
       onMouseEnter={() => aoRealcar(pz.id)} onMouseLeave={() => aoRealcar(null)} onFocus={() => aoRealcar(pz.id)} onBlur={() => aoRealcar(null)}
       className="card relative cursor-pointer overflow-hidden p-5 transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-marca"
