@@ -22,8 +22,12 @@ export const clamp = (v: number, mn: number, mx: number) => Math.max(mn, Math.mi
 export const fin = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
 // Números no formato brasileiro (15,58) em toda a interface.
-export const fmtBR = (v: number, casas = 2) =>
-  Number(v).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+// Zero negativo (ex.: nível exatamente no limite, ou -0,001 arredondado) sai
+// como "0,00", nunca "-0,00".
+export const fmtBR = (v: number, casas = 2) => {
+  const s = Number(v).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+  return /^-[0,.]+$/.test(s) ? s.slice(1) : s;
+};
 
 export function classificarNivel(n: number): Faixa {
   if (n < CFG.thrAtencao) return "normal";
