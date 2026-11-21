@@ -72,17 +72,21 @@ function renderBarraDemo() {
   const barra = document.getElementById("demo-barra");
   if (!barra) return;
   const ids = idsDemo();
-  const passo = ROTEIRO_DEMO[passoDemo];
-  const texto = typeof passo.texto === "function" ? passo.texto(ids) : passo.texto;
   const rodando = timersDemo.length > 0;
+  const descricao = p => typeof p.texto === "function" ? p.texto(ids) : p.texto;
   barra.hidden = false;
+  // O aviso de dados fictícios fica sempre visível; os cenários ficam num seletor.
   barra.innerHTML = `
-    <span class="demo-rot">Roteiro</span>
-    <div class="demo-passos" role="group" aria-label="Passos da demonstração">
-      ${ROTEIRO_DEMO.map((p, i) => `<button type="button" data-passo="${i}" aria-pressed="${i === passoDemo}"><b>${i + 1}</b>${textoHtml(p.titulo)}</button>`).join("")}
-    </div>
-    <span class="demo-texto">${textoHtml(texto)}</span>
-    <button type="button" class="btn-export${rodando ? "" : " btn-escuro"}" data-demo-auto>${rodando ? "■ Parar" : "▶ Roteiro automático"}</button>`;
+    <span class="demo-aviso"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v4.5"/><circle cx="10" cy="6.5" r=".6" fill="currentColor"/></svg><span><b>Demonstração</b> · dados fictícios em tempo acelerado. Não são leituras dos instrumentos.</span></span>
+    <span class="demo-ctl">
+      <label for="demo-cenario">Cenário</label>
+      <select id="demo-cenario" title="${textoHtml(descricao(ROTEIRO_DEMO[passoDemo]))}">
+        ${ROTEIRO_DEMO.map((p, i) => `<option value="${i}"${i === passoDemo ? " selected" : ""} title="${textoHtml(descricao(p))}">${i + 1}. ${textoHtml(p.titulo)}</option>`).join("")}
+      </select>
+      <button type="button" class="btn-export" data-demo-auto>${rodando
+        ? '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="10" height="10" rx="1.5"/></svg>Parar'
+        : '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6.5 4.5v11l9-5.5z"/></svg>Reproduzir roteiro'}</button>
+    </span>`;
 }
 
 if (MODO_DEMO) {
@@ -91,9 +95,11 @@ if (MODO_DEMO) {
   document.title = "aquasense · Demonstração";
   document.addEventListener("DOMContentLoaded", () => {
     renderBarraDemo();
-    document.getElementById("demo-barra").addEventListener("click", e => {
-      const passo = e.target.closest("[data-passo]");
-      if (passo) { pararRoteiroDemo(); aplicarPassoDemo(Number(passo.dataset.passo)); return; }
+    const barra = document.getElementById("demo-barra");
+    barra.addEventListener("change", e => {
+      if (e.target.id === "demo-cenario") { pararRoteiroDemo(); aplicarPassoDemo(Number(e.target.value)); }
+    });
+    barra.addEventListener("click", e => {
       if (e.target.closest("[data-demo-auto]")) {
         if (timersDemo.length) pararRoteiroDemo(); else iniciarRoteiroDemo();
       }

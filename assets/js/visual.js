@@ -42,6 +42,7 @@ function aplicarVista() {
   atualizarTituloVista();
   document.getElementById("conteudo")?.classList.toggle("cheio", v === "mapa");
   if (mudou) window.scrollTo(0, 0);
+  if (typeof renderFaixaAlarme === "function") renderFaixaAlarme();
 
   // Canvas e mapa medidos enquanto ocultos ficam com tamanho zero: redesenhar ao mostrar.
   if (v === "mapa" && typeof leafletMap !== "undefined" && leafletMap) {
@@ -143,7 +144,8 @@ function montarTuboInstrumento() {
     <g id="tg-marca" class="agua" style="transform:translateY(${fundo}px);opacity:0">
       <path d="M100 0 H126" style="stroke:var(--text)" stroke-width="1.6"/><path d="M126 0 l-6 -4 v8z" style="fill:var(--text)"/>
       <rect x="20" y="-14" width="78" height="28" rx="8" style="fill:var(--text)"/>
-      <text id="tg-txt" x="59" y="5" text-anchor="middle" font-family="Barlow Semi Condensed, sans-serif" font-weight="700" font-size="17" style="fill:var(--panel)">–</text>
+      <text id="tg-txt" x="59" y="5" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-weight="600" font-size="16" style="fill:var(--panel)">–</text>
+      <text id="tg-ult" x="59" y="27" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10" style="fill:var(--off)">última conhecida</text>
     </g>
     <rect x="112" y="${topo - 62}" width="64" height="40" rx="7" fill="#16242F" stroke="#3A5A6E" stroke-width="1.5"/>
     <circle cx="126" cy="${topo - 42}" r="4" fill="#8A9AA8" id="tg-led"/>
@@ -172,7 +174,8 @@ function atualizarTuboInstrumento(nivel, estado, novaLeitura = false) {
   marca.style.opacity = temNivel ? "1" : "0";
   document.getElementById("tg-txt").textContent = temNivel ? `${nivel.toFixed(2)} m` : "–";
   svg.classList.toggle("sem-sinal", estado === "semsinal");
-  document.getElementById("tg-led").setAttribute("fill", estado === "semsinal" ? "#EF5A5A" : "#35C67E");
+  // Sem sinal é falha de comunicação, não alarme de nível: LED cinza (vermelho só no crítico).
+  document.getElementById("tg-led").setAttribute("fill", estado === "semsinal" ? "#8A9AA8" : "#35C67E");
   if (novaLeitura && !reduzMovimento) {
     const arcos = document.getElementById("tg-arcos");
     arcos.classList.remove("emitindo"); void arcos.getBoundingClientRect(); arcos.classList.add("emitindo");

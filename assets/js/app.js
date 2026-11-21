@@ -33,6 +33,7 @@ function selectPiezometro(id) {
   pzSelecionado = id;
   resetPzState();
   updatePzLabels();
+  if (typeof renderFaixaAlarme === "function") renderFaixaAlarme();
   atualizarVisaoGeral(pzLatest);
   atualizarMapa(pzLatest);
   loadHistoryAndStats();
@@ -374,7 +375,9 @@ async function poll() {
     atualizarMapa(pzLatest);
     mostrarSemSinalSelecionado();
     console.warn("Fonte de leituras:", e.message);
-    setStatus("err", `Monitoramento real indisponível · ${e.message}`);
+    // Erro de rede do navegador ("Failed to fetch") vira texto em português para o plantonista.
+    const motivo = /failed to fetch|networkerror|load failed/i.test(e.message) ? "servidor sem resposta" : e.message;
+    setStatus("err", `Monitoramento real indisponível · ${motivo}`);
     atualizarResumoDaFonte(true);
   } finally {
     pollEmAndamento = false;

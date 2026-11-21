@@ -501,6 +501,7 @@ const somAlarme = (() => {
     document.addEventListener("click", e => {
       if (!e.target.closest("[data-silenciar]")) return;
       silenciado = true; agendar(); botao(); renderIncidente();
+      if (typeof renderFaixaAlarme === "function") renderFaixaAlarme();
     });
   });
   return {

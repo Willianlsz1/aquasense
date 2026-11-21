@@ -34,9 +34,10 @@ function atualizarResumoRede(mapa) {
   const frase = document.getElementById("resumo-rede");
   const titulo = document.getElementById("saudacao");
   if (!frase) return;
+  // A classe também vai para o cartão: o número só ganha cor quando pede ação.
   const definir = (id, valor, sub, classe = "") => {
     const v = document.getElementById(id), s = document.getElementById(id + "-sub");
-    if (v) v.textContent = valor;
+    if (v) { v.textContent = valor; const k = v.closest?.(".kpi"); if (k) k.className = "kpi" + (classe ? " k-" + classe : ""); }
     if (s) { s.textContent = sub; s.className = "kpi-sub " + classe; }
   };
 
@@ -44,10 +45,11 @@ function atualizarResumoRede(mapa) {
   atualizarSeletoresPz();
   if (semResposta) {
     if (titulo) titulo.textContent = "Situação não confirmada";
-    frase.textContent = "Não foi possível consultar a API. A situação atual dos instrumentos não está confirmada.";
-    ["kpi-comunicando", "kpi-alerta", "kpi-semsinal", "kpi-disp", "kpi-recepcao"].forEach(id => definir(id, "–", "não confirmado", "of"));
+    frase.textContent = "O servidor não respondeu. A situação atual dos instrumentos não está confirmada.";
+    ["kpi-critico", "kpi-atencao", "kpi-semsinal", "kpi-normal", "kpi-disp", "kpi-recepcao"].forEach(id => definir(id, "–", "não confirmado", "of"));
     if (typeof definirIconeResumo === "function") definirIconeResumo("of");
     if (typeof atualizarContadorNav === "function") atualizarContadorNav(0, false);
+    renderFaixaAlarme({ semResposta: true });
     return;
   }
 
@@ -91,9 +93,12 @@ function atualizarResumoRede(mapa) {
   if (typeof definirIconeResumo === "function") definirIconeResumo(tipo);
   if (typeof atualizarContadorNav === "function") atualizarContadorNav(emAlerta + semSinal.length, critico.length > 0);
 
-  definir("kpi-comunicando", String(total - semSinal.length), `de ${plural(total, "instrumento", "instrumentos")}`, semSinal.length ? "of" : "ok");
-  definir("kpi-alerta", String(emAlerta), emAlerta ? [...critico, ...atencao].join(", ") : "nenhum", critico.length ? "cr" : emAlerta ? "wr" : "");
-  definir("kpi-semsinal", String(semSinal.length), `de ${plural(total, "instrumento", "instrumentos")}`, semSinal.length ? "of" : "ok");
+  const normais = total - emAlerta - semSinal.length;
+  definir("kpi-critico", String(critico.length), critico.length ? critico.join(", ") : "nenhum", critico.length ? "cr" : "");
+  definir("kpi-atencao", String(atencao.length), atencao.length ? atencao.join(", ") : "nenhum", atencao.length ? "wr" : "");
+  definir("kpi-semsinal", String(semSinal.length), semSinal.length ? semSinal.join(", ") : "todos comunicando", semSinal.length ? "of" : "");
+  definir("kpi-normal", String(normais), `de ${plural(total, "instrumento", "instrumentos")}`, "");
+  renderFaixaAlarme({ critico, atencao, semSinal });
   const disps = typeof disponibilidade24h === "function" ? PIEZOMETROS.map(pz => disponibilidade24h(pz.id)).filter(Boolean) : [];
   if (disps.length) {
     const pct = Math.min(100, disps.reduce((s, d) => s + d.recebidas, 0) / disps.reduce((s, d) => s + d.esperadas, 0) * 100);
@@ -103,6 +108,53 @@ function atualizarResumoRede(mapa) {
   }
   definir("kpi-recepcao", ultima ? formatUltimaLeitura(ultima.ts) : "–",
     ultima ? `${ultima.id} · ${new Date(ultima.ts * 1000).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : "sem leituras");
+}
+
+// ── FAIXA DE ALARME ATIVO ─────────────────────────────────────────────────────
+// ISA-18.2: o alarme ativo fica visível em qualquer aba, com prioridade (crítico,
+// atenção, sem sinal) e atalho para o instrumento. Na Visão geral, a faixa de estado
+// já mostra o mesmo conteúdo, então esta faixa fica oculta ali.
+let ultimaFaixaAlarme = null;
+function renderFaixaAlarme(situacao) {
+  if (situacao) ultimaFaixaAlarme = situacao;
+  const box = document.getElementById("alarme-ativo");
+  const s = ultimaFaixaAlarme;
+  if (!box || !s) return;
+  const { critico = [], atencao = [], semSinal = [], semResposta = false } = s;
+  const nome = id => (PIEZOMETROS.find(p => p.id === id) || {}).nome || "";
+  const leitura = id => {
+    const n = typeof pzLatest !== "undefined" ? pzLatest[id]?.nivel : null;
+    return Number.isFinite(n) ? ` · ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m` : "";
+  };
+  let tipo = "", ico = "", titulo = "", resto = [];
+  const foco = critico[0] || atencao[0] || semSinal[0];
+  if (semResposta) {
+    tipo = "of"; ico = "of"; titulo = "Servidor sem resposta · condição dos instrumentos não confirmada";
+  } else if (critico.length) {
+    tipo = "cr"; ico = "cr";
+    titulo = critico.length === 1 ? `${critico[0]} ${nome(critico[0])} em nível CRÍTICO${leitura(critico[0])}` : `${critico.length} instrumentos em nível CRÍTICO: ${critico.join(", ")}`;
+  } else if (atencao.length) {
+    tipo = "wr"; ico = "wr";
+    titulo = atencao.length === 1 ? `${atencao[0]} ${nome(atencao[0])} em ATENÇÃO${leitura(atencao[0])}` : `${atencao.length} instrumentos em ATENÇÃO: ${atencao.join(", ")}`;
+  } else if (semSinal.length) {
+    tipo = "of"; ico = "of";
+    titulo = semSinal.length === 1 ? `${semSinal[0]} ${nome(semSinal[0])} sem sinal` : `${semSinal.length} instrumentos sem sinal: ${semSinal.join(", ")}`;
+  }
+  if (critico.length && atencao.length) resto.push(`${atencao.length} em atenção`);
+  if ((critico.length || atencao.length) && semSinal.length) resto.push(`${semSinal.length} sem sinal`);
+  const naVisao = typeof vistaAtual !== "undefined" && vistaAtual === "visao";
+  if (!tipo || naVisao) { box.hidden = true; box.dataset.html = ""; return; }
+  const silenciar = tipo === "cr" && typeof somAlarme !== "undefined" && somAlarme.tocando()
+    ? '<button type="button" class="aa-btn" data-silenciar>Silenciar som</button>' : "";
+  const jaNoFoco = typeof vistaAtual !== "undefined" && vistaAtual === "instrumento" && typeof pzSelecionado !== "undefined" && pzSelecionado === foco;
+  // Na tela do próprio instrumento o quadro de incidente já mostra o alarme; a faixa só fica se houver outros.
+  if (jaNoFoco && !resto.length) { box.hidden = true; box.dataset.html = ""; return; }
+  const link = foco && !semResposta && !jaNoFoco ? `<a class="aa-link link-incidente" href="#instrumento" data-abrir-pz="${textoHtml(foco)}">Ver ${textoHtml(foco)} →</a>` : "";
+  const html = `<div class="aa-in"><span class="aa-ico" aria-hidden="true">${typeof ICONES_ESTADO !== "undefined" ? ICONES_ESTADO[ico] : ""}</span>
+    <span class="aa-txt"><b>${textoHtml(titulo)}</b>${resto.length ? `<span>+ ${textoHtml(resto.join(" · "))}</span>` : ""}</span>${silenciar}${link}</div>`;
+  box.className = `alarme-ativo aa-${tipo}`;
+  box.hidden = false;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
 
 // Balão com o valor do ponto mais próximo do cursor no gráfico de nível.

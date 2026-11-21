@@ -244,7 +244,9 @@ function filtroVisaoGeral() {
   return { filtro: ativo ? ativo.dataset.f : "todos", busca: busca && typeof busca.value === "string" ? busca.value.trim().toLowerCase() : "" };
 }
 
-function linhaInstrumento(pz, d, s) {
+// naoConfirmado: a consulta ao servidor falhou; o instrumento pode estar comunicando,
+// então o selo diz "não confirmado" em vez de afirmar "sem sinal".
+function linhaInstrumento(pz, d, s, naoConfirmado = false) {
   const semSinal = s.lv === "semsinal";
   const ultimaRecepcao = timestampUltimaRecepcao(d);
   const anterior = cartaoAnterior[pz.id];
@@ -272,25 +274,22 @@ function linhaInstrumento(pz, d, s) {
   // P3 — taxa só com comunicação recente; destaque quando |taxa| > limiar.
   const taxa = !semSinal && d && Number.isFinite(d.taxa_m_dia) ? d.taxa_m_dia : null;
   const taxaRapida = taxa !== null && Math.abs(taxa) > CFG.taxaMaxMDia;
-  const taxaHtml = taxa === null ? "—" : `${taxaRapida ? "↗ " : ""}${taxa >= 0 ? "+" : ""}${taxa.toFixed(2)}`;
-  const recepcao = semSinal
-    ? (Number.isFinite(ultimaRecepcao) ? `última leitura ${formatUltimaLeitura(ultimaRecepcao)}` : "nenhuma leitura recebida")
-    : `recebido ${formatUltimaLeitura(ultimaRecepcao)}`;
-  const disp = typeof disponibilidade24h === "function" ? disponibilidade24h(pz.id) : null;
-  const dispHtml = disp
-    ? `<span class="disp${disp.pct < 98 ? " baixa" : ""}"><span class="trilho"><i style="width:${disp.pct.toFixed(1)}%"></i></span>${disp.pct.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>`
-    : `<span class="disp">—</span>`;
+  // A taxa e a disponibilidade ficam na aba do instrumento; aqui só aparece a variação rápida.
+  if (taxaRapida) folga = folga.replace("</span>", `<em class="taxa-rapida" title="Variação rápida: investigar">↗ ${taxa >= 0 ? "+" : ""}${taxa.toFixed(2)} m/dia</em></span>`);
+  const recepcao = naoConfirmado ? "servidor sem resposta"
+    : semSinal
+      ? (Number.isFinite(ultimaRecepcao) ? `última leitura ${formatUltimaLeitura(ultimaRecepcao)}` : "nenhuma leitura recebida")
+      : formatUltimaLeitura(ultimaRecepcao);
+  const rotulo = naoConfirmado ? "Não confirmado" : s.lbl;
   return `
-    <tr class="lin-${s.lv}${pz.id === pzSelecionado ? " selecionado" : ""}${mudou}" data-pz="${textoHtml(pz.id)}" tabindex="0" aria-label="${textoHtml(pz.id)} ${textoHtml(pz.nome)}: ${s.lbl}">
-      <td><span class="${selo}">${s.lbl}</span></td>
+    <tr class="lin-${s.lv}${pz.id === pzSelecionado ? " selecionado" : ""}${mudou}" data-pz="${textoHtml(pz.id)}" tabindex="0" aria-label="${textoHtml(pz.id)} ${textoHtml(pz.nome)}: ${rotulo}">
+      <td><span class="${selo}">${rotulo}</span></td>
       <td><span class="idn"><span class="id">${textoHtml(pz.id)}</span><span class="nm">${textoHtml(pz.nome)}</span>${local ? `<span class="lc">${textoHtml(local)}</span>` : ""}</span></td>
-      <td><span class="nivel"><span class="v${semSinal ? " valor-esmaecido" : ""}">${valor}</span>${indicador}</span></td>
+      <td><span class="nivel"><span class="v${semSinal ? " valor-esmaecido" : ""}"${semSinal && s.nivel !== null ? ' title="Última leitura conhecida, não confirmada"' : ""}>${valor}</span>${indicador}</span></td>
       <td>${folga}</td>
-      <td class="spark">${typeof sparkSvg === "function" ? sparkSvg(hist, s.lv) : ""}</td>
-      <td class="d"><span class="taxa${taxaRapida ? " rapida" : ""}"${taxaRapida ? ' title="Variação rápida: investigar"' : ""}>${taxaHtml}</span>${taxa === null ? "" : "<small>m/dia</small>"}</td>
       <td><span class="rec${semSinal ? " off" : ""}"><span class="sinal" aria-hidden="true"><i></i><i></i><i></i></span>${recepcao}</span>${leituraNova ? '<span class="recebe pulso" aria-hidden="true"></span>' : ""}</td>
-      <td>${dispHtml}</td>
-      <td class="seta" aria-hidden="true">›</td>
+      <td class="spark">${typeof sparkSvg === "function" ? sparkSvg(hist, s.lv) : ""}</td>
+      <td class="seta" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></td>
     </tr>`;
 }
 
@@ -305,13 +304,14 @@ function atualizarVisaoGeral(mapa) {
     if (filtro === "semsinal" && s.lv !== "semsinal") return false;
     return !busca || `${pz.id} ${pz.nome}`.toLowerCase().includes(busca);
   });
+  const naoConfirmado = typeof failCount !== "undefined" && failCount > 0 && !Object.keys(mapa || {}).length;
   grid.innerHTML = visiveis.length
-    ? visiveis.map(({ pz, d, s }) => linhaInstrumento(pz, d, s)).join("")
-    : `<tr><td colspan="9" class="vazio">Nenhum instrumento neste filtro.</td></tr>`;
+    ? visiveis.map(({ pz, d, s }) => linhaInstrumento(pz, d, s, naoConfirmado)).join("")
+    : `<tr><td colspan="7" class="vazio">Nenhum instrumento neste filtro.</td></tr>`;
 
   const emAlerta = ordem.filter(o => o.s.lv === "atencao" || o.s.lv === "critico").length;
   const sub = document.getElementById("tab-sub");
-  if (sub) sub.textContent = `${PIEZOMETROS.length} cadastrados · ${emAlerta ? emAlerta + " em alerta" : "nenhum em alerta"}`;
+  if (sub) sub.textContent = `${PIEZOMETROS.length} cadastrados · ${naoConfirmado ? "condição não confirmada" : emAlerta ? emAlerta + " em alerta" : "nenhum em alerta"}`;
   const escala = document.getElementById("tab-escala");
   if (escala && typeof escalaNivel === "function") escala.textContent = `(0–${escalaNivel()} m)`;
   if (typeof atualizarResumoRede === "function") atualizarResumoRede(mapa);
