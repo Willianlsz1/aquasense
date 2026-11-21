@@ -60,7 +60,7 @@ do desafio, e os 100 pontos são premissa a confirmar com o cliente.
 | Protótipo V1 — ESP32 + HC-SR04 + TFT ST7789 em bancada, Wi-Fi | Validado em 12/09/2026 ([registro](docs/VALIDACAO_BANCADA_2026-09-12.md)); em 27/09/2026, display TFT, queda de rede, perda de sinal e HTTPS com certificado validado ([ensaios](docs/ENSAIOS_V2.md), [firmware](docs/REGISTRO_FIRMWARE.md)) |
 | Protótipo V2 — mesmo sistema num tubo de acrílico com água | Montado, conforme o TCC v6.8; falta calibrar o sensor. Exatidão, repetibilidade e faixas com água pendentes ([roteiro de ensaios](docs/ENSAIOS_V2.md)) |
 | UCT comercial — sonda 4–20 mA, ADS1115, 4G, energia solar | Especificada no TCC; não montada |
-| Servidor e painel | [Publicados](https://willianlsz1.github.io/aquasense/), com o painel v2 desde 23/10/2026; 47 testes locais aprovados em 06/11/2026 |
+| Servidor e painel | [Publicados](https://willianlsz1.github.io/aquasense/), com o painel v2 desde 23/10/2026; 15 testes locais do servidor e dos alertas aprovados em 21/11/2026 (o painel é conferido no navegador) |
 
 O V1 usa uma escala didática: a distância do sensor vira nível equivalente
 (`max(0, 40 - distancia_cm) * 0,5`). Não é uma coluna real de vários metros nem

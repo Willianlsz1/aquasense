@@ -85,7 +85,7 @@ SEM SINAL. A taxa de variação usa o horário da medição.
 | Queda de rede (12 min) e perda de sinal (18 min) | 27/09/2026 | Bancada; ~50 s perdidos no instante da queda. [Ensaios](ENSAIOS_V2.md). |
 | HTTPS com certificado do servidor validado | 27/09/2026 | Depende de NTP e das raízes gravadas no firmware. |
 | Painel e Worker publicados | 13/09/2026 | Publicado não significa disponível hoje. A cota diária do D1 já bloqueou consultas. |
-| Testes automatizados | 11/11/2026 | 47/47 aprovados localmente (`npm test`), mesmo número citado no TCC v6.8. |
+| Testes automatizados | 21/11/2026 | 15/15 aprovados localmente (`npm test`): servidor, retenção e worker de alertas. Os 32 testes da lógica do painel foram removidos; o painel passa a ser conferido no navegador. O TCC v6.8 ainda cita 47 e precisa de ajuste. |
 
 ## Limites conhecidos
 
