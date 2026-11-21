@@ -105,10 +105,10 @@ export function Anel({ pct, cor = "var(--marca)", tam = 88 }: { pct: number | nu
   );
 }
 
-export function Cartao({ titulo, sub, acoes, children, className = "", corpo = "p-5", gravacao }:
-  { titulo?: ReactNode; sub?: ReactNode; acoes?: ReactNode; children: ReactNode; className?: string; corpo?: string; gravacao?: string }) {
+export function Cartao({ titulo, sub, acoes, children, className = "", corpo = "p-5" }:
+  { titulo?: ReactNode; sub?: ReactNode; acoes?: ReactNode; children: ReactNode; className?: string; corpo?: string }) {
   return (
-    <section className={`card ${className}`} data-gravacao={gravacao}>
+    <section className={`card ${className}`}>
       {(titulo || acoes) && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-4">
           <div className="min-w-0"><h2 className="titulo-card">{titulo}</h2>{sub && <p className="sub-card">{sub}</p>}</div>
@@ -134,12 +134,12 @@ export function Segmentado<T extends string>({ opcoes, valor, aoMudar, rotulo }:
   );
 }
 
-export const Botao = ({ children, onClick, escuro = false, disabled, title, href, gravacao }:
-  { children: ReactNode; onClick?: () => void; escuro?: boolean; disabled?: boolean; title?: string; href?: string; gravacao?: string }) => {
+export const Botao = ({ children, onClick, escuro = false, disabled, title, href }:
+  { children: ReactNode; onClick?: () => void; escuro?: boolean; disabled?: boolean; title?: string; href?: string }) => {
   const cls = `inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[13px] font-medium transition-colors ${escuro
     ? "bg-texto text-card hover:opacity-90" : "border border-linha bg-card text-texto-2 hover:bg-card-2"} ${disabled ? "pointer-events-none opacity-50" : ""}`;
-  if (href) return <a className={cls} href={disabled ? undefined : href} target="_blank" rel="noopener" title={title} aria-disabled={disabled} data-gravacao={gravacao}>{children}</a>;
-  return <button type="button" className={cls} onClick={onClick} disabled={disabled} title={title} data-gravacao={gravacao}>{children}</button>;
+  if (href) return <a className={cls} href={disabled ? undefined : href} target="_blank" rel="noopener" title={title} aria-disabled={disabled}>{children}</a>;
+  return <button type="button" className={cls} onClick={onClick} disabled={disabled} title={title}>{children}</button>;
 };
 
 export function Logo({ tam = 30 }: { tam?: number }) {

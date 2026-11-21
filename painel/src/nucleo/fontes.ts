@@ -3,7 +3,6 @@
 // demonstração. O painel nunca troca para a simulação por causa de uma falha da API.
 import { apiGet, CFG, PIEZOMETROS } from "./config";
 import { clamp, fin, type Leitura } from "./util";
-import { aleatorio } from "./gravacao";
 
 export type PontoBruto = {
   ts: number; nivel_agua: number; nivel_max?: number; nivel_min?: number; n_leituras?: number;
@@ -82,10 +81,10 @@ export const FonteSimulada: Fonte & {
       }
       const alvo = fin(this.alvo[pz]) ? this.alvo[pz] : s.ref;
       const passo = clamp(alvo - s.n, -0.42, 0.42);
-      s.n = Math.max(0, s.n + passo + (aleatorio() - 0.5) * 0.05);
-      const taxa = Math.abs(alvo - s.n) > 0.08 ? clamp(passo * 6, -2.5, 2.5) : (aleatorio() - 0.5) * 0.08;
+      s.n = Math.max(0, s.n + passo + (Math.random() - 0.5) * 0.05);
+      const taxa = Math.abs(alvo - s.n) > 0.08 ? clamp(passo * 6, -2.5, 2.5) : (Math.random() - 0.5) * 0.08;
       const reg = this.registro[pz] || (this.registro[pz] = []);
-      reg.push({ v: s.n, max: s.n + aleatorio() * 0.06 });
+      reg.push({ v: s.n, max: s.n + Math.random() * 0.06 });
       if (reg.length > 32) reg.shift();
       todos[pz] = { nivel: s.n, ts: agora, recebidoEm: agora, taxa_m_dia: parseFloat(taxa.toFixed(3)) };
     });

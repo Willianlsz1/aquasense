@@ -9,7 +9,6 @@ import { FonteApi, FonteSimulada, type Fonte } from "./fontes";
 import { normalizarEvento, ocorrenciaDoServidor, textoOcorrencia, type EventoServidor, type Ocorrencia } from "./eventos";
 import { cadastroDe, gravarCadastros, lerCadastros, type Cadastro } from "./cadastro";
 import { tocarAlarme } from "./som";
-import { MODO_GRAVACAO } from "./gravacao";
 import type { PontoHist } from "./exportar";
 import { classificarComHisterese, fin, situacaoPz, type Faixa, type Leitura, type Situacao } from "./util";
 
@@ -99,10 +98,8 @@ class Painel {
   }
 
   subscribe = (f: () => void) => { this.ouvintes.add(f); return () => { this.ouvintes.delete(f); }; };
-  mudouEm = 0; // performance.now() da última mudança (o gravador espera a tela assentar)
   private set(p: Partial<EstadoPainel>) {
     this.e = { ...this.e, ...p };
-    this.mudouEm = performance.now();
     const s = this.e.som;
     tocarAlarme(s.ativo && s.ligado && !s.silenciado);
     this.ouvintes.forEach(f => f());
@@ -113,11 +110,8 @@ class Painel {
     if (this.iniciado) return;
     this.iniciado = true;
     window.addEventListener("hashchange", () => this.set({ vista: vistaDoEndereco() }));
-    // Gravação: nada anda sozinho; o gravador avança com poll().
-    if (!MODO_GRAVACAO) {
-      setInterval(() => this.set({ agora: Date.now() }), 5000);
-      await carregarConfig();
-    }
+    setInterval(() => this.set({ agora: Date.now() }), 5000);
+    await carregarConfig();
     if (MODO_DEMO) {
       CFG.poll = 3000; // tempo acelerado
       this.fonte = FonteSimulada;
@@ -130,16 +124,9 @@ class Painel {
     void this.carregarHistoricoRede(true);
     void this.carregarEventos(true);
     await this.solicitarPoll();
-    if (MODO_GRAVACAO) return;
     setInterval(() => void this.solicitarPoll(), CFG.poll);
     // Aba em segundo plano estrangula o intervalo: ao voltar, consulta na hora.
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") void this.solicitarPoll(); });
-  }
-
-  // Uma consulta completa, esperando a anterior terminar (gravação).
-  async consultar() {
-    while (this.pollEmAndamento) await new Promise(r => setTimeout(r, 20));
-    await this.poll();
   }
 
   // Nomes editados no cadastro valem sobre os do servidor.
@@ -351,7 +338,7 @@ class Painel {
     return ids;
   }
 
-  aplicarPassoDemo(i: number, consultar = true) {
+  aplicarPassoDemo(i: number) {
     const ids = this.idsDemo();
     const ref = ids.map(id => FonteSimulada.estadoDe(id).ref);
     const { alvo, offline } = ROTEIRO_DEMO[i].estado(ids, ref);
@@ -361,21 +348,7 @@ class Painel {
     offline.forEach(id => { novo[id] = FonteSimulada.offline[id] || agora - CFG.staleSeg - 5; });
     FonteSimulada.offline = novo;
     this.set({ demo: { ...this.e.demo, passo: i } });
-    if (consultar) void this.solicitarPoll();
-  }
-
-  // Alvo livre para um instrumento da demonstração (ex.: parar em 15,1 m).
-  alvoDemo(pz: string, metros: number) { FonteSimulada.alvo = { ...FonteSimulada.alvo, [pz]: metros }; }
-
-  // Recomeça a demonstração do zero (usado ao trocar o relógio da gravação).
-  async reiniciarDemo() {
-    this.pararRoteiro();
-    FonteSimulada.reiniciar();
-    this.situacaoAnterior = {};
-    this.set({ ultimos: {}, ocorrenciasSessao: [], inicioAlerta: {}, faixaSel: null, agora: Date.now(),
-      demo: { passo: 0, rodando: false }, som: { ...this.e.som, ativo: false, silenciado: false } });
-    await this.consultar();
-    await Promise.all([this.carregarHistorico(), this.carregarHistoricoRede(true)]);
+    void this.solicitarPoll();
   }
 
   escolherCenario(i: number) { this.pararRoteiro(); this.aplicarPassoDemo(i); }
