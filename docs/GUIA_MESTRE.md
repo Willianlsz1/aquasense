@@ -1,6 +1,6 @@
 # Guia mestre do AquaSense
 
-O documento mestre é o texto do TCC **AquaSense_TCC_v6.8_ABNT** (12/11/2026, mantido
+O documento mestre é o texto do TCC **AquaSense_TCC_v7.1_INTEGRA** (22/11/2026, no modelo INTEGRA do SENAI, mantido
 fora do repositório). Este guia liga as seções do TCC aos arquivos do código e separa o
 que já foi comprovado do que é especificação ou plano.
 
@@ -8,13 +8,13 @@ que já foi comprovado do que é especificação ou plano.
 
 | Parte do TCC | Situação | Onde está no repositório |
 |---|---|---|
-| Protótipo V1 — bancada (seção 4.1.1) | Montado e validado em 12/09/2026 | `firmware/aquasense_hc_sr04/`, [validação](VALIDACAO_BANCADA_2026-09-12.md) |
-| Protótipo V2 — tubo de acrílico (seção 4.1.2) | Montado, conforme o TCC; falta calibrar o sensor para iniciar os ensaios com água | [roteiro de ensaios](ENSAIOS_V2.md) |
-| UCT comercial (seções 4.2 a 4.5) | Especificação; não montada | `firmware/referencia_uct/` (referência, sem ensaio) |
-| Software e nuvem (seção 4.6) | Publicado e com testes locais | `cloudflare-worker/`, `painel/` (código do painel; publicado na raiz) |
-| Empresa e identidade visual (capítulo 2 e Apêndice E) | WIM é empresa fictícia da equipe; marca aplicada ao painel | `index.html` |
-| Manual, manutenção e finanças (capítulos 5 a 7, 9 e 10) | Somente no texto do TCC | — |
-| Mercado (capítulo 8 e Apêndice D) | Fontes conferidas; questionário não aplicado | [validação de mercado](VALIDACAO_MERCADO.md) |
+| Protótipo V1 — bancada (seção 1.3.5.1.1) | Montado e validado em 12/09/2026 | `firmware/aquasense_hc_sr04/`, [validação](VALIDACAO_BANCADA_2026-09-12.md) |
+| Protótipo V2 — tubo de acrílico (seção 1.3.5.1.2) | Montado, conforme o TCC; falta calibrar o sensor para iniciar os ensaios com água | [roteiro de ensaios](ENSAIOS_V2.md) |
+| UCT comercial (seções 1.3.5.2 a 1.3.5.5) | Especificação; não montada | `firmware/referencia_uct/` (referência, sem ensaio) |
+| Software e nuvem (seção 1.3.5.6) | Publicado e com testes locais | `cloudflare-worker/`, `painel/` (código do painel; publicado na raiz) |
+| Empresa e identidade visual (seção 1.3.4.2 e Apêndice E) | WIM é empresa fictícia da equipe; marca aplicada ao painel | `index.html` |
+| Manual, manutenção e finanças (seções 1.3.5.8, 1.3.5.9, 1.3.6.1, 1.3.6.3 e 1.3.6.4) | Somente no texto do TCC | — |
+| Mercado (seção 1.3.6.2 e Apêndice D) | Fontes conferidas; questionário não aplicado | [validação de mercado](VALIDACAO_MERCADO.md) |
 
 Os protótipos e a UCT compartilham a lógica do firmware (fila, envio, faixas),
 o servidor e o painel. O protótipo usa um sketch único; a UCT, os fontes em
@@ -23,9 +23,9 @@ o servidor e o painel. O protótipo usa um sketch único; a UCT, os fontes em
 ## Cenário financeiro do TCC
 
 O cenário de referência é a operação completa de cerca de 100 pontos (premissa P2,
-seção 9.3): investimento de R$ 750.000, economia líquida de R$ 425.600 por ano (71% do
+seção 1.3.6.3.3): investimento de R$ 750.000, economia líquida de R$ 425.600 por ano (71% do
 custo atual) e payback de cerca de 21 meses. A implantação pode começar por um piloto
-de 20 pontos: R$ 150.000, R$ 85.120 por ano e o mesmo payback (seção 9.3.2).
+de 20 pontos: R$ 150.000, R$ 85.120 por ano e o mesmo payback (seção 1.3.6.3.3.2).
 
 Só o custo da ordem de R$ 600 mil por ano vem do desafio. O número de pontos, o preço e
 a composição do custo são estimativas dos autores, e nada disso foi medido em campo.
@@ -85,7 +85,7 @@ SEM SINAL. A taxa de variação usa o horário da medição.
 | Queda de rede (12 min) e perda de sinal (18 min) | 27/09/2026 | Bancada; ~50 s perdidos no instante da queda. [Ensaios](ENSAIOS_V2.md). |
 | HTTPS com certificado do servidor validado | 27/09/2026 | Depende de NTP e das raízes gravadas no firmware. |
 | Painel e Worker publicados | 13/09/2026 | Publicado não significa disponível hoje. A cota diária do D1 já bloqueou consultas. |
-| Testes automatizados | 21/11/2026 | 15/15 aprovados localmente (`npm test`): servidor, retenção e worker de alertas. Os 32 testes da lógica do painel foram removidos; o painel passa a ser conferido no navegador. O TCC v6.8 ainda cita 47 e precisa de ajuste. |
+| Testes automatizados | 21/11/2026 | 15/15 aprovados localmente (`npm test`): servidor, retenção e worker de alertas. Os 32 testes da lógica do painel foram removidos; o painel passa a ser conferido no navegador. O TCC v7.1 já cita os 15. |
 
 ## Limites conhecidos
 

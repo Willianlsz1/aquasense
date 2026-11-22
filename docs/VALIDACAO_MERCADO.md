@@ -1,7 +1,7 @@
 # Validação de mercado
 
-Resumo da validação de mercado do AquaSense, alinhado à Seção 8.4 e ao Apêndice D
-do TCC (v6.8, 12/11/2026; capítulo sem mudança desde a v6.7).
+Resumo da validação de mercado do AquaSense, alinhado à seção 1.3.6.2.4 e ao Apêndice D
+do TCC (v7.1, 22/11/2026; conteúdo sem mudança desde a v6.7).
 
 **Regra:** número de mercado só com fonte citável. Onde o dado não existe em fonte
 pública, está escrito o método e a fonte a consultar — nunca uma estimativa.
@@ -40,12 +40,12 @@ Operacionalidade do PAEBM.
 | Dado necessário | Por que importa | Método e fonte |
 |---|---|---|
 | Barragens de mineração com DPA alto | Público obrigado pelo art. 7º, § 1º | Consulta ao SIGBM público da ANM, filtrando por DPA e por UF |
-| Piezômetros por barragem e quantos são lidos manualmente | Tamanho do mercado; premissa P2 do Capítulo 9 | Perguntas 3 e 4 do questionário; Planos de Segurança de Barragem, quando disponibilizados pelo empreendedor |
+| Piezômetros por barragem e quantos são lidos manualmente | Tamanho do mercado; premissa P2 da seção 1.3.6.3.1 | Perguntas 3 e 4 do questionário; Planos de Segurança de Barragem, quando disponibilizados pelo empreendedor |
 | Frequência e custo da leitura manual em outras empresas | Generalizar o caso Samarco (premissa P1) | Perguntas 4 e 5 do questionário |
 | Preço das soluções concorrentes | Posicionamento de preço | Pedido formal de cotação a fabricantes e distribuidores (Geokon, Sisgeo, Encardio-Rite) com a especificação da UCT |
-| Disposição a pagar por ponto automatizado | Premissa P5 do Capítulo 9 | Pergunta 8 do questionário |
+| Disposição a pagar por ponto automatizado | Premissa P5 da seção 1.3.6.3.1 | Pergunta 8 do questionário |
 
-As premissas do Capítulo 9 (por exemplo, P2 ≈ 100 pontos) são **cenários de
+As premissas da seção 1.3.6.3.1 (por exemplo, P2 ≈ 100 pontos) são **cenários de
 cálculo**, não dados de mercado. A tabela de sensibilidade do TCC mostra o efeito
 de variar o número de pontos.
 
@@ -88,7 +88,7 @@ escrito no painel; o sistema não envia mensagens para canais externos.
 
 ## 5. Modelo de receita
 
-O Capítulo 9 do TCC adota, como cenário, a venda da UCT com instalação por ponto
+A seção 1.3.6.3 do TCC adota, como cenário, a venda da UCT com instalação por ponto
 somada a um serviço mensal por ponto (comunicação, nuvem, suporte e manutenção).
 A alternativa de monitoramento como serviço, sem venda do equipamento, não foi
 avaliada. A escolha entre as duas depende da camada primária.
