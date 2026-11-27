@@ -22,7 +22,8 @@ export function TelaInstrumento({ e }: { e: EstadoPainel }) {
   const nc = naoConfirmado(e);
   const sem = s.lv === "semsinal";
   // Selo do instrumento aberto: faixa com histerese (evita piscar perto do limite).
-  const lvSelo: Situacao = nc || sem ? "semsinal" : (e.faixaSel ?? s.lv);
+  // Variação rápida eleva o normal para atenção (mesma regra de situacaoPz).
+  const lvSelo: Situacao = nc || sem ? "semsinal" : e.faixaSel === "normal" && s.lv === "atencao" ? "atencao" : (e.faixaSel ?? s.lv);
   const n = e.piezometros.length;
   const ir = (k: number) => painel.selecionarPz(e.piezometros[(idx + k + n) % n].id);
   const cad = painel.cadastro(pz.id);

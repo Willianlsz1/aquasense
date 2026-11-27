@@ -1,12 +1,12 @@
 // ── REGISTROS DO SERVIDOR E OCORRÊNCIAS ───────────────────────────────────────
 // GET /alerts devolve até 50 transições registradas pelo Worker. No monitoramento
 // real, as ocorrências vêm só daí; na demonstração, das transições da sessão.
-import { CFG } from "./config";
 import { fmtBR, fin, type Situacao } from "./util";
 
 export const LIMITE_API_ALERTAS = 50;
 
-export type EventoServidor = { ts: string; dataLocal: string; instrumento: string; tipo: string; evento: string; acao: string };
+export type EventoServidor = { ts: string; dataLocal: string; instrumento: string; tipo: string; evento: string; acao: string;
+  valor?: number; taxa?: number; silencioMin?: number };
 export type Ocorrencia = { pz: string; lv: Situacao | "ok"; t: number; titulo: string; det: string; servidor?: boolean };
 
 function textoSeguro(valor: unknown, reserva = "—"): string {
@@ -27,16 +27,23 @@ export function normalizarEvento(r: Record<string, unknown> | null): EventoServi
     tipo: textoSeguro(r.tipo, "evento").toUpperCase(),
     evento: textoSeguro(r.mensagem, estado || "Evento registrado"),
     acao: textoSeguro(r.acao, "Sem ação registrada"),
+    ...(fin(r.valor) ? { valor: r.valor } : {}),
+    ...(fin(r.taxa) ? { taxa: r.taxa } : {}),
+    ...(fin(r.silencioMin) ? { silencioMin: r.silencioMin } : {}),
   };
 }
 
+// Vocabulário fixo: verbo curto + valor numa coluna própria (sem emoji, sem caixa alta).
 const TITULOS_SERVIDOR: Record<string, string> = {
-  CRITICO: "Nível crítico", "CRÍTICO": "Nível crítico", ATENCAO: "Nível em atenção", "ATENÇÃO": "Nível em atenção",
-  NORMAL: "Voltou à faixa normal", "SEM SINAL": "Sem sinal", "COMUNICAÇÃO RESTABELECIDA": "Comunicação restabelecida",
+  CRITICO: "Entrou em crítico", "CRÍTICO": "Entrou em crítico", ATENCAO: "Entrou em atenção", "ATENÇÃO": "Entrou em atenção",
+  NORMAL: "Voltou ao normal", "SEM SINAL": "Perdeu comunicação", "COMUNICAÇÃO RESTABELECIDA": "Comunicação restabelecida",
   "VARIAÇÃO RÁPIDA": "Variação rápida", "VARIAÇÃO NORMALIZADA": "Variação normalizada",
 };
 
-// "⚠️ AQUASENSE PIEZÔMETRO PZ-01 — SEM SINAL …" → título curto, detalhe e estado.
+// Primeiro número do texto do servidor ("4.04 m"), caso o registro não traga o campo.
+const numeroNoTexto = (t: string) => { const m = t.match(/-?\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; };
+
+// "⚠️ AQUASENSE PIEZÔMETRO PZ-01 — SEM SINAL …" → título curto, valor e estado.
 export function ocorrenciaDoServidor(ev: EventoServidor): Ocorrencia {
   const texto = String(ev.evento || "");
   const depois = (texto.split("—")[1] ?? texto).trim();
@@ -48,15 +55,26 @@ export function ocorrenciaDoServidor(ev: EventoServidor): Ocorrencia {
   else if (chave.includes("SEM SINAL")) lv = "semsinal";
   else if (/ATEN|R[AÁ]PIDA/.test(chave)) lv = "atencao";
   const titulo = TITULOS_SERVIDOR[chave] || chave.toLowerCase().replace(/^./, c => c.toUpperCase());
-  return { pz: ev.instrumento, lv, t: new Date(ev.ts).getTime(), titulo, det: detalhe || ev.acao, servidor: true };
+  let det = "—";
+  if (/R[AÁ]PIDA/.test(chave)) {
+    const n = numeroNoTexto(detalhe);
+    const t = ev.taxa ?? (n === null ? null : /descendo/i.test(detalhe) ? -n : n);
+    if (fin(t)) det = `${t >= 0 ? "+" : ""}${fmtBR(t)} m/dia`;
+  } else if (lv === "semsinal") {
+    det = fin(ev.silencioMin) && ev.silencioMin > 0 ? `há ${ev.silencioMin} min sem leitura` : /nenhuma/i.test(detalhe) ? "nenhuma leitura" : "—";
+  } else if (/CR[IÍ]TICO|ATEN|NORMAL$/.test(chave) && !/VARIA/.test(chave)) {
+    const v = ev.valor ?? numeroNoTexto(detalhe);
+    if (fin(v)) det = `${fmtBR(v)} m`;
+  }
+  return { pz: ev.instrumento, lv, t: new Date(ev.ts).getTime(), titulo, det, servidor: true };
 }
 
 export function textoOcorrencia(lv: Situacao, nivel: number | null): { titulo: string; det: string } {
-  const v = fin(nivel) ? `${fmtBR(nivel)} m` : "";
-  if (lv === "critico") return { titulo: "passou de " + fmtBR(CFG.thrCritico, 0) + " m (nível crítico)", det: `${v} · acionar a geotecnia` };
-  if (lv === "atencao") return { titulo: "passou de " + fmtBR(CFG.thrAtencao, 0) + " m (atenção)", det: v };
-  if (lv === "semsinal") return { titulo: "parou de comunicar", det: fin(nivel) ? `última leitura ${v}` : "nenhuma leitura recebida" };
-  return { titulo: "voltou à faixa normal", det: v };
+  const v = fin(nivel) ? `${fmtBR(nivel)} m` : "—";
+  if (lv === "critico") return { titulo: "Entrou em crítico", det: v };
+  if (lv === "atencao") return { titulo: "Entrou em atenção", det: v };
+  if (lv === "semsinal") return { titulo: "Perdeu comunicação", det: fin(nivel) ? `última ${v}` : "nenhuma leitura" };
+  return { titulo: "Voltou ao normal", det: v };
 }
 
 // ── CSV seguro ────────────────────────────────────────────────────────────────

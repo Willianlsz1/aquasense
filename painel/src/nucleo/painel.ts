@@ -10,7 +10,7 @@ import { normalizarEvento, ocorrenciaDoServidor, textoOcorrencia, type EventoSer
 import { cadastroDe, gravarCadastros, lerCadastros, type Cadastro } from "./cadastro";
 import { tocarAlarme } from "./som";
 import type { PontoHist } from "./exportar";
-import { classificarComHisterese, fin, situacaoPz, type Faixa, type Leitura, type Situacao } from "./util";
+import { classificarComHisterese, fin, fmtBR, situacaoPz, type Faixa, type Leitura, type Situacao } from "./util";
 
 export type Vista = "visao" | "mapa" | "instrumento" | "alertas";
 export const VISTAS: Record<Vista, string> = { visao: "Visão geral", mapa: "Mapa", instrumento: "Instrumento", alertas: "Alertas" };
@@ -211,8 +211,10 @@ class Painel {
       if (anterior === undefined || anterior === s.lv) return;
       const nivel = s.nivel ?? mapa[pz.id]?.nivel ?? null;
       let txt = textoOcorrencia(s.lv, nivel);
-      if (s.lv === "normal" && anterior === "semsinal") txt = { titulo: "voltou a comunicar", det: fin(nivel) ? `${nivel.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m` : "" };
-      if (anterior === "critico" && s.lv === "atencao") txt.titulo = "desceu do crítico para atenção";
+      if (s.lv === "normal" && anterior === "semsinal") txt = { titulo: "Comunicação restabelecida", det: txt.det };
+      if (anterior === "critico" && s.lv === "atencao") txt.titulo = "Desceu para atenção";
+      if (s.lv === "atencao" && s.nivel !== null && s.nivel < CFG.thrAtencao && s.taxa !== null)
+        txt = { titulo: "Variação rápida", det: `${s.taxa >= 0 ? "+" : ""}${fmtBR(s.taxa)} m/dia` };
       ocorr.unshift({ pz: pz.id, lv: s.lv === "normal" ? "ok" : s.lv, t: agora, ...txt });
       if (s.lv === "critico") novoCritico = true;
     });

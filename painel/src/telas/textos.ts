@@ -10,7 +10,7 @@ export function tendencia(taxa: number | null) {
   return taxa > 0 ? `subindo ${fmtBR(taxa)} m/dia` : `descendo ${fmtBR(-taxa)} m/dia`;
 }
 
-export const taxaRapida = (taxa: number | null) => taxa !== null && Math.abs(taxa) >= CFG.taxaMaxMDia;
+export { variacaoRapida as taxaRapida } from "../nucleo/util";
 
 // Variação nas últimas 24 h: só com leitura atual confirmada e histórico.
 export function var24(e: EstadoPainel, id: string, s: Estado) {

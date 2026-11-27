@@ -1,267 +1,132 @@
-import { useMemo, useState } from "react";
-import { BellOff, ChevronRight, Search } from "lucide-react";
+import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { CFG } from "../nucleo/config";
-import { disponibilidade24h, naoConfirmado, ocorrencias, painel, porPrioridade, type EstadoPainel } from "../nucleo/painel";
-import { fin, fmtBR, formatUltima, ROTULO, type Estado, type Situacao } from "../nucleo/util";
-import type { Pz } from "../nucleo/config";
-import { Anel, Cartao, COR, Contador, Forma, Medidor, Mini, Segmentado, Selo } from "../componentes/base";
+import { naoConfirmado, ocorrencias, painel, porPrioridade, type EstadoPainel } from "../nucleo/painel";
+import { clamp, escalaNivel, fmtBR, formatUltima, hora, ROTULO, type Situacao } from "../nucleo/util";
+import { Forma } from "../componentes/base";
+import { FaixaAlarmes, margem, Tendencia } from "../componentes/alarmes";
 import { MapaInstrumentos } from "../componentes/mapa";
-import { ListaOcorrencias } from "../componentes/ocorrencias";
-import { GraficoRede } from "../componentes/graficos";
-import { nomes, taxaRapida, var24 } from "./textos";
+import { TabelaOcorrencias } from "../componentes/ocorrencias";
 
 type Item = ReturnType<typeof porPrioridade>[number];
 
+// Visão geral (direção A): faixa de alarmes → tabela de piezômetros → mapa e ocorrências.
 export function VisaoGeral({ e }: { e: EstadoPainel }) {
   const itens = porPrioridade(e);
   const [realce, setRealce] = useState<string | null>(null);
-  const series = useMemo(() => e.piezometros.map(pz => ({ id: pz.id, nome: pz.nome, lv: itens.find(i => i.pz.id === pz.id)!.s.lv, pontos: e.historicoRede[pz.id] ?? [] })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [e.piezometros, e.historicoRede, itens.map(i => i.s.lv).join()]);
-  const oc = ocorrencias(e).slice(0, 8);
   return (
-    <div className="space-y-5">
-      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-[1.35fr_1fr_0.85fr]">
-        <Destaque e={e} itens={itens} />
-        <PorEstado e={e} itens={itens} />
-        <Comunicacao e={e} itens={itens} />
+    <div className="space-y-6">
+      <FaixaAlarmes e={e} />
+      <Tabela e={e} itens={itens} aoRealcar={setRealce} />
+      <div className="grid gap-6 xl:grid-cols-[7fr_5fr]">
+        <BlocoMapa e={e} itens={itens} realce={realce} />
+        <section className="card flex flex-col">
+          <Cab titulo="Últimas ocorrências" href="#alertas" link="Ver todas" />
+          <TabelaOcorrencias lista={ocorrencias(e).slice(0, 7)}
+            vazio={e.simulada ? "Nenhuma mudança de estado até agora." : e.servidor.erro ? "Registros do servidor indisponíveis." : e.servidor.atualizadoEm ? "Nenhum registro no servidor." : "Consultando o servidor…"} />
+        </section>
       </div>
-      <Instrumentos e={e} itens={itens} aoRealcar={setRealce} />
-      <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
-        <Cartao titulo="Onde estão" sub="posições ilustrativas · imagem de satélite Esri" corpo="p-0 pt-3"
-          acoes={<a className="text-[13px] font-medium text-marca hover:underline" href="#mapa">Abrir mapa →</a>}>
-          <div className="overflow-hidden rounded-b-[18px]">
-            <MapaInstrumentos itens={itens} modo="visao" altura={320} agora={e.agora} realce={realce} />
-          </div>
-        </Cartao>
-        <Cartao titulo={e.simulada ? "Ocorrências desta demonstração" : "Últimos registros do servidor"}
-          sub={e.simulada ? "mudanças de estado desde que a página abriu" : "eventos gravados pelo servidor"}
-          acoes={<a className="text-[13px] font-medium text-marca hover:underline" href="#alertas">Ver todos →</a>}>
-          <ListaOcorrencias lista={oc} nomes={nomes(e)}
-            vazio={e.simulada ? "Nenhuma mudança de estado até agora." : e.servidor.erro ? "Registros do servidor indisponíveis no momento." : e.servidor.atualizadoEm ? "Nenhum registro no servidor." : "Consultando o servidor…"} />
-        </Cartao>
-      </div>
-      <Cartao titulo="Nível da água · últimas 24 h" sub="só o instrumento em alarme ganha cor · clique no nome para esconder ou mostrar">
-        <GraficoRede series={series} agora={e.agora} realce={realce} />
-        {series.some(s => s.lv === "semsinal") && <p className="mt-2 text-[12px] text-texto-3">Linha tracejada: instrumento sem sinal. O painel não completa o trecho sem dado.</p>}
-      </Cartao>
     </div>
   );
 }
 
-// ── DESTAQUE: o que exige ação agora ──────────────────────────────────────────
-function Destaque({ e, itens }: { e: EstadoPainel; itens: Item[] }) {
-  const pior = itens[0];
-  const semDados = !Object.keys(e.ultimos).length;
-  const base = "relative overflow-hidden rounded-[18px] p-6 shadow-card";
-  if (naoConfirmado(e))
-    return (
-      <div className={`${base} bg-of-soft`} style={{ outline: "1.5px dashed var(--of)" }} role="status">
-        <div className="flex items-center gap-2 text-[13px] font-semibold text-texto-2"><Forma estado="semsinal" /> Estado não confirmado</div>
-        <h3 className="mt-4 text-[21px] font-semibold leading-tight">O servidor não respondeu</h3>
-        <p className="mt-1.5 max-w-[48ch] text-[13.5px] text-texto-2">
-          Sem resposta {e.falhas === 1 ? "na última consulta" : `em ${e.falhas} consultas seguidas`}. Nenhum valor é mostrado como atual até a comunicação voltar.
-        </p>
-      </div>
-    );
-  if (semDados || !pior)
-    return <div className={`${base} bg-card`}><p className="text-[13px] font-semibold text-texto-3">Situação da barragem</p><h3 className="mt-4 text-[20px] font-semibold">Aguardando a primeira leitura…</h3></div>;
-
-  const { s, pz } = pior;
-  if (s.lv === "critico" || s.lv === "atencao") {
-    const cr = s.lv === "critico";
-    const outros = itens.filter(x => x !== pior && (x.s.lv === "critico" || x.s.lv === "atencao"));
-    const inc = e.inicioAlerta[pz.id];
-    const limite = cr ? CFG.thrCritico : CFG.thrAtencao;
-    const desde = inc?.desde ? `desde ${new Date(inc.desde).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : "já ativo ao abrir o painel";
-    const tocando = cr && e.som.ativo && e.som.ligado && !e.som.silenciado;
-    return (
-      <div className={`${base} ${cr ? "text-white" : "bg-wr-soft text-texto"}`} role="alert"
-        style={cr ? { background: "linear-gradient(135deg, #C42536, #9E1B2A)" } : { outline: "1.5px solid var(--wr)" }}>
-        <div className="flex flex-wrap items-center gap-2 text-[13px] font-semibold">
-          <span className={cr ? "pulsar" : ""}><Forma estado={s.lv} cor={cr ? "#fff" : undefined} size={16} /></span>
-          {cr ? "Alarme ativo" : "Atenção"} · {desde}
-          {tocando && <button type="button" onClick={() => painel.silenciar()} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1 text-[12.5px] hover:bg-white/25"><BellOff size={14} /> Silenciar som</button>}
-        </div>
-        <h3 className="mt-4 text-[22px] font-semibold leading-tight">{pz.id} {pz.nome} {cr ? "em nível crítico" : "em atenção"}</h3>
-        <p className={`mt-1.5 max-w-[50ch] text-[13.5px] ${cr ? "opacity-90" : "text-texto-2"}`}>
-          <span className="num font-semibold">{fmtBR(s.nivel!)} m</span>, {fmtBR(s.nivel! - limite)} m acima do limite de {fmtBR(limite, 0)} m.{" "}
-          {cr ? "Acionar a equipe de geotecnia responsável e seguir o plano de ação de emergência." : "Intensificar o acompanhamento e avisar o responsável técnico."}
-        </p>
-        {outros.length > 0 && <p className={`mt-2 text-[12.5px] ${cr ? "opacity-85" : "text-texto-2"}`}>Também em alerta: {outros.map(o => `${o.pz.id} (${ROTULO[o.s.lv].toLowerCase()})`).join(", ")}</p>}
-        <button type="button" onClick={() => painel.abrirInstrumento(pz.id)}
-          className={`mt-5 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13.5px] font-semibold ${cr ? "bg-white text-[#9E1B2A]" : "bg-texto text-card"}`}>
-          Abrir {pz.id} <ChevronRight size={16} />
-        </button>
-      </div>
-    );
-  }
-  if (s.lv === "semsinal") {
-    const sem = itens.filter(x => x.s.lv === "semsinal");
-    return (
-      <div className={`${base} bg-card`} style={{ outline: "1.5px dashed var(--of)" }} role="status">
-        <div className="flex items-center gap-2 text-[13px] font-semibold text-texto-2"><Forma estado="semsinal" size={16} /> Sem sinal</div>
-        <h3 className="mt-4 text-[21px] font-semibold leading-tight">{sem.length === 1 ? `${pz.id} ${pz.nome} parou de comunicar` : `${sem.length} instrumentos sem comunicação`}</h3>
-        <p className="mt-1.5 max-w-[50ch] text-[13.5px] text-texto-2">
-          {sem.map(x => `${x.pz.id}: última recepção ${formatUltima(x.s.recepcao, e.agora)}`).join(" · ")}. O último valor não é tratado como atual. Verificar alimentação e comunicação da UCT.
-        </p>
-        <p className="mt-2 text-[12.5px] text-texto-3">Os demais instrumentos estão em faixa normal.</p>
-        <button type="button" onClick={() => painel.abrirInstrumento(pz.id)} className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-texto px-4 py-2 text-[13.5px] font-semibold text-card">Abrir {pz.id} <ChevronRight size={16} /></button>
-      </div>
-    );
-  }
+function Cab({ titulo, href, link, children }: { titulo: string; href?: string; link?: string; children?: React.ReactNode }) {
   return (
-    <div className={`${base} text-white`} style={{ background: "linear-gradient(135deg, #1E88E5, #1565C0)" }}>
-      <svg className="pointer-events-none absolute bottom-0 left-0 w-full opacity-20" viewBox="0 0 400 60" preserveAspectRatio="none" height="60" aria-hidden>
-        <path className="onda" fill="#fff" d="M0 30 Q50 18 100 30 T200 30 T300 30 T400 30 T500 30 T600 30 V60 H0z" />
-      </svg>
-      <div className="text-[13px] font-semibold opacity-90">Situação da barragem</div>
-      <h3 className="mt-4 text-[22px] font-semibold">Todos os piezômetros normais</h3>
-      <p className="relative mt-1.5 max-w-[46ch] text-[13.5px] opacity-90">
-        Nenhum alarme ativo. {itens.length === 1 ? "O instrumento está" : `Os ${itens.length} instrumentos estão`} comunicando e abaixo de {fmtBR(CFG.thrAtencao, 0)} m.
-      </p>
+    <div className="flex h-12 items-center justify-between gap-3 border-b border-linha px-4">
+      <h2 className="text-[16px] font-semibold">{titulo}</h2>
+      {children}
+      {href && <a href={href} className="flex items-center gap-1 text-[12px] text-marca-2 hover:underline">{link}<ChevronRight size={14} strokeWidth={1.75} /></a>}
     </div>
   );
 }
 
-function PorEstado({ e, itens }: { e: EstadoPainel; itens: Item[] }) {
-  const ordem: Situacao[] = ["critico", "atencao", "semsinal", "normal"];
-  const nc = naoConfirmado(e);
+function BlocoMapa({ e, itens, realce }: { e: EstadoPainel; itens: Item[]; realce: string | null }) {
+  const [camada, setCamada] = useState<"satelite" | "ruas">("satelite");
   return (
-    <Cartao titulo="Instrumentos por estado">
-      <div className="flex h-2.5 overflow-hidden rounded-full bg-card-2">
-        {!nc && ordem.map(lv => {
-          const n = itens.filter(x => x.s.lv === lv).length;
-          return <div key={lv} className={`h-full transition-[width] duration-700 ${lv === "semsinal" ? "hachura" : ""}`}
-            style={{ width: `${(n / Math.max(1, itens.length)) * 100}%`, background: lv === "semsinal" ? undefined : lv === "normal" ? "var(--neutro)" : COR[lv] }} />;
-        })}
-      </div>
-      <ul className="mt-3 divide-y divide-linha">
-        {ordem.map(lv => {
-          const lista = nc ? [] : itens.filter(x => x.s.lv === lv);
-          return (
-            <li key={lv} className="flex items-center gap-2.5 py-2 text-[13.5px]">
-              <Forma estado={lv} cor={lista.length ? undefined : "var(--linha)"} />
-              <span className={lista.length ? "font-medium" : "text-texto-3"}>{ROTULO[lv]}</span>
-              <span className="truncate text-[12.5px] text-texto-3">{lista.map(x => x.pz.id).join(", ")}</span>
-              <span className={`num ml-auto font-semibold ${lista.length ? "" : "text-texto-3"}`}>{nc ? "–" : lista.length}</span>
-            </li>
-          );
-        })}
-      </ul>
-      {nc && <p className="mt-1 text-[12px] text-texto-3">não confirmado: servidor sem resposta</p>}
-    </Cartao>
-  );
-}
-
-function Comunicacao({ e, itens }: { e: EstadoPainel; itens: Item[] }) {
-  const nc = naoConfirmado(e);
-  const disp = e.piezometros.map(p => disponibilidade24h(e, p.id));
-  const pct = !nc && disp.length && disp.every(Boolean) ? disp.reduce((a, d) => a + d!.pct, 0) / disp.length : null;
-  const ok = itens.filter(x => x.s.lv !== "semsinal").length;
-  const ultima = Math.max(...itens.map(x => x.s.recepcao ?? -Infinity));
-  return (
-    <Cartao titulo="Comunicação" sub="disponibilidade nas últimas 24 h">
-      <div className="flex items-center gap-4">
-        <div className="relative flex-none">
-          <Anel pct={pct} cor={pct !== null && pct < 90 ? "var(--of)" : "var(--marca)"} />
-          <span className="num absolute inset-0 grid place-items-center text-[15px] font-semibold">{pct === null ? "–" : `${fmtBR(pct, 1)}%`}</span>
+    <section className="card flex flex-col">
+      <Cab titulo="Localização" href="#mapa" link="Abrir mapa" />
+      <div className="relative">
+        <MapaInstrumentos itens={itens} modo="visao" altura={360} agora={e.agora} realce={realce} camada={camada} />
+        <div className="seg-mapa absolute left-3 top-3 z-[500]" role="group" aria-label="Camada do mapa">
+          <button type="button" aria-pressed={camada === "satelite"} onClick={() => setCamada("satelite")}>Satélite</button>
+          <button type="button" aria-pressed={camada === "ruas"} onClick={() => setCamada("ruas")}>Ruas</button>
         </div>
-        <dl className="space-y-1.5 text-[12.5px]">
-          <div><dt className="text-texto-3">Comunicando</dt>
-            <dd className="num font-semibold" style={{ color: !nc && ok < itens.length ? "var(--of)" : undefined }}>{nc ? "não confirmado" : `${ok} de ${itens.length}`}</dd></div>
-          <div><dt className="text-texto-3">Última recepção</dt><dd className="font-semibold">{nc || !fin(ultima) ? "–" : formatUltima(ultima, e.agora)}</dd></div>
-        </dl>
+        <span className="nota-mapa absolute bottom-3 left-3 z-[500]">Posições ilustrativas</span>
       </div>
-      <p className="mt-2 text-[12px] text-texto-3">{pct === null ? "Disponibilidade indisponível: histórico da rede incompleto." : `Leituras recebidas ÷ esperadas (uma a cada ${CFG.intervaloEnvioSeg} s).`}</p>
-    </Cartao>
-  );
-}
-
-// ── CARTÕES DOS PIEZÔMETROS ───────────────────────────────────────────────────
-function Instrumentos({ e, itens, aoRealcar }: { e: EstadoPainel; itens: Item[]; aoRealcar: (id: string | null) => void }) {
-  const [filtro, setFiltro] = useState<"todos" | "alerta" | "semsinal">("todos");
-  const [busca, setBusca] = useState("");
-  const q = busca.trim().toLowerCase();
-  const lista = itens.filter(x => (filtro === "todos" || (filtro === "alerta" ? x.s.lv === "critico" || x.s.lv === "atencao" : x.s.lv === "semsinal"))
-    && (!q || `${x.pz.id} ${x.pz.nome}`.toLowerCase().includes(q)));
-  return (
-    <section>
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h2 className="text-[15px] font-semibold">Piezômetros <span className="font-normal text-texto-3">· ordenados por gravidade</span></h2>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          {itens.length > 3 && (
-            <label className="flex items-center gap-2 rounded-xl bg-card px-3 py-1.5 shadow-card">
-              <Search size={15} className="text-texto-3" /><span className="sr-only">Buscar instrumento</span>
-              <input value={busca} onChange={ev => setBusca(ev.target.value)} placeholder="Buscar" className="w-28 bg-transparent text-[13px] outline-none" />
-            </label>
-          )}
-          <Segmentado rotulo="Filtro" valor={filtro} aoMudar={setFiltro}
-            opcoes={[{ v: "todos", t: "Todos" }, { v: "alerta", t: "Em alerta" }, { v: "semsinal", t: "Sem sinal" }]} />
-        </div>
-      </div>
-      {lista.length ? (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {lista.map(x => <CartaoPz key={x.pz.id} e={e} pz={x.pz} s={x.s} aoRealcar={aoRealcar} />)}
-        </div>
-      ) : <p className="card p-6 text-center text-[13px] text-texto-3">Nenhum instrumento neste filtro.</p>}
     </section>
   );
 }
 
-function CartaoPz({ e, pz, s, aoRealcar }: { e: EstadoPainel; pz: Pz; s: Estado; aoRealcar: (id: string | null) => void }) {
-  const nc = naoConfirmado(e);
-  const sem = s.lv === "semsinal", cr = s.lv === "critico", at = s.lv === "atencao";
-  const d24 = var24(e, pz.id, s);
-  const h = e.historicoRede[pz.id];
-  const cor = sem ? "var(--of)" : cr ? "var(--cr)" : at ? "var(--wr)" : "var(--marca)";
-  let folga = null;
-  if (!sem && s.nivel !== null) {
-    const fa = CFG.thrAtencao - s.nivel, fc = CFG.thrCritico - s.nivel;
-    folga = fa > 0 ? <>folga de {fmtBR(fa)} m até atenção</>
-      : fc > 0 ? <span className="font-semibold text-wr">{fmtBR(-fa)} m acima da atenção · {fmtBR(fc)} m até crítico</span>
-      : <span className="font-semibold text-cr">{fmtBR(-fc)} m acima do limite crítico</span>;
-  }
+// ── TABELA DE PIEZÔMETROS ─────────────────────────────────────────────────────
+const COLS = "grid grid-cols-[160px_116px_100px_220px_180px_1fr] items-center gap-4 px-4";
+const COR_EST: Record<Situacao, string> = { critico: "text-cr", atencao: "text-wr", semsinal: "text-texto-2", normal: "text-texto-2" };
+
+function Tabela({ e, itens, aoRealcar }: { e: EstadoPainel; itens: Item[]; aoRealcar: (id: string | null) => void }) {
+  const esc = escalaNivel();
   return (
-    <article tabIndex={0} role="button" aria-label={`Abrir ${pz.id} ${pz.nome}`}
-      onClick={() => painel.abrirInstrumento(pz.id)} onKeyDown={ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); painel.abrirInstrumento(pz.id); } }}
-      onMouseEnter={() => aoRealcar(pz.id)} onMouseLeave={() => aoRealcar(null)} onFocus={() => aoRealcar(pz.id)} onBlur={() => aoRealcar(null)}
-      className="card relative cursor-pointer overflow-hidden p-5 transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-marca"
-      style={cr ? { outline: "2px solid var(--cr)", background: "linear-gradient(180deg, var(--cr-soft), var(--card) 42%)" }
-        : at ? { outline: "1.5px solid var(--wr)" } : sem ? { outline: "1.5px dashed var(--of)" } : undefined}>
-      <div className="flex items-center gap-2">
-        {nc ? <Selo estado="semsinal" texto="Não confirmado" /> : <Selo estado={s.lv} />}
-        <span className="ml-auto text-[12px] text-texto-3">{nc ? "" : sem ? `última ${formatUltima(s.recepcao, e.agora)}` : `recebido ${formatUltima(s.recepcao, e.agora)}`}</span>
+    <section className="card overflow-x-auto" aria-label="Piezômetros">
+      <div className="flex min-w-[1000px] items-baseline justify-between px-4 pb-3 pt-4">
+        <h2 className="text-[16px] font-semibold">Piezômetros</h2>
+        <span className="num text-[12px] text-texto-3">Limites: atenção {fmtBR(CFG.thrAtencao, 0)} m · crítico {fmtBR(CFG.thrCritico, 0)} m</span>
       </div>
-      <h3 className="mt-3 text-[14.5px] font-semibold">{pz.id} <span className="font-normal text-texto-2">· {pz.nome}</span></h3>
-      <div className="mt-3 flex items-end gap-5">
-        <div className="min-w-0 flex-1">
-          {nc ? (
-            <div className="num text-[30px] font-semibold leading-none text-texto-3">– <span className="text-[15px]">m</span></div>
-          ) : sem ? (
-            <>
-              <div className="num text-[30px] font-semibold leading-none text-texto-3">{s.nivel !== null ? fmtBR(s.nivel) : "–"} <span className="text-[15px]">m</span></div>
-              <div className="mt-2 inline-flex rounded-md bg-of-soft px-2 py-0.5 text-[12px] font-semibold text-texto-2">{s.nivel !== null ? "Última conhecida · não confirmada" : "Nenhuma leitura recebida"}</div>
-            </>
-          ) : (
-            <>
-              <div className="text-[40px] font-semibold leading-none" style={{ color: cr ? "var(--cr)" : undefined }}>
-                <Contador valor={s.nivel!} /> <span className="text-[17px] text-texto-3">m</span>
-              </div>
-              <div className="num mt-2 text-[12.5px] text-texto-2">{folga}</div>
-              {taxaRapida(s.taxa) && <div className="num mt-1 text-[12px] font-semibold text-wr">↗ variação rápida: {s.taxa! >= 0 ? "+" : ""}{fmtBR(s.taxa!)} m/dia</div>}
-            </>
-          )}
+      <div className="min-w-[1000px]" role="table">
+        <div role="row" className={`${COLS} h-9 border-t border-linha text-[12px] font-medium text-texto-3`}>
+          <span role="columnheader">Instrumento</span><span role="columnheader">Estado</span><span role="columnheader">Nível</span>
+          <span role="columnheader">Faixa 0–{esc} m e margem</span><span role="columnheader">Tendência 24 h</span><span role="columnheader">Última leitura</span>
         </div>
-        <div className="pr-6"><Medidor nivel={nc ? null : s.nivel} estado={nc ? "semsinal" : s.lv} /></div>
+        {itens.map(x => <Linha key={x.pz.id} e={e} x={x} esc={esc} aoRealcar={aoRealcar} />)}
       </div>
-      <div className="mt-4 border-t border-linha pt-3">
-        <Mini pontos={h === undefined ? [] : h} cor={cor} tracejado={sem} />
-        <div className="mt-1 flex justify-between text-[12px] text-texto-3">
-          <span>últimas 24 h</span>
-          <span className="num" style={{ color: cr ? "var(--cr)" : undefined }}>{d24 === null ? (sem ? "sem dados recentes" : "") : `${d24 >= 0 ? "+" : ""}${fmtBR(d24)} m em 24 h`}</span>
-        </div>
-      </div>
-    </article>
+    </section>
   );
+}
+
+function Linha({ e, x, esc, aoRealcar }: { e: EstadoPainel; x: Item; esc: number; aoRealcar: (id: string | null) => void }) {
+  const { pz, s } = x;
+  const nc = naoConfirmado(e);
+  const lv: Situacao = nc ? "semsinal" : s.lv;
+  const conf = !nc && lv !== "semsinal" && s.nivel !== null;
+  const ultimo = nc ? null : s.nivel; // sem sinal: último valor, nunca como atual
+  const pc = (v: number) => `${(clamp(v, 0, esc) / esc) * 100}%`;
+  const corV = lv === "critico" ? "var(--cr)" : lv === "atencao" ? "var(--wr)" : "var(--agua)";
+  const h = e.historicoRede[pz.id];
+  const abrir = () => painel.abrirInstrumento(pz.id);
+  return (
+    <div role="row" tabIndex={0} aria-label={`Abrir ${pz.id} ${pz.nome}`} onClick={abrir}
+      onKeyDown={ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); abrir(); } }}
+      onMouseEnter={() => aoRealcar(pz.id)} onMouseLeave={() => aoRealcar(null)} onFocus={() => aoRealcar(pz.id)} onBlur={() => aoRealcar(null)}
+      className={`${COLS} h-16 cursor-pointer border-t border-linha hover:bg-card-2`}>
+      <div role="cell" className="min-w-0"><b className="font-semibold">{pz.id}</b><span className="block truncate text-[12px] text-texto-2">{pz.nome}</span></div>
+      <div role="cell" className={`flex items-center gap-2 whitespace-nowrap font-medium ${COR_EST[lv]}`}><Forma estado={lv} />{nc ? "Sem resposta" : ROTULO[lv]}</div>
+      <div role="cell" className={`num text-[20px] font-semibold ${COR_EST[lv] === "text-texto-2" ? "" : COR_EST[lv]}`}>
+        {conf ? <>{fmtBR(s.nivel!)}<small className="ml-0.5 text-[14px] font-normal text-texto-2">m</small></> : <span className="text-texto-3">—</span>}
+      </div>
+      <div role="cell">
+        <div className="relative h-1.5 rounded-[3px]" style={conf ? { background: "var(--card-2)" } : { background: "repeating-linear-gradient(135deg, var(--linha-2) 0 2px, transparent 2px 6px)" }}>
+          {ultimo !== null && <div className="absolute inset-y-0 left-0 rounded-[3px]" style={{ width: pc(ultimo), background: conf ? corV : "var(--of)", opacity: conf ? 1 : .35 }} />}
+          {ultimo !== null && <>
+            <div className="absolute -inset-y-[5px] w-0.5 rounded-[1px] bg-texto-3" style={{ left: pc(CFG.thrAtencao) }} />
+            <div className="absolute -inset-y-[5px] w-0.5 rounded-[1px] bg-texto-3" style={{ left: pc(CFG.thrCritico) }} />
+          </>}
+        </div>
+        <div className="num mt-1.5 text-[12px] text-texto-2">{nc ? "Servidor sem resposta" : ultimo === null ? "Sem leitura" : conf ? margem(s.nivel) : "Último valor não confirmado"}</div>
+      </div>
+      <div role="cell" className="flex items-center gap-3 whitespace-nowrap">
+        <Spark pontos={conf && Array.isArray(h) ? h : null} />
+        {conf ? <Tendencia taxa={s.taxa} /> : <span className="text-texto-3">—</span>}
+      </div>
+      <div role="cell" className="num whitespace-nowrap text-texto-2">
+        {nc ? "—" : s.recepcao ? `${hora(s.recepcao * 1000)} · ${formatUltima(s.recepcao, e.agora).replace(/^há /, "")}` : "Nunca reportou"}
+      </div>
+    </div>
+  );
+}
+
+// Tendência de 24 h em cinza (cor só no estado). Sem dado: linha tracejada.
+function Spark({ pontos, w = 72, h = 20 }: { pontos: { v: number }[] | null; w?: number; h?: number }) {
+  if (!pontos || pontos.length < 2)
+    return <svg width={w} height={h} aria-hidden><line x1="0" y1={h / 2} x2={w} y2={h / 2} stroke="var(--linha-2)" strokeDasharray="3 3" /></svg>;
+  const vs = pontos.map(p => p.v);
+  const mx0 = Math.max(...vs), mn0 = Math.min(...vs), r = Math.max(mx0 - mn0, 3), mn = (mx0 + mn0) / 2 - r / 2;
+  const pts = vs.map((v, i) => `${((i / (vs.length - 1)) * w).toFixed(1)},${(h - 2 - ((v - mn) / r) * (h - 4)).toFixed(1)}`).join(" ");
+  return <svg width={w} height={h} aria-hidden><polyline points={pts} fill="none" stroke="var(--texto-2)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" /></svg>;
 }

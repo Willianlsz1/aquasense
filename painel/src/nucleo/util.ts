@@ -58,6 +58,9 @@ export function estadoComunicacao(l: Leitura | null | undefined, agoraSeg = Date
   return agoraSeg - base > CFG.staleSeg ? "stale" : "ok";
 }
 
+// Mesmo critério do Worker: |taxa| acima do limite configurado.
+export const variacaoRapida = (taxa: number | null) => taxa !== null && Math.abs(taxa) > CFG.taxaMaxMDia;
+
 export type Estado = { lv: Situacao; nivel: number | null; taxa: number | null; recepcao?: number };
 
 // Situação de um instrumento: nunca "normal" sem dado recente. A taxa só vale com
@@ -66,7 +69,10 @@ export function situacaoPz(l: Leitura | null | undefined, agoraSeg = Date.now() 
   const nivel = fin(l?.nivel) ? l.nivel : null;
   const recepcao = timestampRecepcao(l);
   if (estadoComunicacao(l, agoraSeg) === "stale" || nivel === null) return { lv: "semsinal", nivel, taxa: null, recepcao };
-  return { lv: classificarNivel(nivel), nivel, taxa: fin(l?.taxa_m_dia) ? l.taxa_m_dia : null, recepcao };
+  const taxa = fin(l?.taxa_m_dia) ? l.taxa_m_dia : null;
+  const faixa = classificarNivel(nivel);
+  // Variação rápida (decisão de 27/11/2026): o estado vira Atenção, um sinal só.
+  return { lv: faixa === "normal" && variacaoRapida(taxa) ? "atencao" : faixa, nivel, taxa, recepcao };
 }
 
 export function formatUltima(tsSeg: number | undefined | null, agoraMs = Date.now()): string {

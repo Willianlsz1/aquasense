@@ -42,11 +42,14 @@ Não se adotam percentuais de cor ou taxas de alarme como exigências universais
    exportação integral de amostras brutas.
 8. O gráfico posiciona dados no tempo, interrompe a linha nas lacunas e não preenche
    essas lacunas com área colorida. Períodos longos incluem data nos rótulos.
-9. A visão geral traz um destaque com o que exige ação, a contagem por estado, a
-   comunicação e cartões ordenados por prioridade. O nível aparece sobre uma escala
-   com limites marcados; a cor só aparece fora do normal e o vermelho só no crítico.
-   Estado também é codificado por forma: octógono (crítico), triângulo (atenção),
-   anel tracejado (sem sinal) e anel (normal).
+9. A visão geral traz a faixa de alarmes ativos (uma linha por alarme, em colunas fixas:
+   estado, piezômetro, nível, margem, tendência, desde quando e ação), a contagem por
+   estado no cabeçalho, a comunicação (linha "sem sinal" ou "N de N comunicando") e a
+   tabela de piezômetros ordenada por prioridade. O nível aparece sobre uma escala com
+   limites marcados; a cor só aparece fora do normal e o vermelho só no crítico.
+   Estado também é codificado por forma: octógono com "!" (crítico), triângulo com "!"
+   (atenção), anel tracejado (sem sinal) e ponto neutro (normal). Variação rápida
+   (|taxa| acima do limite do servidor) coloca o instrumento em atenção (27/11/2026).
 10. Ocorrências: no monitoramento real, só os registros do servidor; na demonstração,
     as transições da sessão. Não há lista paralela de "eventos da sessão".
 11. Instrumento em atenção ou crítico abre um quadro de incidente (desde quando, pico,

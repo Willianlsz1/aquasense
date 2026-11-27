@@ -50,7 +50,7 @@ function Marcador({ item, comValor, destaque, apagado, comPopup, agora }:
   { item: ItemMapa; comValor: boolean; destaque: boolean; apagado: boolean; comPopup: boolean; agora: number }) {
   const { pz, s } = item;
   const valor = comValor ? (s.lv === "semsinal" ? "sem sinal" : s.nivel !== null ? `${fmtBR(s.nivel)} m` : "") : "";
-  const html = `<div class="mkr k-${s.lv}${destaque ? " sel" : ""}${apagado ? " apagado" : ""}"><svg width="16" height="16" viewBox="0 0 16 16">${corpoForma(s.lv, s.lv === "critico" ? "#fff" : undefined)}</svg>${pz.id}${valor ? `<span>${valor}</span>` : ""}</div>`;
+  const html = `<div class="mkr k-${s.lv}${destaque ? " sel" : ""}${apagado ? " apagado" : ""}"><svg width="16" height="16" viewBox="0 0 16 16">${corpoForma(s.lv)}</svg>${pz.id}${valor ? `<span>${valor}</span>` : ""}</div>`;
   const icon = useMemo(() => L.divIcon({ className: "", iconSize: [0, 0], html }), [html]);
   const prio = { critico: 3, atencao: 2, semsinal: 1, normal: 0 }[s.lv];
   const ref = useRef<L.Marker>(null);
