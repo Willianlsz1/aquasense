@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Bell, FileText, Gauge, LayoutGrid, Map as MapIcon, Play, Square } from "lucide-react";
 import { painel, porPrioridade, ROTEIRO_DEMO, usePainel, VISTAS, type EstadoPainel, type Vista } from "./nucleo/painel";
 import { Forma, Logo, Marca } from "./componentes/base";
@@ -15,6 +16,8 @@ document.documentElement.dataset.tema = "escuro";
 
 export default function App() {
   const e = usePainel();
+  // Cada tela abre do topo (sem herdar a rolagem da tela anterior).
+  useEffect(() => { window.scrollTo(0, 0); }, [e.vista]);
   const ativos = porPrioridade(e).filter(x => x.s.lv === "critico" || x.s.lv === "atencao");
   const pior = ativos.some(x => x.s.lv === "critico") ? "critico" : ativos.length ? "atencao" : null;
   const relatorio = `relatorio.html?pz=${encodeURIComponent(e.pzSel)}&range=${encodeURIComponent(e.periodo)}`;
@@ -76,7 +79,7 @@ export default function App() {
 
 function Topo({ e }: { e: EstadoPainel }) {
   return (
-    <header className="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <header className="sticky top-0 z-[1100] -mx-4 -mt-4 bg-fundo px-4 py-4 sm:-mx-8 sm:-mt-6 sm:px-8 sm:py-5 flex flex-wrap items-center gap-x-4 gap-y-2">
       <a href="#visao" className="lg:hidden" aria-label="aquasense"><Logo tam={22} /></a>
       <h1 className="min-w-0 flex-1 text-[24px] font-semibold leading-none tracking-tight">{VISTAS[e.vista]}</h1>
       <div className="ml-auto flex items-center gap-4"><FonteDados e={e} /><BotaoSom e={e} /></div>

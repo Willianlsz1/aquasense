@@ -14,7 +14,7 @@ export function TelaMapa({ e }: { e: EstadoPainel }) {
   // Altura que sobra abaixo do topo e da faixa de alarmes (cabeçalho 40 px + 56 px por linha).
   const linhas = nc ? 1 : itens.filter(x => x.s.lv === "critico" || x.s.lv === "atencao").length + (itens.some(x => x.s.lv === "semsinal") ? 1 : 0);
   const faixa = linhas ? 40 + 56 * linhas : 56;
-  const altura = `max(420px, calc(100vh - ${144 + faixa + (e.simulada ? 112 : 0)}px))`;
+  const altura = `max(420px, calc(100vh - ${160 + faixa + (e.simulada ? 112 : 0)}px))`;
   return (
     <div className="card relative overflow-hidden">
       <MapaInstrumentos itens={itens} modo="completo" camada={camada} altura={altura} voar={voar} sel={sel} lista agora={e.agora} />

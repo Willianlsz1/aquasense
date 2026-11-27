@@ -45,7 +45,7 @@ export function TelaInstrumento({ e }: { e: EstadoPainel }) {
   const ir = (k: number) => painel.selecionarPz(e.piezometros[(idx + k + n) % n].id);
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-center gap-4">
+      <header className="md:sticky md:top-0 md:z-[1100] -mx-4 -mt-4 bg-fundo px-4 py-4 sm:-mx-8 sm:-mt-6 sm:px-8 sm:py-5 flex flex-wrap items-center gap-4">
         <div className="min-w-0">
           <div className="mb-1.5 text-[12px] text-texto-3"><a href="#visao" className="text-marca-2 hover:underline">Piezômetros</a> / {pz.id}</div>
           <h1 className="flex flex-wrap items-center gap-3 text-[24px] font-semibold leading-none">
@@ -214,7 +214,7 @@ function Historico({ e, lv }: { e: EstadoPainel; lv: Situacao }) {
           <div className="flex rounded-lg border border-linha-2 bg-fundo p-0.5" role="group" aria-label="Período">
             {Object.entries(PERIODOS).map(([v, p]) => (
               <button key={v} type="button" aria-pressed={e.periodo === v} onClick={() => painel.selecionarPeriodo(v)}
-                className={`h-[26px] rounded-md px-2.5 text-[12px] font-medium ${e.periodo === v ? "bg-card-2 text-texto" : "text-texto-2 hover:text-texto"}`}>{p.label}</button>
+                className={`h-[26px] whitespace-nowrap rounded-md px-2 sm:px-2.5 text-[12px] font-medium ${e.periodo === v ? "bg-card-2 text-texto" : "text-texto-2 hover:text-texto"}`}>{p.label}</button>
             ))}
           </div>
           <Exportar e={e} ok={ok} />
