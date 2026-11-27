@@ -35,6 +35,13 @@ function Enquadrar({ itens, modo, sel, lista }: { itens: ItemMapa[]; modo: "visa
   return null;
 }
 
+// A altura do mapa muda quando a faixa de alarmes cresce: o Leaflet precisa recalcular.
+function AjustarTamanho({ altura }: { altura: number | string }) {
+  const map = useMap();
+  useEffect(() => { const t = setTimeout(() => map.invalidateSize(), 60); return () => clearTimeout(t); }, [map, altura]);
+  return null;
+}
+
 // Voa até o instrumento escolhido na lista lateral (aba Mapa).
 function VoarPara({ alvo }: { alvo: { pz: Pz; n: number } | null }) {
   const map = useMap();
@@ -87,6 +94,7 @@ export function MapaInstrumentos({ itens, modo, sel, camada = "satelite", altura
         {modo !== "ins" && <ZoomControl position={modo === "completo" ? "bottomright" : "topright"} />}
         <Enquadrar itens={itens} modo={modo} sel={sel} lista={lista} />
         <VoarPara alvo={voar} />
+        <AjustarTamanho altura={altura} />
         {itens.map(it => (
           <Marcador key={it.pz.id} item={it} agora={agora} comValor={modo !== "ins" && itens.length <= 6}
             destaque={modo === "ins" ? it.pz.id === sel : modo === "completo" ? it.pz.id === sel : it.pz.id === realce}

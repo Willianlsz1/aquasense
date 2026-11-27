@@ -1,8 +1,8 @@
-import { Bell, BellOff, FileText, Gauge, LayoutGrid, Map as MapIcon, Play, Square } from "lucide-react";
-import { naoConfirmado, painel, porPrioridade, ROTEIRO_DEMO, usePainel, VISTAS, type EstadoPainel, type Vista } from "./nucleo/painel";
-import { fmtBR } from "./nucleo/util";
+import { Bell, FileText, Gauge, LayoutGrid, Map as MapIcon, Play, Square } from "lucide-react";
+import { painel, porPrioridade, ROTEIRO_DEMO, usePainel, VISTAS, type EstadoPainel, type Vista } from "./nucleo/painel";
 import { Forma, Logo, Marca } from "./componentes/base";
 import { BotaoSom, FonteDados } from "./componentes/topo";
+import { FaixaAlarmes } from "./componentes/alarmes";
 import { VisaoGeral } from "./telas/VisaoGeral";
 import { TelaMapa } from "./telas/Mapa";
 import { TelaInstrumento } from "./telas/Instrumento";
@@ -48,7 +48,7 @@ export default function App() {
       <main className="min-w-0 max-w-[1520px] flex-1 space-y-6 px-4 pb-24 pt-4 sm:px-8 sm:pt-6 lg:pb-8">
         {e.vista !== "instrumento" && <Topo e={e} />}
         {e.simulada && <BarraDemo e={e} />}
-        {e.vista === "mapa" && <FaixaAlarme e={e} />}
+        {e.vista === "mapa" && <FaixaAlarmes e={e} />}
         {!e.pronto ? <p className="py-16 text-center text-texto-3">Carregando configuração…</p>
           : e.vista === "visao" ? <VisaoGeral e={e} />
           : e.vista === "mapa" ? <TelaMapa e={e} />
@@ -101,35 +101,6 @@ function BarraDemo({ e }: { e: EstadoPainel }) {
           : <button type="button" onClick={() => painel.iniciarRoteiro()} className="btn forte"><Play size={14} /> Reproduzir roteiro</button>}
       </div>
       <p className="w-full text-[12px] text-texto-2">{ROTEIRO_DEMO[e.demo.passo].texto(painel.idsDemo())}</p>
-    </div>
-  );
-}
-
-// Faixa fina nas outras telas: o alarme nunca some de vista.
-function FaixaAlarme({ e }: { e: EstadoPainel }) {
-  if (naoConfirmado(e))
-    return (
-      <div role="status" className="flex items-center gap-2.5 rounded-xl bg-of-soft px-4 py-2.5 text-[13px] font-medium text-texto">
-        <Forma estado="semsinal" /> Estado dos instrumentos não confirmado: o servidor não respondeu.
-      </div>
-    );
-  const lista = porPrioridade(e).filter(x => x.s.lv === "critico" || x.s.lv === "atencao");
-  if (!lista.length) return null;
-  if (e.vista === "instrumento" && lista.length === 1 && lista[0].pz.id === e.pzSel) return null;
-  const cr = lista.filter(x => x.s.lv === "critico");
-  const forte = cr.length > 0;
-  return (
-    <div role="alert" className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl px-4 py-2.5 text-[13px] ${forte ? "bg-cr text-white" : "bg-wr-soft text-texto"}`}>
-      <Forma estado={forte ? "critico" : "atencao"} cor={forte ? "#fff" : undefined} />
-      <span className="font-semibold">{forte ? "Alarme ativo" : "Atenção"}</span>
-      {lista.map(x => (
-        <button key={x.pz.id} type="button" onClick={() => painel.abrirInstrumento(x.pz.id)} className={`num underline-offset-2 hover:underline ${forte ? "" : "text-texto"}`}>
-          {x.pz.id} {x.s.nivel !== null ? `${fmtBR(x.s.nivel)} m` : ""}
-        </button>
-      ))}
-      {forte && e.som.ativo && e.som.ligado && !e.som.silenciado && (
-        <button type="button" onClick={() => painel.silenciar()} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1 hover:bg-white/25"><BellOff size={14} /> Silenciar</button>
-      )}
     </div>
   );
 }

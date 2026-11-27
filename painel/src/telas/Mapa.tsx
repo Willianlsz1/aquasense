@@ -11,9 +11,13 @@ export function TelaMapa({ e }: { e: EstadoPainel }) {
   const [voar, setVoar] = useState<{ pz: Pz; n: number } | null>(null);
   const [sel, setSel] = useState<string | undefined>();
   const nc = naoConfirmado(e);
+  // Altura que sobra abaixo do topo e da faixa de alarmes (cabeçalho 40 px + 56 px por linha).
+  const linhas = nc ? 1 : itens.filter(x => x.s.lv === "critico" || x.s.lv === "atencao").length + (itens.some(x => x.s.lv === "semsinal") ? 1 : 0);
+  const faixa = linhas ? 40 + 56 * linhas : 56;
+  const altura = `max(420px, calc(100vh - ${144 + faixa + (e.simulada ? 112 : 0)}px))`;
   return (
     <div className="card relative overflow-hidden">
-      <MapaInstrumentos itens={itens} modo="completo" camada={camada} altura="calc(100vh - 190px)" voar={voar} sel={sel} lista agora={e.agora} />
+      <MapaInstrumentos itens={itens} modo="completo" camada={camada} altura={altura} voar={voar} sel={sel} lista agora={e.agora} />
       <div className="pointer-events-none absolute inset-0 z-[1000] flex flex-col gap-3 p-3 sm:p-4">
         <div className="flex items-start gap-3">
           <div className="pointer-events-auto rounded-xl bg-card/95 p-1 shadow-card">
