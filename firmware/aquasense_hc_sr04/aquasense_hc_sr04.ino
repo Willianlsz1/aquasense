@@ -34,8 +34,8 @@
 // ===== SENSOR HC-SR04 =====
 #define PIN_TRIG 5
 #define PIN_ECHO 18             // ECHO é 5 V: manter o divisor 1k/2k
-#define ALTURA_REF_CM   40.0    // distância do sensor ao nível zero
-#define ESCALA_M_POR_CM  0.5    // escala didática: 1 cm = 0,5 m
+#define ALTURA_REF_CM   28.8    // leitura do sensor com o vaso vazio (calibrado em 27/11/2026)
+#define ESCALA_M_POR_CM  1.0    // escala didática: 1 cm de água = 1 m
 #define DIST_MIN_CM  3.0
 #define DIST_MAX_CM  400.0
 
