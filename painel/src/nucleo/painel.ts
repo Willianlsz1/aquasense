@@ -13,7 +13,7 @@ import type { PontoHist } from "./exportar";
 import { classificarComHisterese, fin, situacaoPz, type Faixa, type Leitura, type Situacao } from "./util";
 
 export type Vista = "visao" | "mapa" | "instrumento" | "alertas";
-export const VISTAS: Record<Vista, string> = { visao: "Visão geral", mapa: "Mapa", instrumento: "Instrumento", alertas: "Alertas e eventos" };
+export const VISTAS: Record<Vista, string> = { visao: "Visão geral", mapa: "Mapa", instrumento: "Instrumento", alertas: "Alertas" };
 const VISTAS_ANTIGAS: Record<string, Vista> = { "visao-geral": "visao", registros: "alertas", leituras: "instrumento" };
 
 export type PontoRede = { t: number; v: number; max: number; n: number | null };
@@ -119,7 +119,7 @@ class Painel {
     }
     const pzSel = PIEZOMETROS.some(p => p.id === this.e.pzSel) ? this.e.pzSel : PIEZOMETROS[0].id;
     this.set({ pronto: true, piezometros: this.aplicarNomes(), pzSel, simulada: this.fonte.simulada,
-      status: this.fonte.simulada ? { tipo: "sim", msg: "Demonstração · dados fictícios em tempo acelerado" } : this.e.status });
+      status: this.fonte.simulada ? { tipo: "sim", msg: "Simulação · dados fictícios" } : this.e.status });
     void this.carregarHistorico();
     void this.carregarHistoricoRede(true);
     void this.carregarEventos(true);
@@ -154,8 +154,8 @@ class Painel {
       const agora = Date.now();
       this.set({
         ultimos: dados, falhas: 0, agora,
-        status: fonte.simulada ? { tipo: "sim", msg: "Demonstração · dados fictícios em tempo acelerado" }
-          : { tipo: "live", msg: `Sistema online · consulta às ${new Date().toLocaleTimeString("pt-BR")}` },
+        status: fonte.simulada ? { tipo: "sim", msg: "Simulação · dados fictícios" }
+          : { tipo: "live", msg: `Dados reais · consulta às ${new Date().toLocaleTimeString("pt-BR")}` },
       });
       this.registrarTransicoes(dados);
       this.aplicarSelecionado();

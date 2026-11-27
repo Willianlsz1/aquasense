@@ -1,50 +1,85 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
-/* Tokens do conceito v4. Cor saturada só para estados anormais (ISA-101). */
+/* Tokens da direção A ("sala de controle", HMI de alto desempenho / ISA-101).
+   Escala: espaço 4/8/12/16/24/32/48 · fonte 12/14/16/20/24/32/48 · raio 8 (cartão) e 999 (pílula).
+   Cor: vermelho só crítico, âmbar só atenção, cinza tracejado só sem sinal; o normal fica neutro.
+   A marca (marinho + ciano) aparece na lateral, na seleção e nos links. */
 :root {
-  --fundo: #EEF3F8; --card: #FFFFFF; --card-2: #F4F7FB; --linha: #E3EAF2;
+  --fundo: #0C0F12; --card: #13171C; --card-2: #191E24; --linha: #242A31; --linha-2: #2E353D;
+  --texto: #E9EDF1; --texto-2: #9BA6B1; --texto-3: #6B7681;
+  --marca: #29B6F6; --marca-2: #4FC3F7; --marca-soft: rgba(41,182,246,.10);
+  --cr: #F25C63; --cr-soft: #2A1316; --cr-borda: #5A1F25; --wr: #E8A33A; --wr-soft: #2A2110;
+  --of: #8A95A0; --of-soft: rgba(138,149,160,.10); --ok: #9BA6B1;
+  --neutro: #4A535C; --agua: #3D7DB3; --sim: #B49CF0;
+  --serie-1: #9BA6B1; --serie-2: #6B7681; --serie-3: #C3CBD3;
+  --solo-1: #5A4733; --solo-2: #3B2E21;
+  --lat-1: #0D1D2E; --lat-2: #0A1622; --lat-linha: #152536; --lat-texto: #8FA6BC; --lat-rod: #6F87A0;
+  --sombra: none;
+  color-scheme: dark;
+}
+/* Tema claro: só o relatório A4 (impressão). */
+[data-tema="claro"] {
+  --fundo: #EEF3F8; --card: #FFFFFF; --card-2: #F4F7FB; --linha: #E3EAF2; --linha-2: #D5DEE8;
   --texto: #0B2545; --texto-2: #4A6380; --texto-3: #8197AE;
   --marca: #1E88E5; --marca-2: #29B6F6; --marca-soft: #E5F2FD;
-  --cr: #D3303F; --cr-soft: #FDECEE; --wr: #C47D0E; --wr-soft: #FDF3E2;
-  --of: #7C8EA0; --of-soft: #EEF2F6; --ok: #1F9D63;
-  --neutro: #9DB0C3; --serie-1: #5E7FA0; --serie-2: #8FA6BC; --serie-3: #46637F;
+  --cr: #D3303F; --cr-soft: #FDECEE; --cr-borda: #F3B5BC; --wr: #C47D0E; --wr-soft: #FDF3E2;
+  --of: #7C8EA0; --of-soft: #EEF2F6; --ok: #4A6380;
+  --neutro: #9DB0C3; --agua: #3D7DB3; --sim: #7A5BD0;
+  --serie-1: #5E7FA0; --serie-2: #8FA6BC; --serie-3: #46637F;
   --solo-1: #C9B193; --solo-2: #9C7F5E;
   --sombra: 0 1px 2px rgba(16,42,80,.04), 0 8px 24px rgba(16,42,80,.06);
   color-scheme: light;
 }
-[data-tema="escuro"] {
-  --fundo: #0B1219; --card: #121C26; --card-2: #17232F; --linha: #1F2E3B;
-  --texto: #E8EEF4; --texto-2: #A9BACA; --texto-3: #71869A;
-  --marca: #3AA8F0; --marca-2: #4FC3F7; --marca-soft: rgba(58,168,240,.13);
-  --cr: #F0565C; --cr-soft: rgba(240,86,92,.14); --wr: #EBA83A; --wr-soft: rgba(235,168,58,.13);
-  --of: #8B9BAA; --of-soft: rgba(139,155,170,.12); --ok: #3CC985;
-  --neutro: #50667A; --serie-1: #7FA3C4; --serie-2: #5F7A93; --serie-3: #A8BED2;
-  --solo-1: #5A4733; --solo-2: #3B2E21;
-  --sombra: 0 1px 2px rgba(0,0,0,.3);
-  color-scheme: dark;
-}
 
 @theme inline {
   --color-fundo: var(--fundo); --color-card: var(--card); --color-card-2: var(--card-2);
-  --color-linha: var(--linha); --color-texto: var(--texto); --color-texto-2: var(--texto-2);
+  --color-linha: var(--linha); --color-linha-2: var(--linha-2); --color-texto: var(--texto); --color-texto-2: var(--texto-2);
   --color-texto-3: var(--texto-3); --color-marca: var(--marca); --color-marca-soft: var(--marca-soft);
   --color-cr: var(--cr); --color-cr-soft: var(--cr-soft); --color-wr: var(--wr); --color-wr-soft: var(--wr-soft);
   --color-of: var(--of); --color-of-soft: var(--of-soft); --color-ok: var(--ok);
+  --color-agua: var(--agua); --color-sim: var(--sim); --color-neutro: var(--neutro);
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-marca: "Quicksand", "IBM Plex Sans", sans-serif;
   --shadow-card: var(--sombra);
 }
 
 html, body, #root { min-height: 100%; }
-body { margin: 0; background: var(--fundo); color: var(--texto); font-family: var(--font-sans); font-size: 14px; -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--fundo); color: var(--texto); font-family: var(--font-sans); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
 .num { font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-.card { background: var(--card); border-radius: 18px; box-shadow: var(--sombra); }
+.card { background: var(--card); border: 1px solid var(--linha); border-radius: 8px; box-shadow: var(--sombra); overflow: hidden; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .5; }
 :focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; }
-.titulo-card { font-size: 14.5px; font-weight: 600; }
-.sub-card { font-size: 12.5px; color: var(--texto-3); }
+.titulo-card { font-size: 16px; font-weight: 600; }
+.sub-card { font-size: 12px; color: var(--texto-3); }
+
+/* Logotipo oficial: "aqua" branco + "sense" ciano, Quicksand 700 */
+.marca-wm { font: 700 20px/1 var(--font-marca); letter-spacing: -.01em; }
+.marca-wm b { font-weight: 700; color: #fff; }
+.marca-wm i { font-style: normal; color: #29B6F6; }
+
+/* Barra lateral da marca */
+.lateral { background: linear-gradient(180deg, var(--lat-1) 0%, var(--lat-2) 100%); border-right: 1px solid var(--lat-linha); }
+.lateral .item { position: relative; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 8px; color: var(--lat-texto); font-weight: 500; }
+.lateral .item:hover { background: rgba(255,255,255,.04); color: #C9D8E6; }
+.lateral .item[aria-current="page"] { background: rgba(41,182,246,.10); color: #E8F7FE; }
+.lateral .item[aria-current="page"] svg.n { color: #29B6F6; }
+.lateral .item[aria-current="page"]::before { content: ""; position: absolute; left: -16px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: #29B6F6; }
+.lateral .rodape { border-top: 1px solid var(--lat-linha); color: var(--lat-rod); }
+
+/* Botão padrão (32 px, raio 8) */
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 1px solid var(--linha-2); border-radius: 8px; font-weight: 500; font-size: 14px; color: var(--texto); background: none; white-space: nowrap; }
+.btn:hover { background: var(--card-2); }
+.btn.forte { background: var(--texto); color: var(--fundo); border-color: var(--texto); }
+.btn.forte:hover { opacity: .9; }
+
+/* Indicador da fonte de dados: ciano = real, lilás = simulação, cinza = sem resposta */
+.fonte-pt { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.fonte-pt.real { background: #29B6F6; box-shadow: 0 0 0 3px rgba(41,182,246,.18); }
+.fonte-pt.sim { background: var(--sim); box-shadow: 0 0 0 3px rgba(180,156,240,.18); }
+.fonte-pt.off { background: var(--of); }
 
 /* Medidor e tubo sem sinal: hachurado cinza = último valor conhecido, não confirmado */
 .hachura { background: repeating-linear-gradient(135deg, var(--of) 0 3px, transparent 3px 7px); opacity: .55; }

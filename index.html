@@ -3,22 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script>
-      (function () {
-        var t = "claro";
-        try {
-          var s = localStorage.getItem("aquasense-tema");
-          t = s === "escuro" || s === "claro" ? s : matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro";
-        } catch (e) {}
-        document.documentElement.dataset.tema = t;
-      })();
-    </script>
+    <script>document.documentElement.dataset.tema = "escuro";</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <title>aquasense · Monitoramento de Piezômetros</title>
-    <script type="module" crossorigin src="./app/index-BKFxladH.js"></script>
-    <link rel="modulepreload" crossorigin href="./app/LineChart-DFfN3ICQ.js">
-    <link rel="stylesheet" crossorigin href="./app/LineChart-CXm8xvSl.css">
+    <script type="module" crossorigin src="./app/index-ub3LtZd-.js"></script>
+    <link rel="modulepreload" crossorigin href="./app/LineChart-CZ15tsK3.js">
+    <link rel="stylesheet" crossorigin href="./app/LineChart-CAQa8dHz.css">
   </head>
   <body>
     <div id="root"></div>

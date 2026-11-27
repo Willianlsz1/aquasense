@@ -3,19 +3,20 @@ import { CFG } from "../nucleo/config";
 import { clamp, escalaNivel, fmtBR, ROTULO, type Situacao } from "../nucleo/util";
 
 export const COR: Record<Situacao | "ok", string> = {
-  critico: "var(--cr)", atencao: "var(--wr)", semsinal: "var(--of)", normal: "var(--texto-3)", ok: "var(--texto-3)",
+  critico: "var(--cr)", atencao: "var(--wr)", semsinal: "var(--of)", normal: "var(--neutro)", ok: "var(--neutro)",
 };
 const FUNDO: Record<Situacao, string> = { critico: "var(--cr-soft)", atencao: "var(--wr-soft)", semsinal: "var(--of-soft)", normal: "var(--card-2)" };
 
-// Codificação redundante do estado: forma + cor + texto.
-// Crítico = octógono · atenção = triângulo · sem sinal = anel tracejado · normal = anel.
+// Indicadores de estado (grade de 16 px): forma + cor + sinal interno, lê-se sem cor.
+// Crítico = octógono vermelho com "!" · atenção = triângulo âmbar com "!"
+// sem sinal = anel cinza tracejado · normal = ponto neutro (o normal fica quieto).
 export function corpoForma(estado: Situacao | "ok", c = COR[estado]) {
-  if (estado === "critico") return `<path d="M5.2 1h5.6L15 5.2v5.6L10.8 15H5.2L1 10.8V5.2z" fill="${c}"/>`;
-  if (estado === "atencao") return `<path d="M8 1.5 15 14H1z" fill="${c}"/>`;
-  if (estado === "semsinal") return `<circle cx="8" cy="8" r="5.6" fill="none" stroke="${c}" stroke-width="2" stroke-dasharray="2.6 2.2"/>`;
-  return `<circle cx="8" cy="8" r="5.6" fill="none" stroke="${c}" stroke-width="2"/>`;
+  if (estado === "critico") return `<path d="M5.17 1h5.66L15 5.17v5.66L10.83 15H5.17L1 10.83V5.17z" fill="${c}"/><rect x="7.1" y="4" width="1.8" height="5.2" rx=".9" fill="#1A0A0C"/><circle cx="8" cy="11.3" r="1.05" fill="#1A0A0C"/>`;
+  if (estado === "atencao") return `<path d="M8.87 1.6l6.4 11.3A1 1 0 0 1 14.4 14.4H1.6a1 1 0 0 1-.87-1.5L7.13 1.6a1 1 0 0 1 1.74 0z" fill="${c}"/><rect x="7.15" y="5.2" width="1.7" height="4.6" rx=".85" fill="#1F1606"/><circle cx="8" cy="11.9" r=".95" fill="#1F1606"/>`;
+  if (estado === "semsinal") return `<circle cx="8" cy="8" r="6.25" fill="none" stroke="${c}" stroke-width="1.5" stroke-dasharray="2.45 1.8" stroke-linecap="round"/>`;
+  return `<circle cx="8" cy="8" r="2.5" fill="${c}"/>`;
 }
-export function Forma({ estado, size = 14, cor }: { estado: Situacao | "ok"; size?: number; cor?: string }) {
+export function Forma({ estado, size = 16, cor }: { estado: Situacao | "ok"; size?: number; cor?: string }) {
   return <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden style={{ flex: "none" }}
     dangerouslySetInnerHTML={{ __html: corpoForma(estado, cor) }} />;
 }
@@ -164,5 +165,14 @@ export function Logo({ tam = 30 }: { tam?: number }) {
         <rect x="-100" y="-100" width="830" height="860" fill={`url(#lg3${u})`} clipPath={`url(#lgc${u})`} />
       </g></g>
     </svg>
+  );
+}
+
+// Logotipo oficial: gota + "aqua" branco + "sense" ciano (Quicksand 700, minúsculas).
+export function Marca({ tam = 22 }: { tam?: number }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <Logo tam={tam} /><span className="marca-wm"><b>aqua</b><i>sense</i></span>
+    </span>
   );
 }
