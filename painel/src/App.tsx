@@ -1,7 +1,8 @@
-import { Bell, BellOff, FileText, Gauge, LayoutGrid, Map as MapIcon, Play, Square, Volume2, VolumeX } from "lucide-react";
+import { Bell, BellOff, FileText, Gauge, LayoutGrid, Map as MapIcon, Play, Square } from "lucide-react";
 import { naoConfirmado, painel, porPrioridade, ROTEIRO_DEMO, usePainel, VISTAS, type EstadoPainel, type Vista } from "./nucleo/painel";
 import { fmtBR } from "./nucleo/util";
 import { Forma, Logo, Marca } from "./componentes/base";
+import { BotaoSom, FonteDados } from "./componentes/topo";
 import { VisaoGeral } from "./telas/VisaoGeral";
 import { TelaMapa } from "./telas/Mapa";
 import { TelaInstrumento } from "./telas/Instrumento";
@@ -45,9 +46,9 @@ export default function App() {
       </aside>
 
       <main className="min-w-0 max-w-[1520px] flex-1 space-y-6 px-4 pb-24 pt-4 sm:px-8 sm:pt-6 lg:pb-8">
-        <Topo e={e} />
+        {e.vista !== "instrumento" && <Topo e={e} />}
         {e.simulada && <BarraDemo e={e} />}
-        {e.vista !== "visao" && <FaixaAlarme e={e} />}
+        {e.vista !== "visao" && e.vista !== "instrumento" && <FaixaAlarme e={e} />}
         {!e.pronto ? <p className="py-16 text-center text-texto-3">Carregando configuração…</p>
           : e.vista === "visao" ? <VisaoGeral e={e} />
           : e.vista === "mapa" ? <TelaMapa e={e} />
@@ -74,23 +75,11 @@ export default function App() {
 }
 
 function Topo({ e }: { e: EstadoPainel }) {
-  const pt = e.status.tipo === "live" ? "real" : e.status.tipo === "sim" ? "sim" : "off";
   return (
     <header className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <a href="#visao" className="lg:hidden" aria-label="aquasense"><Logo tam={22} /></a>
       <h1 className="min-w-0 flex-1 text-[24px] font-semibold leading-none tracking-tight">{VISTAS[e.vista]}</h1>
-      <div className="ml-auto flex items-center gap-4 text-[12px] text-texto-2">
-        <span role="status" className="flex items-center gap-2">
-          <span className={`fonte-pt ${pt} ${pt === "real" ? "pulsar" : ""}`} /><span className="num">{e.status.msg}</span>
-        </span>
-        <button type="button" onClick={() => painel.alternarSom()} aria-pressed={e.som.ligado}
-          title={e.som.ligado ? "Som do alarme crítico ligado: clique para desligar" : "Som do alarme crítico desligado: clique para ligar"}
-          className="btn relative">
-          {e.som.ligado ? <Volume2 size={16} strokeWidth={1.75} /> : <VolumeX size={16} strokeWidth={1.75} />}
-          {e.som.ligado ? "Som ligado" : "Som desligado"}
-          {e.som.ativo && !e.som.silenciado && e.som.ligado && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-cr ring-2 ring-fundo" />}
-        </button>
-      </div>
+      <div className="ml-auto flex items-center gap-4"><FonteDados e={e} /><BotaoSom e={e} /></div>
     </header>
   );
 }

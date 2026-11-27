@@ -41,7 +41,9 @@ Não se adotam percentuais de cor ou taxas de alarme como exigências universais
 7. CSV/Excel de leituras usam os intervalos disponíveis; não são anunciados como
    exportação integral de amostras brutas.
 8. O gráfico posiciona dados no tempo, interrompe a linha nas lacunas e não preenche
-   essas lacunas com área colorida. Períodos longos incluem data nos rótulos.
+   essas lacunas com dado: elas aparecem hachuradas com "Sem dados · N h". Limites em
+   cinza; a linha só ganha cor no trecho acima de um limite. Períodos longos incluem
+   data nos rótulos.
 9. A visão geral traz a faixa de alarmes ativos (uma linha por alarme, em colunas fixas:
    estado, piezômetro, nível, margem, tendência, desde quando e ação), a contagem por
    estado no cabeçalho, a comunicação (linha "sem sinal" ou "N de N comunicando") e a
@@ -52,8 +54,9 @@ Não se adotam percentuais de cor ou taxas de alarme como exigências universais
    (|taxa| acima do limite do servidor) coloca o instrumento em atenção (27/11/2026).
 10. Ocorrências: no monitoramento real, só os registros do servidor; na demonstração,
     as transições da sessão. Não há lista paralela de "eventos da sessão".
-11. Instrumento em atenção ou crítico abre um quadro de incidente (desde quando, pico,
-    tendência, vizinhos e o que fazer). Não há reconhecimento de alarme com registro:
+11. Instrumento em atenção ou crítico abre a faixa do incidente (situação, margem, desde
+    quando, pico e o procedimento), com os outros instrumentos em alarme logo abaixo;
+    a tendência fica nos números da tela. Não há reconhecimento de alarme com registro:
     isso exige login e gravação no servidor.
 12. Crítico toca um som no navegador a cada 20 s, com opção de silenciar. Não substitui
     aviso fora da tela (e-mail, mensagem), que o projeto não implementa.

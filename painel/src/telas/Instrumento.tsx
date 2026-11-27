@@ -1,283 +1,368 @@
-import { useCallback, useState, type ReactNode } from "react";
-import { BellOff, ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileText, Pencil } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { CFG, PERIODOS } from "../nucleo/config";
 import { disponibilidade24h, naoConfirmado, ocorrencias, painel, porPrioridade, type EstadoPainel } from "../nucleo/painel";
-import { exportarCsv, exportarXls } from "../nucleo/exportar";
-import { classificarNivel, fin, fmtBR, formatUltima, hora, diaHora, ROTULO, situacaoPz, type Situacao } from "../nucleo/util";
-import { Botao, Cartao, Forma, Segmentado, Selo } from "../componentes/base";
+import { exportarCsv, exportarXls, type PontoHist } from "../nucleo/exportar";
+import { classificarNivel, diaHora, fin, fmtBR, formatUltima, hora, ROTULO, situacaoPz, variacaoRapida, type Estado, type Situacao } from "../nucleo/util";
+import { Forma } from "../componentes/base";
+import { margem } from "../componentes/alarmes";
 import { Tubo } from "../componentes/tubo";
 import { GraficoInstrumento } from "../componentes/graficos";
-import { ListaOcorrencias } from "../componentes/ocorrencias";
-import { MapaInstrumentos } from "../componentes/mapa";
+import { TabelaOcorrencias } from "../componentes/ocorrencias";
 import { ModalCadastro } from "../componentes/cadastro";
-import { nomes, previsao, taxaRapida, tendencia, var24 } from "./textos";
+import { BotaoSom, FonteDados } from "../componentes/topo";
+import { previsao } from "./textos";
 
+const DIAS: Record<string, number> = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 };
+const COR_EST: Record<Situacao, string> = { critico: "text-cr", atencao: "text-wr", semsinal: "text-texto-2", normal: "text-texto-2" };
+
+function Bloco({ titulo, acoes, children, className = "" }: { titulo: string; acoes?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={`card flex flex-col ${className}`}>
+      <div className="flex h-12 flex-none items-center justify-between gap-3 border-b border-linha px-4">
+        <h2 className="text-[16px] font-semibold">{titulo}</h2>{acoes}
+      </div>
+      {children}
+    </section>
+  );
+}
+const LinkCab = ({ children, onClick, href }: { children: ReactNode; onClick?: () => void; href?: string }) =>
+  href ? <a href={href} className="flex items-center gap-1 text-[12px] text-marca-2 hover:underline">{children}<ChevronRight size={14} strokeWidth={1.75} /></a>
+    : <button type="button" onClick={onClick} className="flex items-center gap-1 text-[12px] text-marca-2 hover:underline">{children}<ChevronRight size={14} strokeWidth={1.75} /></button>;
+
+// Tela do instrumento (direção A): cabeçalho → faixa do incidente → poço, números,
+// gráfico, comunicação e cadastro → leituras por intervalo e ocorrências.
 export function TelaInstrumento({ e }: { e: EstadoPainel }) {
   const [editando, setEditando] = useState(false);
   const fechar = useCallback(() => setEditando(false), []);
   const idx = Math.max(0, e.piezometros.findIndex(p => p.id === e.pzSel));
   const pz = e.piezometros[idx];
-  const d = e.ultimos[pz.id];
-  const s = situacaoPz(d, e.agora / 1000);
+  const s = situacaoPz(e.ultimos[pz.id], e.agora / 1000);
   const nc = naoConfirmado(e);
-  const sem = s.lv === "semsinal";
-  // Selo do instrumento aberto: faixa com histerese (evita piscar perto do limite).
-  // Variação rápida eleva o normal para atenção (mesma regra de situacaoPz).
-  const lvSelo: Situacao = nc || sem ? "semsinal" : e.faixaSel === "normal" && s.lv === "atencao" ? "atencao" : (e.faixaSel ?? s.lv);
+  // Faixa com histerese (evita piscar perto do limite); variação rápida eleva o normal para atenção.
+  const lv: Situacao = nc || s.lv === "semsinal" ? "semsinal" : e.faixaSel === "normal" && s.lv === "atencao" ? "atencao" : (e.faixaSel ?? s.lv);
   const n = e.piezometros.length;
   const ir = (k: number) => painel.selecionarPz(e.piezometros[(idx + k + n) % n].id);
-  const cad = painel.cadastro(pz.id);
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-center gap-4">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-[20px] font-semibold tracking-tight">{pz.id} <span className="font-normal text-texto-2">· {pz.nome}</span></h2>
-            {nc ? <Selo estado="semsinal" texto="Não confirmado" /> : <Selo estado={lvSelo} />}
-            <button type="button" onClick={() => setEditando(true)} className="grid h-8 w-8 place-items-center rounded-lg text-texto-3 hover:bg-card-2 hover:text-texto" title="Editar cadastro" aria-label="Editar cadastro"><Pencil size={15} /></button>
-          </div>
-          <p className="mt-0.5 text-[12.5px] text-texto-3">
-            {e.simulada ? "Origem: demonstração (dados fictícios)" : "Origem: sistema real"} · {nc ? "estado não confirmado: servidor sem resposta"
-              : sem ? `sem sinal · última recepção ${formatUltima(s.recepcao, e.agora)}` : `recebido ${formatUltima(s.recepcao, e.agora)}`}
-            {cad.local ? ` · ${cad.local}` : ""}
-          </p>
+          <div className="mb-1.5 text-[12px] text-texto-3"><a href="#visao" className="text-marca-2 hover:underline">Piezômetros</a> / {pz.id}</div>
+          <h1 className="flex flex-wrap items-center gap-3 text-[24px] font-semibold leading-none">
+            {pz.id} <span className="font-normal text-texto-2">{pz.nome}</span>
+            <span className={`flex items-center gap-1.5 text-[14px] font-medium ${COR_EST[lv]}`}><Forma estado={lv} />{nc ? "Sem resposta" : ROTULO[lv]}</span>
+          </h1>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <button type="button" onClick={() => ir(-1)} className="grid h-9 w-9 place-items-center rounded-xl bg-card text-texto-2 shadow-card" aria-label="Instrumento anterior"><ChevronLeft size={18} /></button>
-          <select aria-label="Instrumento" value={pz.id} onChange={ev => painel.selecionarPz(ev.target.value)} className="h-9 rounded-xl border-0 bg-card px-3 text-[13.5px] shadow-card">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <FonteDados e={e} curto />
+          <button type="button" onClick={() => ir(-1)} className="btn w-8 justify-center px-0" aria-label="Instrumento anterior"><ChevronLeft size={16} strokeWidth={1.75} /></button>
+          <label className="sr-only" htmlFor="sel-pz">Instrumento</label>
+          <select id="sel-pz" value={pz.id} onChange={ev => painel.selecionarPz(ev.target.value)} className="btn bg-fundo pr-2 font-medium">
             {porPrioridade(e).sort((a, b) => a.i - b.i).map(x => <option key={x.pz.id} value={x.pz.id}>{x.pz.id} · {x.pz.nome}{!nc && x.s.lv !== "normal" ? ` (${ROTULO[x.s.lv].toLowerCase()})` : ""}</option>)}
           </select>
-          <button type="button" onClick={() => ir(1)} className="grid h-9 w-9 place-items-center rounded-xl bg-card text-texto-2 shadow-card" aria-label="Próximo instrumento"><ChevronRight size={18} /></button>
+          <button type="button" onClick={() => ir(1)} className="btn w-8 justify-center px-0" aria-label="Próximo instrumento"><ChevronRight size={16} strokeWidth={1.75} /></button>
+          <BotaoSom e={e} />
+        </div>
+      </header>
+
+      <Incidente e={e} s={s} lv={lv} nc={nc} />
+
+      <div className="grid items-start gap-6 xl:grid-cols-[200px_minmax(0,1fr)_300px]">
+        <Bloco titulo="Poço">
+          <div className="flex justify-center pb-2 pt-4"><Tubo nivel={nc ? null : s.nivel} estado={lv} /></div>
+          {!nc && s.lv === "semsinal" && <p className="px-4 pb-3 text-center text-[12px] text-texto-3">{s.nivel !== null ? "Último valor, não confirmado" : "Nenhuma leitura recebida"}</p>}
+        </Bloco>
+        <section className="card min-w-0">
+          <Numeros e={e} s={s} lv={lv} nc={nc} />
+          <Historico e={e} lv={lv} />
+        </section>
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
+          <Comunicacao e={e} s={s} nc={nc} />
+          <Cadastro e={e} aoEditar={() => setEditando(true)} />
         </div>
       </div>
 
-      {!nc && <Incidente e={e} />}
-
-      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[280px_minmax(0,1fr)_300px]">
-        <Cartao titulo="Poço de observação" sub="coluna d'água no tubo · tracejados = limites">
-          <Tubo nivel={nc ? null : s.nivel} estado={nc ? "semsinal" : s.lv} recepcao={s.recepcao} />
-        </Cartao>
-
-        <div className="min-w-0 space-y-5">
-          <Indicadores e={e} />
-          <Historico e={e} />
-          <div className="grid gap-5 xl:grid-cols-2">
-            <Leituras e={e} />
-            <Cartao titulo="Ocorrências deste instrumento">
-              <ListaOcorrencias lista={ocorrencias(e).filter(o => o.pz === pz.id).slice(0, 10)} comNome={false} nomes={nomes(e)}
-                vazio={e.simulada ? "Nenhuma mudança de estado nesta demonstração." : e.servidor.erro ? "Registros do servidor indisponíveis." : "Nenhum registro deste instrumento."} />
-            </Cartao>
-          </div>
-        </div>
-
-        <div className="grid content-start gap-5 md:grid-cols-2 lg:col-span-2 xl:grid-cols-3 2xl:col-span-1 2xl:grid-cols-1">
-          <CartaoComunicacao e={e} />
-          <Cartao titulo="Cadastro" acoes={<button type="button" onClick={() => setEditando(true)} className="text-[13px] font-medium text-marca hover:underline">Editar</button>}>
-            <dl className="space-y-2 text-[13px]">
-              <Linha k="Código" v={<span className="num">{pz.id}</span>} />
-              <Linha k="Nome" v={pz.nome} />
-              <Linha k="Local" v={cad.local || <i className="text-texto-3">não informado</i>} />
-              <Linha k="Sensor" v={cad.sensor || <i className="text-texto-3">não informado</i>} />
-              <Linha k="Profundidade" v={cad.prof !== null ? <span className="num">{fmtBR(cad.prof)} m</span> : <i className="text-texto-3">não informada</i>} />
-              <Linha k="Instalado em" v={cad.instalado ? new Date(`${cad.instalado}T12:00`).toLocaleDateString("pt-BR") : <i className="text-texto-3">não informado</i>} />
-              <Linha k="Responsável" v={cad.resp || <i className="text-texto-3">não informado</i>} />
-              {cad.obs && <Linha k="Observações" v={cad.obs} />}
-              <Linha k="Coordenadas" v={<span className="num">{fmtBR(pz.lat, 4)}, {fmtBR(pz.lng, 4)}</span>} />
-            </dl>
-            <p className="mt-3 text-[12px] text-texto-3">Cadastro salvo neste navegador. Coordenadas ilustrativas.</p>
-          </Cartao>
-          <Cartao titulo="Localização" corpo="p-0 pt-3">
-            <div className="overflow-hidden rounded-b-[18px]">
-              <MapaInstrumentos itens={porPrioridade(e)} modo="ins" sel={pz.id} altura={200} agora={e.agora} />
-            </div>
-          </Cartao>
-        </div>
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <Leituras e={e} />
+        <Bloco titulo="Ocorrências deste piezômetro" acoes={<LinkCab href="#alertas">Ver todas</LinkCab>}>
+          <TabelaOcorrencias comPz={false} lista={ocorrencias(e).filter(o => o.pz === pz.id).slice(0, 8)}
+            vazio={e.simulada ? "Nenhuma mudança de estado nesta simulação." : e.servidor.erro ? "Registros do servidor indisponíveis." : "Nenhum registro deste piezômetro."} />
+        </Bloco>
       </div>
       {editando && <ModalCadastro id={pz.id} nome={pz.nome} aoFechar={fechar} />}
     </div>
   );
 }
 
-const Linha = ({ k, v }: { k: string; v: ReactNode }) => (
-  <div className="flex justify-between gap-3"><dt className="text-texto-3">{k}</dt><dd className="text-right font-medium">{v}</dd></div>
-);
+// ── FAIXA DO INCIDENTE ────────────────────────────────────────────────────────
+// Instrumento em alarme: situação, margem, desde, pico e o procedimento.
+// Outros instrumentos em alarme aparecem logo abaixo, na mesma faixa.
+const K = ({ children }: { children: ReactNode }) => <span className="block text-[12px] leading-tight text-texto-3">{children}</span>;
 
-// ── QUADRO DE INCIDENTE (atenção ou crítico) ──────────────────────────────────
-function Incidente({ e }: { e: EstadoPainel }) {
-  const d = e.ultimos[e.pzSel];
-  const s = situacaoPz(d, e.agora / 1000);
-  if ((s.lv !== "atencao" && s.lv !== "critico") || s.nivel === null) return null;
-  const cr = s.lv === "critico";
+function Incidente({ e, s, lv, nc }: { e: EstadoPainel; s: Estado; lv: Situacao; nc: boolean }) {
+  const [proc, setProc] = useState(false);
   const pz = e.piezometros.find(p => p.id === e.pzSel)!;
-  const inc = e.inicioAlerta[pz.id] ?? { pico: s.nivel, desde: null };
-  const limite = cr ? CFG.thrCritico : CFG.thrAtencao;
-  const desde = inc.desde ? `detectado às ${new Date(inc.desde).toLocaleTimeString("pt-BR")} (${formatUltima(inc.desde / 1000, e.agora)})` : "já estava nesta faixa quando o painel abriu";
-  const vizinhos = porPrioridade(e).filter(x => x.pz.id !== pz.id);
-  const tocando = cr && e.som.ativo && e.som.ligado && !e.som.silenciado;
+  const outros = nc ? [] : porPrioridade(e).filter(x => x.pz.id !== pz.id && (x.s.lv === "critico" || x.s.lv === "atencao"));
+  const alarme = !nc && (lv === "critico" || lv === "atencao") && s.nivel !== null;
+  const semSinal = !nc && lv === "semsinal";
+  useEffect(() => setProc(false), [pz.id]);
+  if (!alarme && !semSinal && !outros.length) return null;
+  const cr = lv === "critico";
+  const inc = e.inicioAlerta[pz.id];
+  const tocando = e.som.ativo && e.som.ligado && !e.som.silenciado;
+  const situacao = cr ? `Acima do limite crítico (${fmtBR(CFG.thrCritico, 0)} m)`
+    : s.nivel !== null && s.nivel >= CFG.thrAtencao ? `Acima do limite de atenção (${fmtBR(CFG.thrAtencao, 0)} m)`
+    : variacaoRapida(s.taxa) ? `Variação rápida (limite ${fmtBR(CFG.taxaMaxMDia, 1)} m/dia)`
+    : `Descendo: volta ao normal abaixo de ${fmtBR(CFG.thrAtencao - CFG.histereseM)} m`;
+  const linha = "relative grid h-14 items-center gap-4 px-4 before:absolute before:inset-y-0 before:left-0 before:w-1";
   return (
-    <section role="alert" className="card overflow-hidden" style={{ outline: `2px solid ${cr ? "var(--cr)" : "var(--wr)"}` }}>
-      <div className={`flex flex-wrap items-center gap-3 px-5 py-3.5 ${cr ? "bg-cr text-white" : "bg-wr-soft"}`}>
-        <Forma estado={s.lv} size={18} cor={cr ? "#fff" : undefined} />
-        <div><h3 className="text-[16px] font-semibold">{pz.id} {cr ? "em nível crítico" : "em atenção"}</h3><p className={`text-[12.5px] ${cr ? "opacity-90" : "text-texto-2"}`}>{desde}</p></div>
-        {tocando && <button type="button" onClick={() => painel.silenciar()} className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-[13px] hover:bg-white/25"><BellOff size={14} /> Silenciar som</button>}
-      </div>
-      <div className="grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_1.3fr_1.5fr]">
-        <Bloco r="Agora" v={`${fmtBR(s.nivel)} m`} det={`${fmtBR(s.nivel - limite)} m acima do limite de ${fmtBR(limite, 0)} m`} forte={cr} />
-        <Bloco r="Pico desde a detecção" v={`${fmtBR(inc.pico ?? s.nivel)} m`} det={`tendência: ${tendencia(s.taxa)}`} />
-        <Bloco r="Comunicação" v="Online" det={`recebido ${formatUltima(s.recepcao, e.agora)}`} />
-        <div>
-          <div className="text-[12px] font-medium text-texto-3">Instrumentos vizinhos</div>
-          <ul className="mt-1.5 space-y-1 text-[13px]">
-            {vizinhos.length ? vizinhos.map(x => {
-              const v = var24(e, x.pz.id, x.s);
-              return <li key={x.pz.id} className="flex items-center gap-1.5"><Forma estado={x.s.lv} size={12} /><b>{x.pz.id}</b> {ROTULO[x.s.lv].toLowerCase()}
-                {x.s.nivel !== null && x.s.lv !== "semsinal" ? <span className="num"> · {fmtBR(x.s.nivel)} m</span> : null}
-                {v !== null && <span className="num text-texto-3"> ({v >= 0 ? "+" : ""}{fmtBR(v)} m em 24 h)</span>}</li>;
-            }) : <li className="text-texto-3">Nenhum outro instrumento cadastrado.</li>}
-          </ul>
+    <section className="card overflow-x-auto" role={cr ? "alert" : "status"} aria-label="Alarme deste piezômetro">
+      {alarme && (
+        <div className={`${linha} min-w-[960px] grid-cols-[116px_1fr_196px_136px_136px_auto] ${cr ? "bg-cr-soft before:bg-cr" : "bg-wr-soft before:bg-wr"}`}>
+          <div className={`flex items-center gap-2 font-semibold ${COR_EST[lv]}`}><span className={cr ? "pulsar" : ""}><Forma estado={lv} size={20} /></span>{ROTULO[lv]}</div>
+          <div className="min-w-0"><K>Situação</K><span className="block truncate font-medium">{situacao}</span></div>
+          <div><K>Margem</K><span className="num whitespace-nowrap font-medium">{margem(s.nivel)}</span></div>
+          <div><K>Desde</K><span className="num whitespace-nowrap font-medium">{inc?.desde ? `${hora(inc.desde)} · ${formatUltima(inc.desde / 1000, e.agora).replace(/^há /, "")}` : "antes de abrir"}</span></div>
+          <div><K>Pico no alarme</K><span className="num whitespace-nowrap font-medium">{fmtBR(inc?.pico ?? s.nivel!)} m</span></div>
+          <div className="flex items-center gap-2">
+            {cr && tocando && <button type="button" onClick={() => painel.silenciar()} className="btn">Silenciar</button>}
+            <button type="button" className={`btn ${cr ? "forte" : ""}`} aria-expanded={proc} onClick={() => setProc(v => !v)}>
+              Procedimento<ChevronDown size={16} strokeWidth={1.75} className={`transition-transform ${proc ? "rotate-180" : ""}`} />
+            </button>
+          </div>
         </div>
-        <div>
-          <div className="text-[12px] font-medium text-texto-3">O que fazer</div>
-          <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-[13px]">
-            <li>Confirmar a leitura: tendência, vizinhos e comunicação.</li>
-            <li>{cr ? "Acionar a equipe de geotecnia responsável pela estrutura e seguir o plano de ação de emergência." : "Intensificar o acompanhamento e avisar o responsável técnico."}</li>
-            <li>Registrar a ocorrência e as providências tomadas.</li>
-          </ol>
+      )}
+      {alarme && proc && (
+        <ol className="min-w-[960px] list-decimal space-y-1 border-t border-linha py-3 pl-10 pr-4 text-[14px] text-texto-2">
+          <li>Confirmar a leitura: tendência, instrumentos vizinhos e comunicação.</li>
+          <li>{cr ? "Acionar a equipe de geotecnia responsável e seguir o plano de ação de emergência." : "Intensificar o acompanhamento e avisar o responsável técnico."}</li>
+          <li>Registrar a ocorrência e as providências tomadas.</li>
+        </ol>
+      )}
+      {semSinal && (
+        <div className={`${linha} min-w-[960px] grid-cols-[116px_1fr_196px_auto] before:[background:repeating-linear-gradient(180deg,var(--of)_0_4px,transparent_4px_8px)]`}>
+          <div className="flex items-center gap-2 whitespace-nowrap font-semibold text-texto-2"><Forma estado="semsinal" size={20} />Sem sinal</div>
+          <div><K>Última leitura</K><span className="num font-medium">{fin(s.recepcao) ? `${diaHora(s.recepcao * 1000)} · ${formatUltima(s.recepcao, e.agora).replace(/^há /, "")}` : "Nunca reportou"}</span></div>
+          <div><K>Verificar</K><span className="font-medium">Alimentação e rede da UCT</span></div>
+          <span />
         </div>
-      </div>
+      )}
+      {outros.map(x => (
+        <div key={x.pz.id} className={`${linha} min-w-[960px] grid-cols-[116px_1fr_196px_auto] border-t border-linha ${x.s.lv === "critico" ? "before:bg-cr" : "before:bg-wr"}`}>
+          <div className={`flex items-center gap-2 font-semibold ${COR_EST[x.s.lv]}`}><Forma estado={x.s.lv} />{ROTULO[x.s.lv]}</div>
+          <div className="truncate"><K>Outro piezômetro</K><b className="font-semibold">{x.pz.id}</b><span className="ml-1.5 text-texto-2">{x.pz.nome}</span></div>
+          <div><K>Nível</K><span className={`num font-medium ${COR_EST[x.s.lv]}`}>{fmtBR(x.s.nivel!)} m</span></div>
+          <button type="button" className="btn" onClick={() => painel.selecionarPz(x.pz.id)}>Abrir {x.pz.id}<ChevronRight size={16} strokeWidth={1.75} /></button>
+        </div>
+      ))}
     </section>
   );
 }
 
-const Bloco = ({ r, v, det, forte }: { r: string; v: string; det: string; forte?: boolean }) => (
-  <div>
-    <div className="text-[12px] font-medium text-texto-3">{r}</div>
-    <div className="num mt-1 text-[22px] font-semibold" style={{ color: forte ? "var(--cr)" : undefined }}>{v}</div>
-    <div className="text-[12.5px] text-texto-2">{det}</div>
+// ── 4 NÚMEROS ─────────────────────────────────────────────────────────────────
+function Numeros({ e, s, lv, nc }: { e: EstadoPainel; s: Estado; lv: Situacao; nc: boolean }) {
+  const sem = nc || lv === "semsinal";
+  const nivel = sem ? null : s.nivel;
+  const pts = e.hist.estado === "ok" ? e.hist.pontos : [];
+  const pico = pts.length ? pts.reduce((a, p) => (p.max > a.max ? p : a), pts[0]) : null;
+  const per = PERIODOS[e.periodo].label;
+  const pv = previsao(sem ? { lv: "semsinal", nivel: null, taxa: null } : s);
+  const dirTxt = s.taxa === null ? "" : Math.abs(s.taxa) < 0.05 ? "estável" : s.taxa > 0 ? "subindo" : "descendo";
+  const tendDet = sem ? "sem leitura recente" : s.taxa === null ? "sem taxa calculada"
+    : pv.estimativa ? `${dirTxt} · ${pv.valor} até ${s.nivel! >= CFG.thrAtencao ? "crítico" : "atenção"} (estimativa)`
+    : `${dirTxt} · sem previsão de limite`;
+  const cor = lv === "critico" ? "text-cr" : lv === "atencao" ? "text-wr" : "";
+  const mDet = nivel === null ? "" : nivel >= CFG.thrCritico ? `acima de crítico (${fmtBR(CFG.thrCritico, 0)} m)` : nivel >= CFG.thrAtencao ? `acima de atenção (${fmtBR(CFG.thrAtencao, 0)} m)` : `abaixo de atenção (${fmtBR(CFG.thrAtencao, 0)} m)`;
+  const mVal = nivel === null ? "—" : margem(nivel).replace(/ (acima|abaixo) de .*$/, "");
+  const recente = pico && e.agora - pico.t < PERIODOS[e.periodo].bucketMs * 1.5;
+  return (
+    <div className="grid grid-cols-2 border-b border-linha md:grid-cols-[1.3fr_1fr_1fr_1fr]">
+      <div className="p-4">
+        <div className="mb-1.5 text-[12px] text-texto-3">Nível d'água agora</div>
+        <div className={`num text-[32px] font-semibold leading-none tracking-tight ${sem ? "text-texto-3" : cor}`}>
+          {nivel !== null ? fmtBR(nivel) : "—"}<small className="ml-0.5 text-[16px] font-normal text-texto-2">m</small>
+        </div>
+        <div className="num mt-1.5 text-[12px] text-texto-2">
+          {nc ? "servidor sem resposta" : sem ? (s.nivel !== null ? `último ${fmtBR(s.nivel)} m · não confirmado` : "nenhuma leitura") : `${hora(s.recepcao! * 1000)} · ${formatUltima(s.recepcao, e.agora).replace("há <1 min", "há menos de 1 min")}`}
+        </div>
+      </div>
+      <Kpi k="Margem" v={mVal} det={mDet} />
+      <Kpi k="Tendência" v={sem || s.taxa === null ? "—" : `${s.taxa > 0 ? "+" : ""}${fmtBR(s.taxa)} m/dia`} det={tendDet} />
+      <Kpi k={`Máx. ${per}`} v={pico ? `${fmtBR(pico.max)} m` : "—"} det={pico ? `${e.periodo === "24h" ? hora(pico.t) : diaHora(pico.t)}${recente ? " · agora" : ""}` : "sem histórico"} />
+    </div>
+  );
+}
+const Kpi = ({ k, v, det }: { k: string; v: string; det: string }) => (
+  <div className="border-l border-linha p-4 pr-3 max-md:[&:nth-child(3)]:border-l-0">
+    <div className="mb-1.5 text-[12px] text-texto-3">{k}</div>
+    <div className="num whitespace-nowrap text-[18px] font-semibold leading-tight">{v}</div>
+    <div className="mt-1.5 text-[12px] text-texto-2">{det}</div>
   </div>
 );
 
-// ── INDICADORES ───────────────────────────────────────────────────────────────
-function Indicadores({ e }: { e: EstadoPainel }) {
-  const s = situacaoPz(e.ultimos[e.pzSel], e.agora / 1000);
-  const nc = naoConfirmado(e);
-  const sem = nc || s.lv === "semsinal";
-  const nivel = sem ? null : s.nivel;
-  const folga = (lim: number, tipo: "wr" | "cr") => {
-    if (nivel === null) return { v: "–", det: `limite ${fmtBR(lim, 0)} m`, tom: undefined };
-    const f = lim - nivel;
-    return f > 0 ? { v: `${fmtBR(f)} m`, det: `limite ${fmtBR(lim, 0)} m`, tom: undefined }
-      : { v: `+${fmtBR(-f)} m`, det: `acima do limite de ${fmtBR(lim, 0)} m`, tom: tipo };
-  };
-  const fa = folga(CFG.thrAtencao, "wr"), fc = folga(CFG.thrCritico, "cr");
-  const pts = e.hist.estado === "ok" ? e.hist.pontos : [];
-  const mins = pts.map(p => p.min ?? p.v), maxs = pts.map(p => p.max);
-  const per = PERIODOS[e.periodo].label;
-  const pv = previsao(nc ? { lv: "semsinal", nivel: null, taxa: null } : s);
-  const cor = (t?: string) => t === "cr" ? "var(--cr)" : t === "wr" ? "var(--wr)" : undefined;
-  return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-      <Tile r="Nível d'água" v={nc ? "–" : s.nivel !== null ? `${fmtBR(s.nivel)} m` : "–"} muted={sem}
-        det={nc ? "não confirmado" : sem ? (s.nivel !== null ? "última conhecida · não confirmada" : "nenhuma leitura") : `recebido ${formatUltima(s.recepcao, e.agora)}`}
-        cor={!sem && s.lv === "critico" ? "var(--cr)" : undefined} destaque />
-      <Tile r="Folga até atenção" v={fa.v} det={fa.det} cor={cor(fa.tom)} />
-      <Tile r="Folga até crítico" v={fc.v} det={fc.det} cor={cor(fc.tom)} />
-      <Tile r="Taxa de variação" v={s.taxa === null || sem ? "–" : `${s.taxa >= 0 ? "+" : ""}${fmtBR(s.taxa)} m/dia`}
-        det={sem ? "sem leitura recente" : taxaRapida(s.taxa) ? "variação rápida: investigar" : "janela de 1 h no servidor"} cor={!sem && taxaRapida(s.taxa) ? "var(--wr)" : undefined} />
-      <Tile r={`Faixa · ${per}`} v={pts.length ? `${fmtBR(Math.min(...mins))}–${fmtBR(Math.max(...maxs))} m` : "–"}
-        det={pts.length ? `variação de ${fmtBR(Math.max(...maxs) - Math.min(...mins))} m no período` : "sem histórico"} />
-      <Tile r={pv.titulo} v={pv.valor} det={pv.det} cor={cor(pv.tom)} selo={pv.estimativa ? "estimativa pela taxa atual" : undefined} />
-    </div>
-  );
-}
-
-function Tile({ r, v, det, cor, muted, destaque, selo }: { r: string; v: string; det: string; cor?: string; muted?: boolean; destaque?: boolean; selo?: string }) {
-  return (
-    <div className="card min-w-0 p-4" style={destaque ? { background: "linear-gradient(180deg, var(--marca-soft), var(--card) 75%)" } : undefined}>
-      <div className="text-[12px] font-medium text-texto-3">{r}</div>
-      <div className={`num mt-1 font-semibold leading-tight ${destaque ? "text-[26px]" : "text-[19px]"}`} style={{ color: cor ?? (muted ? "var(--texto-3)" : undefined) }}>{v}</div>
-      <div className="mt-1 text-[12px] leading-snug text-texto-2">{det}</div>
-      {selo && <div className="mt-2 inline-flex rounded-md bg-card-2 px-1.5 py-0.5 text-[11px] font-medium text-texto-3">{selo}</div>}
-    </div>
-  );
-}
-
-// ── HISTÓRICO ─────────────────────────────────────────────────────────────────
-function Historico({ e }: { e: EstadoPainel }) {
-  const s = situacaoPz(e.ultimos[e.pzSel], e.agora / 1000);
+// ── GRÁFICO + EXPORTAR ────────────────────────────────────────────────────────
+function Historico({ e, lv }: { e: EstadoPainel; lv: Situacao }) {
   const h = e.hist;
   const ok = h.estado === "ok" && h.pontos.length > 0;
-  const longo = e.periodo !== "24h";
-  const relatorio = `relatorio.html?pz=${encodeURIComponent(e.pzSel)}&range=${encodeURIComponent(e.periodo)}`;
+  const per = PERIODOS[e.periodo];
+  const fim = e.agora, ini = fim - (DIAS[e.periodo] ?? 1) * 86400_000;
   return (
-    <Cartao titulo="Histórico do nível d'água" sub="linha cheia = média do intervalo · tracejada = máximo do intervalo"
-      acoes={<>
-        <Segmentado rotulo="Período" valor={e.periodo} aoMudar={p => painel.selecionarPeriodo(p)} opcoes={Object.entries(PERIODOS).map(([v, p]) => ({ v, t: p.label }))} />
-        <Botao disabled={!ok} onClick={() => exportarCsv(h.pontos, e.pzSel, e.periodo, h.bucketSeg, e.simulada)} title="Intervalos do gráfico, com identificação da fonte"><Download size={14} /> CSV</Botao>
-        <Botao disabled={!ok} onClick={() => exportarXls(h.pontos, e.pzSel, e.periodo, h.bucketSeg, e.simulada)} title="Planilha com status pelo pico e resumo do período"><FileSpreadsheet size={14} /> Excel</Botao>
-        <Botao escuro href={relatorio} disabled={e.simulada} title={e.simulada ? "O relatório usa só dados reais: indisponível na demonstração" : "Documento A4 para salvar como PDF"}><FileText size={14} /> Relatório PDF</Botao>
-      </>}>
-      {ok ? <GraficoInstrumento pontos={h.pontos} bucketMs={PERIODOS[e.periodo].bucketMs} longo={longo} estado={s.lv} />
-        : <div className="grid h-[280px] place-items-center text-[13px] text-texto-3">{h.estado === "carregando" ? "Carregando histórico…" : h.msg}</div>}
-      <p className="mt-2 text-[12px] text-texto-3">Série por intervalos. Exportações seguem os intervalos do gráfico, não as amostras brutas{e.simulada ? "; na demonstração, vêm marcadas como SIMULAÇÃO" : ""}.</p>
-    </Cartao>
-  );
-}
-
-function Leituras({ e }: { e: EstadoPainel }) {
-  const h = e.hist;
-  const linhas = h.estado === "ok" ? h.pontos.slice(-12).reverse() : [];
-  const longo = e.periodo !== "24h";
-  return (
-    <Cartao titulo="Leituras disponíveis" sub={`últimos intervalos · ${PERIODOS[e.periodo].label} · status pelo pico`} corpo="px-5 pb-4 pt-2">
-      {linhas.length ? (
-        <div className="max-h-[320px] overflow-auto">
-          <table className="w-full text-[13px]">
-            <thead className="sticky top-0 bg-card text-left text-[12px] text-texto-3"><tr><th className="py-1.5 font-medium">{longo ? "Data / hora" : "Hora"}</th><th className="font-medium">Média</th><th className="font-medium">Máx.</th><th className="font-medium">Status</th></tr></thead>
-            <tbody className="divide-y divide-linha">
-              {linhas.map(p => {
-                const lv = classificarNivel(p.max);
-                return (
-                  <tr key={p.t}>
-                    <td className="num py-1.5 text-texto-2">{longo ? diaHora(p.t) : hora(p.t)}</td>
-                    <td className="num">{fmtBR(p.v)} m</td>
-                    <td className="num text-texto-2">{fmtBR(p.max)} m</td>
-                    <td><span className="inline-flex items-center gap-1.5 text-[12.5px]" style={{ color: lv === "critico" ? "var(--cr)" : lv === "atencao" ? "var(--wr)" : "var(--texto-2)", fontWeight: lv === "normal" ? 400 : 600 }}><Forma estado={lv} size={11} />{ROTULO[lv]}</span></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+        <h3 className="text-[14px] font-semibold">Nível {e.periodo === "24h" ? "nas últimas 24 h" : `nos últimos ${per.label}`}</h3>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-linha-2 bg-fundo p-0.5" role="group" aria-label="Período">
+            {Object.entries(PERIODOS).map(([v, p]) => (
+              <button key={v} type="button" aria-pressed={e.periodo === v} onClick={() => painel.selecionarPeriodo(v)}
+                className={`h-[26px] rounded-md px-2.5 text-[12px] font-medium ${e.periodo === v ? "bg-card-2 text-texto" : "text-texto-2 hover:text-texto"}`}>{p.label}</button>
+            ))}
+          </div>
+          <Exportar e={e} ok={ok} />
         </div>
-      ) : <p className="py-6 text-center text-[13px] text-texto-3">{h.estado === "carregando" ? "Carregando…" : "Nenhuma leitura no período."}</p>}
-    </Cartao>
+      </div>
+      <div className="px-2 pb-2">
+        {ok ? <GraficoInstrumento pontos={h.pontos} bucketMs={per.bucketMs} longo={e.periodo !== "24h"} estado={lv} ini={ini} fim={fim} />
+          : <div className="grid h-[250px] place-items-center text-texto-3">{h.estado === "carregando" ? "Carregando histórico…" : h.msg}</div>}
+      </div>
+    </div>
   );
 }
 
-function CartaoComunicacao({ e }: { e: EstadoPainel }) {
-  const d = e.ultimos[e.pzSel];
-  const s = situacaoPz(d, e.agora / 1000);
-  const nc = naoConfirmado(e);
+function Exportar({ e, ok }: { e: EstadoPainel; ok: boolean }) {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (ev: MouseEvent) => { if (!ref.current?.contains(ev.target as Node)) setAberto(false); };
+    document.addEventListener("mousedown", fora);
+    return () => document.removeEventListener("mousedown", fora);
+  }, [aberto]);
+  const h = e.hist;
+  const relatorio = `relatorio.html?pz=${encodeURIComponent(e.pzSel)}&range=${encodeURIComponent(e.periodo)}`;
+  const item = "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[14px] hover:bg-card-2 disabled:pointer-events-none disabled:opacity-50";
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" className="btn" aria-expanded={aberto} aria-haspopup="menu" onClick={() => setAberto(v => !v)}>Exportar<ChevronDown size={16} strokeWidth={1.75} /></button>
+      {aberto && (
+        <div role="menu" className="absolute right-0 top-9 z-[1200] w-60 rounded-lg border border-linha-2 bg-card p-1 shadow-[0_8px_24px_rgba(0,0,0,.4)]">
+          <button role="menuitem" type="button" disabled={!ok} className={item} title="Intervalos do gráfico, com identificação da fonte"
+            onClick={() => { exportarCsv(h.pontos, e.pzSel, e.periodo, h.bucketSeg, e.simulada); setAberto(false); }}><Download size={16} strokeWidth={1.75} />CSV dos intervalos</button>
+          <button role="menuitem" type="button" disabled={!ok} className={item} title="Planilha com estado pelo máximo e resumo do período"
+            onClick={() => { exportarXls(h.pontos, e.pzSel, e.periodo, h.bucketSeg, e.simulada); setAberto(false); }}><FileSpreadsheet size={16} strokeWidth={1.75} />Planilha Excel</button>
+          {e.simulada
+            ? <span role="menuitem" aria-disabled className={`${item} cursor-not-allowed opacity-50`} title="O relatório usa só dados reais: indisponível na simulação"><FileText size={16} strokeWidth={1.75} />Relatório PDF · só dados reais</span>
+            : <a role="menuitem" className={item} href={relatorio} target="_blank" rel="noopener" onClick={() => setAberto(false)}><FileText size={16} strokeWidth={1.75} />Relatório PDF (A4)</a>}
+          {e.simulada && <p className="px-3 pb-1.5 pt-1 text-[12px] text-texto-3">Arquivos marcados como SIMULAÇÃO.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── COMUNICAÇÃO E CADASTRO (compactos) ────────────────────────────────────────
+function Kv({ itens }: { itens: [string, ReactNode, boolean?][] }) {
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 px-4 pb-4 pt-3 text-[12px]">
+      {itens.map(([k, v, vazio]) => [
+        <dt key={`${k}-k`} className="text-texto-3">{k}</dt>,
+        <dd key={`${k}-v`} className={`num text-right ${vazio ? "text-texto-3" : "font-medium text-texto"}`}>{v}</dd>,
+      ])}
+    </dl>
+  );
+}
+
+function Comunicacao({ e, s, nc }: { e: EstadoPainel; s: Estado; nc: boolean }) {
   const ok = !nc && s.lv !== "semsinal";
   const ts = s.recepcao;
   const disp = disponibilidade24h(e, e.pzSel);
   const falhas = ocorrencias(e).filter(o => o.pz === e.pzSel && o.lv === "semsinal");
-  const ultimaFalha = !ok && fin(ts) ? `em andamento · ${formatUltima(ts, e.agora)}` : falhas.length ? diaHora(falhas[0].t) : "nenhuma registrada";
+  const ultimaFalha = nc ? "—" : !ok ? "em andamento" : falhas.length ? diaHora(falhas[0].t).replace(",", "") : "nenhuma registrada";
   const esperadas = Math.round(86400 / CFG.intervaloEnvioSeg);
   return (
-    <Cartao titulo="Comunicação" acoes={nc ? <Selo estado="semsinal" texto="Não confirmado" /> : <Selo estado={ok ? "normal" : "semsinal"} texto={ok ? "Online" : "Sem sinal"} />}>
-      <div className="text-[22px] font-semibold" style={{ color: ok ? undefined : "var(--texto-3)" }}>{nc ? "–" : fin(ts) ? formatUltima(ts, e.agora) : "nunca"}</div>
-      <div className="text-[12.5px] text-texto-3">{nc ? "servidor sem resposta" : fin(ts) ? `última recepção · ${new Date(ts * 1000).toLocaleString("pt-BR")}` : "nenhuma leitura recebida"}</div>
-      <dl className="mt-4 space-y-2 text-[13px]">
-        <Linha k="Intervalo de envio" v={<span className="num">{CFG.intervaloEnvioSeg} s</span>} />
-        <Linha k="Leituras recebidas 24 h" v={<span className="num">{disp ? `${disp.recebidas.toLocaleString("pt-BR")} de ${esperadas.toLocaleString("pt-BR")}` : "–"}</span>} />
-        <div>
-          <Linha k="Disponibilidade 24 h" v={<span className="num">{disp ? `${fmtBR(disp.pct, 1)}%` : "–"}</span>} />
-          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-card-2"><div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${disp?.pct ?? 0}%`, background: disp && disp.pct < 98 ? "var(--of)" : "var(--marca)" }} /></div>
+    <Bloco titulo="Comunicação">
+      <Kv itens={[
+        ["Última leitura", nc ? "servidor sem resposta" : fin(ts) ? `${new Date(ts * 1000).toLocaleTimeString("pt-BR")} · ${formatUltima(ts, e.agora).replace(/^há /, "")}` : "nunca", !fin(ts) || nc],
+        ["Intervalo de envio", `${CFG.intervaloEnvioSeg} s`],
+        ["Leituras em 24 h", disp ? `${disp.recebidas.toLocaleString("pt-BR")} de ${esperadas.toLocaleString("pt-BR")}` : "—", !disp],
+        ["Disponibilidade 24 h", disp ? `${fmtBR(disp.pct, 1)}%` : "—", !disp],
+        ["Última falha", ultimaFalha],
+      ]} />
+    </Bloco>
+  );
+}
+
+function Cadastro({ e, aoEditar }: { e: EstadoPainel; aoEditar: () => void }) {
+  const pz = e.piezometros.find(p => p.id === e.pzSel)!;
+  const c = painel.cadastro(pz.id);
+  const campos: [string, string | null][] = [
+    ["Sensor", c.sensor || null],
+    ["Coordenadas", `${fmtBR(pz.lat, 4)}, ${fmtBR(pz.lng, 4)}`],
+    ["Local", c.local || null],
+    ["Profundidade", c.prof !== null ? `${fmtBR(c.prof)} m` : null],
+    ["Instalação", c.instalado ? new Date(`${c.instalado}T12:00`).toLocaleDateString("pt-BR") : null],
+    ["Responsável", c.resp || null],
+  ];
+  const vazios = campos.filter(([, v]) => v === null).length;
+  return (
+    <Bloco titulo="Cadastro" acoes={<LinkCab onClick={aoEditar}>Editar</LinkCab>}>
+      <Kv itens={campos.map(([k, v]) => [k, v ?? "—", v === null])} />
+      {vazios > 0 && <p className="px-4 pb-4 text-[12px] text-texto-3">{vazios} {vazios === 1 ? "campo" : "campos"} sem preenchimento · <button type="button" onClick={aoEditar} className="text-marca-2 hover:underline">Completar</button></p>}
+    </Bloco>
+  );
+}
+
+// ── LEITURAS POR INTERVALO ────────────────────────────────────────────────────
+// Mais recentes primeiro, sem duplicatas; estado pelo máximo; lacunas numa linha própria.
+type LinhaLeit = { tipo: "p"; p: PontoHist } | { tipo: "lacuna"; de: number; ate: number };
+
+function Leituras({ e }: { e: EstadoPainel }) {
+  const h = e.hist;
+  const longo = e.periodo !== "24h";
+  const limite = 2 * PERIODOS[e.periodo].bucketMs;
+  // Um registro por intervalo: a leitura ao vivo que cai no intervalo já listado
+  // não vira linha nova; só atualiza o máximo.
+  const passo = (h.bucketSeg ? h.bucketSeg * 1000 : 0) || PERIODOS[e.periodo].bucketMs;
+  const m = new Map<number, PontoHist>();
+  [...(h.estado === "ok" ? h.pontos : [])].sort((a, b) => a.t - b.t).forEach(p => {
+    const k = Math.floor(p.t / passo), ja = m.get(k);
+    m.set(k, ja ? { ...ja, max: Math.max(ja.max, p.max) } : p);
+  });
+  const pts = [...m.values()].sort((a, b) => b.t - a.t).slice(0, 12);
+  const linhas: LinhaLeit[] = [];
+  pts.forEach((p, i) => {
+    if (i && pts[i - 1].t - p.t > limite) linhas.push({ tipo: "lacuna", de: p.t, ate: pts[i - 1].t });
+    linhas.push({ tipo: "p", p });
+  });
+  const quando = (t: number) => longo ? diaHora(t).replace(",", "") : hora(t);
+  const dataCurta = (t: number) => {
+    const d = new Date(t);
+    return new Date().toDateString() === d.toDateString() ? hora(t) : `${hora(t)} (${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })})`;
+  };
+  const COLS = "grid grid-cols-[96px_1fr_1fr_120px] items-center gap-4 px-4";
+  return (
+    <Bloco titulo="Leituras por intervalo" acoes={<span className="text-[12px] text-texto-3">Mais recentes primeiro · estado pelo máximo</span>}>
+      {linhas.length ? (
+        <div className="max-h-[440px] overflow-auto">
+          <div className={`${COLS} sticky top-0 h-8 border-b border-linha bg-card text-[12px] font-medium text-texto-3`}><span>{longo ? "Data" : "Hora"}</span><span>Média</span><span>Máxima</span><span>Estado</span></div>
+          {linhas.map(l => {
+            if (l.tipo === "lacuna")
+              return (
+                <div key={`l${l.de}`} className="flex h-8 items-center gap-2 border-b border-linha px-4 text-[12px] text-texto-3 [background:repeating-linear-gradient(135deg,transparent_0_6px,rgba(255,255,255,.02)_6px_12px)]">
+                  <Forma estado="semsinal" size={12} />Sem dados de {dataCurta(l.de)} a {dataCurta(l.ate)}
+                </div>
+              );
+            const lv = classificarNivel(l.p.max);
+            return (
+              <div key={l.p.t} className={`${COLS} h-10 border-b border-linha last:border-b-0`}>
+                <span className="num text-texto-2">{quando(l.p.t)}</span>
+                <span className="num">{fmtBR(l.p.v)} m</span>
+                <span className="num">{fmtBR(l.p.max)} m</span>
+                <span className={`flex items-center gap-2 ${COR_EST[lv]}`}><Forma estado={lv} size={12} />{ROTULO[lv]}</span>
+              </div>
+            );
+          })}
         </div>
-        <Linha k="Última falha" v={ultimaFalha} />
-        <Linha k="Sinal da UCT" v={<i className="font-normal text-texto-3">não enviado pelo firmware</i>} />
-      </dl>
-    </Cartao>
+      ) : <p className="px-4 py-6 text-center text-texto-3">{h.estado === "carregando" ? "Carregando…" : "Nenhuma leitura no período."}</p>}
+    </Bloco>
   );
 }
