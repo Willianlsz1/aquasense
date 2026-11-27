@@ -7,7 +7,7 @@ export const LIMITE_API_ALERTAS = 50;
 
 export type EventoServidor = { ts: string; dataLocal: string; instrumento: string; tipo: string; evento: string; acao: string;
   valor?: number; taxa?: number; silencioMin?: number };
-export type Ocorrencia = { pz: string; lv: Situacao | "ok"; t: number; titulo: string; det: string; servidor?: boolean };
+export type Ocorrencia = { pz: string; lv: Situacao | "ok"; t: number; titulo: string; det: string; servidor?: boolean; acao?: string };
 
 function textoSeguro(valor: unknown, reserva = "—"): string {
   if (typeof valor !== "string" && typeof valor !== "number") return reserva;
@@ -40,6 +40,15 @@ const TITULOS_SERVIDOR: Record<string, string> = {
   "VARIAÇÃO RÁPIDA": "Variação rápida", "VARIAÇÃO NORMALIZADA": "Variação normalizada",
 };
 
+// Ação registrada pelo servidor em frase curta e normal (sem caixa alta).
+function acaoCurta(chave: string) {
+  if (/CR[IÍ]TICO/.test(chave)) return "Acionar equipe de geotecnia";
+  if (/R[AÁ]PIDA/.test(chave)) return "Investigar, mesmo na faixa normal";
+  if (/ATEN/.test(chave)) return "Intensificar monitoramento";
+  if (chave.includes("SEM SINAL")) return "Verificar instrumento e comunicação";
+  return "—";
+}
+
 // Primeiro número do texto do servidor ("4.04 m"), caso o registro não traga o campo.
 const numeroNoTexto = (t: string) => { const m = t.match(/-?\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; };
 
@@ -66,7 +75,7 @@ export function ocorrenciaDoServidor(ev: EventoServidor): Ocorrencia {
     const v = ev.valor ?? numeroNoTexto(detalhe);
     if (fin(v)) det = `${fmtBR(v)} m`;
   }
-  return { pz: ev.instrumento, lv, t: new Date(ev.ts).getTime(), titulo, det, servidor: true };
+  return { pz: ev.instrumento, lv, t: new Date(ev.ts).getTime(), titulo, det, servidor: true, acao: acaoCurta(chave) };
 }
 
 export function textoOcorrencia(lv: Situacao, nivel: number | null): { titulo: string; det: string } {

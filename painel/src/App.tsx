@@ -48,7 +48,7 @@ export default function App() {
       <main className="min-w-0 max-w-[1520px] flex-1 space-y-6 px-4 pb-24 pt-4 sm:px-8 sm:pt-6 lg:pb-8">
         {e.vista !== "instrumento" && <Topo e={e} />}
         {e.simulada && <BarraDemo e={e} />}
-        {e.vista !== "visao" && e.vista !== "instrumento" && <FaixaAlarme e={e} />}
+        {e.vista === "mapa" && <FaixaAlarme e={e} />}
         {!e.pronto ? <p className="py-16 text-center text-texto-3">Carregando configuração…</p>
           : e.vista === "visao" ? <VisaoGeral e={e} />
           : e.vista === "mapa" ? <TelaMapa e={e} />
