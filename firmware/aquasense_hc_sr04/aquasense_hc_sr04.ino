@@ -14,11 +14,17 @@
 #include <WiFiClientSecure.h>
 #include <time.h>
 
-// ===== CREDENCIAIS (preencha antes de gravar) =====
+// ===== CREDENCIAIS =====
+// Ficam em "segredos.h", na mesma pasta (fora do Git). Modelo: segredos.h.example.
+// Sem esse arquivo, o firmware compila com os valores de exemplo abaixo e mede offline.
+#if __has_include("segredos.h")
+#include "segredos.h"
+#else
 #define WIFI_SSID     "SUA_REDE_WIFI"
 #define WIFI_PASS     "SUA_SENHA_WIFI"
 #define SERVER_URL    "https://piezometro-worker.SEU-SUBDOMINIO.workers.dev/ingest"
 #define DEVICE_KEY    "troque-esta-chave"   // a mesma DEVICE_KEY do Worker
+#endif
 #define PIEZOMETRO_ID "PZ-01"
 
 // ===== FAIXAS DE ALERTA (m) =====

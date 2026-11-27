@@ -1,0 +1,6 @@
+// Copie este arquivo como "segredos.h" (mesma pasta) e preencha.
+// segredos.h está no .gitignore: a senha e a chave não vão para o repositório.
+#define WIFI_SSID   "SUA_REDE_WIFI"
+#define WIFI_PASS   "SUA_SENHA_WIFI"
+#define SERVER_URL  "https://piezometro-worker.willianloopes123.workers.dev/ingest"
+#define DEVICE_KEY  "troque-esta-chave"   // a mesma DEVICE_KEY configurada no Worker

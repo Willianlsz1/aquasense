@@ -9,3 +9,4 @@ firmware/referencia_uct/piezometro_config_local.h
 /docs/prototipo/
 /docs/tcc/
 painel/dist/
+firmware/aquasense_hc_sr04/segredos.h
